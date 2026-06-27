@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "HouseEscrowStatus" ADD VALUE 'PAYMENT_INITIATING';

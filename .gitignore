@@ -23,3 +23,10 @@ logs/
 # Build
 dist/
 build/
+node_modules/
+.env
+*.env
+.expo/
+dist/
+build/
+logs/

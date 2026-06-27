@@ -1,0 +1,1536 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  phone              String             @unique
+  fullName           String
+  pinHash            String
+  deviceId           String?
+  kycStatus          KycStatus          @default(unverified)
+  kycTier            String             @default("basic")
+  role               Role               @default(buyer)
+  accountStatus      AccountStatus      @default(active)
+  reputationScore    Decimal            @default(100.00) @db.Decimal(5, 2)
+  totalTransactions  Int                @default(0)
+  totalDisputed      Int                @default(0)
+  totalCompleted     Int                @default(0)
+  simLastChanged     DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  lastLogin          DateTime?
+  email              String             @unique
+  pushToken          String?
+  avatarUrl          String?
+  sentTransfers      ProtectedTransfer[]  @relation("SentTransfers")
+  receivedTransfers  ProtectedTransfer[]  @relation("ReceivedTransfers")
+  auditLogs          AuditLog[]
+  disputesOpened     Dispute[]          @relation("DisputeOpener")
+  disputesResolved   Dispute[]          @relation("DisputeResolver")
+  fraudSignals       FraudSignal[]
+  mpesaTransactions  MpesaTransaction[]
+  notifications      Notification[]
+  paymentRequests    PaymentRequest[]
+  listings           SecondHandListing[]
+  fundiJobsBuyer     FundiJob[]         @relation("BuyerFundiJobs")
+  fundiDisputesOpened FundiDispute[]    @relation("FundiDisputeOpener")
+  sellerProfile      SellerProfile?
+  buyerTransactions  Transaction[]      @relation("BuyerTransactions")
+  sellerTransactions Transaction[]      @relation("SellerTransactions")
+  wallet             Wallet?
+  fundiAuditLogs     FundiAuditLog[]
+    buyerDeliveries       DeliveryOrder[]       @relation("BuyerDeliveries")
+  houseEscrows          HouseEscrow[]         @relation("BuyerHouseEscrows")
+  customEscrowsAsBuyer  CustomEscrow[]        @relation("CustomBuyer")
+  kycPayments           KycPayment[]
+  orders                Order[]               @relation("BuyerOrders")
+  sentMoneyRequests      RequestMoney[]        @relation("RequesterRequests")
+  receivedMoneyRequests  RequestMoney[]           @relation("RecipientRequests")
+ 
+}
+
+model SellerProfile {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  businessName     String?
+  category         Category
+  idNumber         String?
+  idDocUrl         String?
+  faceVerified     Boolean   @default(false)
+  tillNumber       String?
+  transactionLimit Decimal   @default(500.00) @db.Decimal(10, 2)
+  rating           Decimal   @default(5.00) @db.Decimal(3, 2)
+  totalEarned      Decimal   @default(0.00) @db.Decimal(12, 2)
+  isActive         Boolean   @default(true)
+  status           String    @default("active")
+  verifiedAt         DateTime?
+  idBackUrl          String?
+  selfieUrl          String?
+  kycSubmittedAt     DateTime?
+  kycRejectionReason String?
+  contactNumber      String?
+  trustedSeller      Boolean   @default(false)
+  trustedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model KycPayment {
+  id                String    @id @default(cuid())
+  userId            String
+  tier              String
+  amount            Decimal   @db.Decimal(10, 2)
+  phone             String
+  status            String    @default("pending")
+  checkoutRequestId String?   @unique
+  merchantRequestId String?
+  mpesaRef          String?
+  idempotencyKey    String    @unique
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model Wallet {
+  id               String              @id @default(uuid())
+  userId           String              @unique
+  availableBalance Decimal             @default(0.00) @db.Decimal(12, 2)
+  escrowBalance    Decimal             @default(0.00) @db.Decimal(12, 2)
+  pendingBalance   Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalIn          Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalOut         Decimal             @default(0.00) @db.Decimal(12, 2)
+  currency         String              @default("KES")
+  lastUpdated      DateTime            @default(now())
+  claimedAt        DateTime?
+  isGhost          Boolean             @default(false)
+  recallAt         DateTime?
+  recallStartedAt  DateTime?
+  recallCompletedAt DateTime?
+  dailySendDate    DateTime?
+  dailySendTotal   Decimal             @default(0.00) @db.Decimal(12, 2)
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionsOut  WalletTransaction[] @relation("WalletOut")
+  transactionsIn   WalletTransaction[] @relation("WalletIn")
+}
+
+model Milestone {
+  id              String         @id @default(uuid())
+  transactionId   String
+  milestoneNumber Int
+  description     String?
+  amount          Decimal        @db.Decimal(10, 2)
+  state           MilestoneState @default(pending)
+  deadline        DateTime?
+  proofUrl        String?
+  completedAt     DateTime?
+  releasedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Dispute {
+  id               String            @id @default(uuid())
+  transactionId    String
+  openedBy         String
+  reason           DisputeReason
+  description      String?
+  buyerEvidence    Json?
+  sellerEvidence   Json?
+  status           DisputeStatus     @default(open)
+  resolvedBy       String?
+  resolutionNote   String?
+  resolutionAction ResolutionAction?
+  openedAt         DateTime          @default(now())
+  resolvedAt       DateTime?
+  responseDeadline DateTime?
+  opener           User              @relation("DisputeOpener", fields: [openedBy], references: [id])
+  resolver         User?             @relation("DisputeResolver", fields: [resolvedBy], references: [id])
+  transaction      Transaction       @relation(fields: [transactionId], references: [id])
+}
+model Notification {
+  id            String              @id @default(uuid())
+  userId        String
+  transactionId String?
+  transferId    String?
+  houseEscrowId String?             
+  orderId       String?
+  requestId     String?
+  deliveryOrderId String?
+  customEscrowId  String?
+  type          NotificationType
+  channel       NotificationChannel
+  messageEn     String?
+  messageSw     String?
+  status        NotificationStatus  @default(pending)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime            @default(now())
+
+  transaction   Transaction?        @relation(fields: [transactionId], references: [id])
+  houseEscrow   HouseEscrow?        @relation(fields: [houseEscrowId], references: [id])  // ← ADD THIS LINE
+  order         Order?              @relation(fields: [orderId], references: [id])
+  deliveryOrder DeliveryOrder?      @relation(fields: [deliveryOrderId], references: [id])
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model FraudSignal {
+  id            String       @id @default(uuid())
+  userId        String?
+  transactionId String?
+  signalType    SignalType
+  severity      Severity
+  scoreImpact   Int
+  details       Json?
+  actionTaken   SignalAction
+  createdAt     DateTime     @default(now())
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  user          User?        @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id            String       @id @default(uuid())
+  timestamp     DateTime     @default(now())
+  actorId       String?
+  actorType     ActorType
+  action        String
+  entityType    String
+  entityId      String
+  previousState Json?
+  newState      Json?
+  amount        Decimal?     @db.Decimal(10, 2)
+  ipAddress     String?
+  deviceId      String?
+  metadata      Json?
+  transactionId String?
+  actor         User?        @relation(fields: [actorId], references: [id])
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+}
+
+model TimerJob {
+  id            String         @id @default(uuid())
+  transactionId String
+  jobType       TimerJobType
+  scheduledAt   DateTime
+  firedAt       DateTime?
+  status        TimerJobStatus @default(pending)
+  retryCount    Int            @default(0)
+  createdAt     DateTime       @default(now())
+  transaction   Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, jobType])
+}
+
+model WalletTransaction {
+  id           String         @id @default(uuid())
+  fromWalletId String?
+  toWalletId   String?
+  amount       Decimal        @db.Decimal(12, 2)
+  type         WalletTxType
+  reference    String         @unique
+  note         String?
+  createdAt    DateTime       @default(now())
+  clientRef    String?        @unique
+  status       WalletTxStatus @default(completed)
+  fee          Decimal?       @db.Decimal(12, 2)
+  fromWallet   Wallet?        @relation("WalletOut", fields: [fromWalletId], references: [id])
+  toWallet     Wallet?        @relation("WalletIn", fields: [toWalletId], references: [id])
+  deletedAt    DateTime?
+
+  @@index([fromWalletId, createdAt])
+}
+
+model MpesaTransaction {
+  id                String    @id @default(uuid())
+  userId            String
+  checkoutRequestId String    @unique
+  amount            Decimal   @db.Decimal(12, 2)
+  phone             String
+  status            String    @default("pending")
+  mpesaRef          String?   @unique
+  createdAt         DateTime  @default(now())
+  callbackPhone     String?
+  idempotencyKey    String?   @unique
+  merchantRequestId String?
+  processedAt       DateTime?
+  resultDesc        String?
+  fee               Decimal?  @db.Decimal(10, 2)
+  user              User      @relation(fields: [userId], references: [id])
+  @@index([userId])
+  @@index([status])
+}
+
+model PaymentRequest {
+  id          String    @id @default(uuid())
+  requesterId String
+  senderPhone String
+  amount      Decimal   @db.Decimal(10, 2)
+  fee         Decimal?  @db.Decimal(10, 2)
+  status      String    @default("pending")
+  reference   String    @unique
+  note        String?
+  expiresAt   DateTime
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  requester   User      @relation(fields: [requesterId], references: [id])
+}
+
+model Payout {
+  id                       String      @id @default(uuid())
+  transactionId            String
+  payoutType               String      @default("full")
+  amount                   Decimal     @db.Decimal(10, 2)
+  phone                    String
+  payoutChannel            String?
+  payoutDestination        String?
+  status                   String      @default("pending")
+  originatorConversationId String      @unique
+  conversationId           String?
+  mpesaRef                 String?
+  resultCode               Int?
+  resultDesc               String?
+  initiatedAt              DateTime    @default(now())
+  completedAt              DateTime?
+  failedAt                 DateTime?
+  createdAt                DateTime    @default(now())
+  transaction              Transaction @relation(fields: [transactionId], references: [id])
+
+  @@unique([transactionId, payoutType])
+}
+
+enum KycStatus {
+  unverified
+  pending
+  verified
+  rejected
+}
+
+enum Role {
+  buyer
+  seller
+  both
+  admin
+}
+
+enum AccountStatus {
+  active
+  suspended
+  frozen
+  banned
+}
+
+enum Category {
+  bundles
+  second_hand
+  delivery
+  fundi
+  house_agent
+  freelancer
+  goods_seller
+  other
+}
+
+enum TransactionState {
+  initiated
+  payment_pending
+  held
+  delivered
+  confirmed
+  disputed
+  resolved
+  released
+  refunded
+  expired
+  cancelled
+  releasing
+  payout_pending
+}
+
+enum MilestoneState {
+  pending
+  delivered
+  confirmed
+  released
+  disputed
+}
+
+enum DisputeReason {
+  not_as_described
+  fake_or_clone
+  not_delivered
+  wrong_item
+  damaged_goods
+  service_incomplete
+  fraud_suspected
+  other
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  resolved_buyer
+  resolved_seller
+  resolved_partial
+  escalated
+}
+
+enum ResolutionAction {
+  full_refund
+  full_release
+  partial_refund
+  partial_release
+}
+
+enum NotificationType {
+  money_sent
+  money_received
+  payment_received
+  deliver_now
+  confirm_delivery
+  money_released
+  refund_sent
+  dispute_opened
+  dispute_resolved
+  auto_release_warning
+  account_frozen
+  house_payment_held
+  house_deal_accepted
+  house_deal_rejected
+  bundle_otp
+  otp_handover
+  auto_otp
+  inspection_expired
+  auto_release
+  transfer_received
+  transfer_sent
+  transfer_accepted
+  transfer_declined
+  transfer_cancelled
+  transfer_expired
+  money_request_received
+  money_request_paid
+  money_request_rejected
+  money_request_cancelled
+  money_request_expired
+  dispute_response
+  REQUEST_REJECTED
+  NEW_DELIVERY_ORDER
+  BEFORE_PHOTO_UPLOADED
+  BEFORE_PHOTO_REJECTED
+  PICKUP_OTP_ISSUED
+  DELIVERY_STARTED
+  RECEIPT_OTP_ISSUED
+  PAYMENT_RELEASED
+  CUSTOM_DEAL_RECEIVED
+  CUSTOM_DEAL_ACCEPTED
+  CUSTOM_DEAL_REJECTED
+  CUSTOM_BUYER_CONFIRMED
+  CUSTOM_PAYMENT_RELEASED
+}
+enum NotificationChannel {
+  sms
+  push
+  whatsapp
+}
+
+enum NotificationStatus {
+  read
+  pending
+  sent
+  failed
+  delivered
+}
+
+enum SignalType {
+  velocity_breach
+  same_device_buyer_seller
+  same_ip_buyer_seller
+  new_account_large_amount
+  high_dispute_rate
+  sim_swap_detected
+  bot_behavior
+  pattern_anomaly
+  amount_structuring
+}
+
+enum Severity {
+  low
+  medium
+  high
+  critical
+}
+
+enum SignalAction {
+  logged
+  flagged
+  blocked
+  frozen
+}
+
+enum ActorType {
+  user
+  admin
+  system
+}
+enum TimerJobType {
+  delivery_reminder
+  auto_release
+  dispute_deadline
+  dispute_seller_timeout
+  dispute_admin_timeout
+  payment_expiry
+  confirmation_reminder
+  seller_delivery_deadline
+  inspection_deadline
+  handover_timeout
+  otp_entry_timeout
+  buyer_decision_deadline
+  auto_otp
+}
+
+
+enum TimerJobStatus {
+  pending
+  fired
+  cancelled
+  failed
+}
+
+enum WalletTxType {
+  send
+  receive
+  top_up
+  withdrawal
+  escrow_lock
+  escrow_release
+  refund
+  recall
+  platform_fee
+}
+
+enum WalletTxStatus {
+  pending
+  processing
+  completed
+  failed
+  reversed
+  recalled
+  disputed
+}
+
+model SecondHandListing {
+  id              String        @id @default(uuid())
+  sellerId        String
+  title           String
+  condition       ItemCondition
+  price           Decimal       @db.Decimal(10, 2)
+  description     String?
+  brand           String?
+  model           String?
+  serialNumber    String?
+  images          String[]
+  conditionPhotos String[]
+  status          ListingStatus @default(active)
+  lockedAt        DateTime?
+  soldAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  seller          User          @relation(fields: [sellerId], references: [id])
+  transactions    Transaction[]
+}
+
+enum ItemCondition {
+  new
+  like_new
+  refurbished
+  good
+  fair
+  faulty
+}
+
+enum ListingStatus {
+  active
+  locked
+  sold
+  cancelled
+}
+
+model Transaction {
+  id                   String             @id @default(uuid())
+  referenceNo          String             @unique
+  buyerId              String
+  sellerId             String
+  amount               Decimal            @db.Decimal(10, 2)
+  platformFee          Decimal?           @db.Decimal(10, 2)
+  sellerReceives       Decimal?           @db.Decimal(10, 2)
+  category             Category
+  description          String?
+  state                TransactionState   @default(initiated)
+  mpesaCheckoutId      String?   // STK push checkout ID only
+  b2bOriginatorId      String?   // B2B till payout originator ID
+  b2cOriginatorId      String?   // B2C pochi payout originator ID
+  mpesaRef             String?
+  mpesaReceipt         String?
+  buyerPhone           String?
+  sellerTill           String?
+  paymentDeadline      DateTime?
+  deliveryDeadline     DateTime?
+  confirmationDeadline DateTime?
+  autoReleaseAt        DateTime?
+  deliveryProofUrl     String?
+  deliveryNotes        String?
+  fraudScore           Int?
+  fraudFlags           Json?
+  hasMilestones        Boolean            @default(false)
+  totalMilestones      Int                @default(0)
+  completedMilestones  Int                @default(0)
+  idempotencyKey       String             @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  completedAt          DateTime?
+  payoutInitiatedAt    DateTime?
+  notifyPhone          String?
+  deliveredAt          DateTime?
+  otpCode              String?
+  otpExpiresAt         DateTime?
+  otpVerifiedAt        DateTime?
+  smsDeliveryStatus    String?
+  deletedByBuyer       Boolean            @default(false)
+  deletedBySeller      Boolean            @default(false)
+  listingId            String?
+  inspectionHours      Int?
+  sellerPhone          String?
+  inspectionDeadline   DateTime?
+  auditLogs            AuditLog[]
+  disputes             Dispute[]
+  fraudSignals         FraudSignal[]
+  milestones           Milestone[]
+  notifications        Notification[]
+  payouts              Payout[]
+  timerJobs            TimerJob[]
+  listing              SecondHandListing? @relation(fields: [listingId], references: [id])
+  buyer                User               @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  seller               User               @relation("SellerTransactions", fields: [sellerId], references: [id])
+
+@@index([buyerId])
+@@index([sellerId])
+@@index([state])
+@@index([buyerId, state])
+@@index([sellerId, state])
+@@index([createdAt])
+}
+
+// ═══════════════════════════════════════════
+// FUNDI JOB SERVICE
+// ═══════════════════════════════════════════
+
+model FundiJob {
+  id                    String         @id @default(uuid())
+  buyerId               String
+  fundiPhone            String
+  buyerPhone            String?                         
+  amount                Decimal        @db.Decimal(10, 2)
+  serviceFee            Decimal        @db.Decimal(10, 2)
+  totalCharged          Decimal        @db.Decimal(10, 2)
+  b2cCost               Decimal        @db.Decimal(10, 2) @default(0)
+  description           String
+  durationHours         Int
+  category              String?
+  deliverables          String[]
+  extensionCount        Int            @default(0)      
+  status                FundiJobStatus @default(PENDING_PAYMENT)
+  beforePhotos          String[]
+  afterPhotos           String[]
+  otpHash               String?
+  otpExpiresAt          DateTime?
+  otpFailedAttempts     Int            @default(0)
+  otpLockedAt           DateTime?
+  acceptedAt            DateTime?
+  deadlineAt            DateTime?
+  completedAt           DateTime?
+  inspectionDeadlineAt  DateTime?
+  overdueSentAt         DateTime?
+  mpesaCheckoutId       String?        @unique
+  mpesaRef              String?
+  createdAt             DateTime       @default(now())
+  deletedAt          DateTime?
+  updatedAt             DateTime       @updatedAt
+  buyer                 User           @relation("BuyerFundiJobs", fields: [buyerId], references: [id])
+  escrow                FundiEscrow?
+  dispute               FundiDispute?
+  smsReplies            FundiSmsReply[]
+  auditLogs             FundiAuditLog[]
+  @@index([buyerId, fundiPhone, status])
+}
+
+model FundiEscrow {
+  id                    String      @id @default(uuid())
+  jobId                 String      @unique
+  amount                Decimal     @db.Decimal(10, 2)
+  status                String      @default("held")
+  heldAt                DateTime    @default(now())
+  releasedAt            DateTime?
+  refundedAt            DateTime?
+  partialReleasedAmount Decimal?    @db.Decimal(10, 2)
+  partialRefundAmount   Decimal?    @db.Decimal(10, 2)
+  job                   FundiJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model FundiDispute {
+  id             String              @id @default(uuid())
+  jobId          String              @unique
+  openedBy       String
+  reason         String
+  purpose        TransferPurpose        @default(OTHER)
+  description    String?
+  evidencePhotos String[]
+  decision       FundiDisputeResult?
+  refundAmount   Decimal?            @db.Decimal(10, 2)
+  releaseAmount  Decimal?            @db.Decimal(10, 2)
+  status         FundiDisputeStatus  @default(OPEN)
+  resolvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  job            FundiJob            @relation(fields: [jobId], references: [id])
+  opener         User                @relation("FundiDisputeOpener", fields: [openedBy], references: [id])
+}
+
+model FundiSmsReply {
+  id          String    @id @default(uuid())
+  jobId       String?
+  phone       String
+  message     String
+  receivedAt  DateTime  @default(now())
+  processed   Boolean   @default(false)
+  result      String?
+  job         FundiJob? @relation(fields: [jobId], references: [id])
+}
+
+model FundiMpesaTransaction {
+  id                String    @id @default(uuid())
+  jobId             String    @unique
+  checkoutRequestId String    @unique
+  merchantRequestId String?
+  amount            Decimal   @db.Decimal(10, 2)
+  fee               Decimal   @db.Decimal(10, 2)
+  totalCharged      Decimal   @db.Decimal(10, 2)
+  phone             String
+  status            String    @default("pending")
+  mpesaRef          String?   @unique
+  idempotencyKey    String?   @unique
+  resultDesc        String?
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+}
+
+
+model FundiAuditLog {
+  id        String    @id @default(uuid())
+  action    String
+  jobId     String?
+  userId    String?
+  meta      Json?
+  createdAt DateTime  @default(now())
+  job       FundiJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+enum FundiJobStatus {
+  PENDING_PAYMENT
+  WAITING_FOR_FUNDI_ACCEPTANCE
+  ACTIVE
+  AWAITING_BUYER_REVIEW
+  OVERDUE
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  DISPUTED
+  RESOLVED                     
+  CLOSED
+}
+
+enum FundiDisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum FundiDisputeResult {
+  FULL_REFUND
+  FULL_RELEASE
+  PARTIAL
+}
+
+
+
+model DeliveryOrder {
+// ═══════════════════════════════════════════════════════════════════════════════
+// DELIVERY SYSTEM 
+
+  id                    String    @id @default(cuid())
+  
+  buyerId               String
+  buyer                 User      @relation("BuyerDeliveries", fields: [buyerId], references: [id], onDelete: Cascade)
+  deliveryGuyPhone      String
+  deliveryGuyName       String?
+  
+  amount                Decimal   @db.Decimal(10,2)
+  goods                 String
+  address               String
+  latitude              Float?
+  longitude             Float?
+  
+  setDeliveryTime       DateTime
+  originalDeliveryTime  DateTime
+  acceptedAt            DateTime?
+  pickupOtpEnteredAt    DateTime?
+  deliveryStartedAt     DateTime?
+  receivedAt            DateTime?
+  completedAt           DateTime?
+  
+  status                DeliveryStatus  @default(PENDING_PHOTO_UPLOAD)
+  
+  mpesaCheckoutId       String?   @unique
+  mpesaRef              String?   @unique
+  productDescription    String?
+  paymentRef            String?   @unique
+  paymentAttempts       Int       @default(0)
+  b2cOriginatorId       String?
+  lastPaymentAttempt    DateTime?
+  paymentFailureReason  String?
+  
+  extensionCount        Int       @default(0)
+  totalExtendedMinutes  Int       @default(0)
+  
+  hasDispute            Boolean   @default(false)
+  disputeOpenedAt       DateTime?
+  notifications         Notification[]
+  disputeResolution     String?
+  adminNotesOnDispute   String?
+  
+  deliveryGuyRiskScore  Int       @default(0)
+  requiresAfterPhoto    Boolean   @default(false)
+  
+  photos                DeliveryPhoto[]
+  timeline              DeliveryTimeline[]
+  otps                  DeliveryOTP[]
+  dispute               DeliveryDispute?
+  rating                DeliveryRating?
+  mpesaTx               DeliveryMpesaTransaction?
+  escrow                DeliveryEscrow?
+  
+  createdAt             DateTime  @default(now())
+  deletedAt          DateTime?
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([buyerId])
+  @@index([deliveryGuyPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@index([setDeliveryTime])
+}
+
+model DeliveryPhoto {
+  id                    String    @id @default(cuid())
+  orderId               String
+  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  photoType             DeliveryPhotoType
+  cloudinaryUrl         String
+  cloudinaryPublicId    String
+  uploadedBy            DeliveryActorType
+  uploadedAt            DateTime   @default(now())
+  
+  latitude              Float?
+  longitude             Float?
+  deviceId              String?
+  
+  buyerConfirmedAt      DateTime?
+  comparisonScore       Float?
+  fraudRiskScore        Float?
+  flaggedIssues         String[]
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([photoType])
+  @@index([uploadedBy])
+  @@unique([orderId, photoType])
+}
+
+model DeliveryOTP {
+  id                    String    @id @default(cuid())
+  orderId               String
+  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  otpType               DeliveryOTPType
+  otp                   String
+  expiresAt             DateTime
+  enteredAt             DateTime?
+  enteredBy             DeliveryActorType?
+  isValid               Boolean   @default(false)
+  attempts              Int       @default(0)
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([otpType])
+  @@index([expiresAt])
+}
+
+model DeliveryTimeline {
+  id                    String    @id @default(cuid())
+  orderId               String
+  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  event                 String
+  actor                 DeliveryActorType
+  timestamp             DateTime  @default(now())
+  details               String?
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([timestamp])
+  @@index([event])
+}
+
+model DeliveryDispute {
+  id                    String    @id @default(cuid())
+  orderId               String    @unique
+  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  claimerType           DeliveryActorType
+  reason                String
+  claimDescription      String?
+  
+  photoComparison       DeliveryPhotoComparison?
+  cvAnalysisReport      String?
+  evidenceBundle        String?
+  
+  status                DeliveryDisputeStatus @default(OPEN)
+  resolution            String?
+  adminAssignedTo       String?
+  resolvedAt            DateTime?
+  adminNotes            String?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([claimerType])
+  @@index([createdAt])
+}
+
+model DeliveryPhotoComparison {
+  id                    String    @id @default(cuid())
+  disputeId             String    @unique
+  dispute               DeliveryDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  
+  beforePhotoUrl        String
+  duringPhotoUrl        String
+  afterPhotoUrl         String?
+  
+  resembleScore         Float?
+  pHashDistance         Int?
+  orbMatches            Int?
+  clipSimilarity        Float?
+  dinoV2Similarity      Float?
+  
+  tamperedScore         Float?
+  substitutedScore      Float?
+  damageDetected        Boolean?
+  missingItemDetected   Boolean?
+  
+  finalVerdict          String?
+  confidence            Float?
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([disputeId])
+}
+
+model DeliveryGuyRiskProfile {
+  id                    String    @id @default(cuid())
+  phone                 String    @unique
+  
+  totalDisputes         Int       @default(0)
+  minorDisputes         Int       @default(0)
+  refundDisputes        Int       @default(0)
+  fraudConfirmed        Int       @default(0)
+  
+  riskScore             Int       @default(0)
+  riskLevel             DeliveryRiskLevel @default(LOW)
+  
+  lastDisputeAt         DateTime?
+  cautiondedAt          DateTime?
+  flaggedForReview      Boolean   @default(false)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([riskScore])
+  @@index([riskLevel])
+  @@index([phone])
+}
+
+model DeliveryPaymentRetryLog {
+  id                    String    @id @default(cuid())
+  orderId               String
+  
+  attempt               Int
+  reason                String
+  mpesaResponseCode     String?
+  mpesaResponseDesc     String?
+  nextRetryAt           DateTime?
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model DeliveryEvidenceBundle {
+  id                    String    @id @default(cuid())
+  disputeId             String    @unique
+  
+  beforePhoto           String
+  duringPhoto           String
+  afterPhoto            String?
+  
+  photoComparison       String
+  cvAnalysisReport      String
+  timeline              String
+  gpsData               String
+  otpLogs               String
+  smsSentLogs           String
+  paymentLogs           String
+  
+  generatedAt           DateTime  @default(now())
+  
+  @@index([disputeId])
+}
+
+model DeliveryRating {
+  id                    String    @id @default(cuid())
+  orderId               String    @unique
+  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  rating                Int
+  review                String?
+  ratedAt               DateTime  @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DELIVERY SYSTEM - ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum DeliveryStatus {
+  PENDING_PAYMENT
+  PENDING_PHOTO_UPLOAD
+  PHOTO_WAITING_BUYER_CONFIRMATION
+  PHOTO_CONFIRMED_BY_BUYER
+  PICKUP_ISSUED
+  IN_TRANSIT
+  DELIVERY_PHOTO_UPLOADED
+  AWAITING_RECEIPT
+  RECEIPT_OTP_ISSUED
+  AWAITING_RELEASE_WINDOW
+  PAYMENT_PROCESSING
+  COMPLETED
+  DISPUTED
+  REFUNDED
+  PAYMENT_FAILED
+  DELIVERY_TIMEOUT
+  DELIVERY_OVERDUE
+  AUTO_REFUNDED
+}
+
+enum DeliveryPhotoType {
+  BEFORE
+  DURING
+  AFTER
+}
+
+enum DeliveryOTPType {
+  PICKUP
+  DELIVERY
+}
+
+enum DeliveryActorType {
+  BUYER
+  DELIVERY_GUY
+  SYSTEM
+  ADMIN
+}
+
+enum DeliveryDisputeStatus {
+  OPEN
+  PENDING_ADMIN
+  AUTO_RESOLVED
+  RESOLVED
+  ESCALATED
+}
+
+enum DeliveryRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model DeliveryMpesaTransaction {
+  id                String    @id @default(cuid())
+  orderId           String    @unique
+  order             DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  checkoutRequestId String    @unique
+  merchantRequestId String?
+  amount            Decimal   @db.Decimal(10,2)
+  fee               Decimal   @db.Decimal(10,2)
+  totalCharged      Decimal   @db.Decimal(10,2)
+  phone             String
+  status            String    @default("pending")
+  mpesaRef          String?   @unique
+  resultDesc        String?
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model DeliveryEscrow {
+  id          String    @id @default(cuid())
+  orderId     String    @unique
+  order       DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount      Decimal   @db.Decimal(10,2)
+  status      String    @default("held")
+  heldAt      DateTime
+  releasedAt  DateTime?
+  refundedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model DeliveryMpesaCallback {
+  id        String   @id @default(cuid())
+  orderId   String
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([type])
+}
+
+// ═══════════════════════════════════════════
+// HOUSE ESCROW SYSTEM
+// ═══════════════════════════════════════════
+model HouseEscrow {
+  id                 String            @id @default(cuid())
+  buyerId            String
+  sellerPhone        String
+  buyerPhone         String?
+  description        String
+  serviceType        String            @default("general")
+  address            String?
+  amount             Decimal           @db.Decimal(10,2)
+  platformFee        Decimal?          @db.Decimal(10,2)
+  sellerReceives     Decimal?          @db.Decimal(10,2)
+  status             HouseEscrowStatus @default(PENDING_ACCEPTANCE)
+  acceptanceDeadline DateTime?
+  mpesaCheckoutId    String?           @unique
+  mpesaRef           String?           @unique
+  idempotencyKey     String?           @unique
+  inspectionHours    Int               @default(24)
+  inspectionDeadline DateTime?
+  completedAt        DateTime?
+  autoReleasedAt     DateTime?
+
+  buyer              User                   @relation("BuyerHouseEscrows", fields: [buyerId], references: [id])
+  dispute            HouseDispute?
+  mpesaTx            HouseMpesaTransaction?
+  auditLogs          HouseAuditLog[]
+  notifications      Notification[]         
+
+  createdAt          DateTime          @default(now())
+  deletedAt          DateTime?
+  updatedAt          DateTime          @updatedAt
+
+  @@index([status])
+  @@index([buyerId])
+  @@index([inspectionDeadline])
+  @@index([acceptanceDeadline])
+}
+
+model HouseDispute {
+  id             String              @id @default(cuid())
+  escrowId       String              @unique
+  openedBy       String
+  reason         String
+  purpose        TransferPurpose        @default(OTHER)
+  description    String?
+  buyerPhotos    String[]
+  adminNotes     String?
+  decision       HouseDisputeResult?
+  status         HouseDisputeStatus  @default(OPEN)
+  resolvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+
+  escrow         HouseEscrow         @relation(fields: [escrowId], references: [id])
+}
+
+model HouseMpesaTransaction {
+  id                String      @id @default(cuid())
+  escrowId          String      @unique
+  checkoutRequestId String      @unique
+  merchantRequestId String?
+  amount            Decimal     @db.Decimal(10,2)
+  fee               Decimal?    @db.Decimal(10,2)
+  phone             String
+  status            String      @default("pending")
+  mpesaRef          String?     @unique
+  idempotencyKey    String?     @unique
+  resultDesc        String?
+  processedAt       DateTime?
+  createdAt         DateTime    @default(now())
+
+  escrow            HouseEscrow @relation(fields: [escrowId], references: [id])
+}
+
+model HouseAuditLog {
+  id        String       @id @default(cuid())
+  escrowId  String?
+  action    String
+  meta      Json?
+  createdAt DateTime     @default(now())
+
+  escrow    HouseEscrow? @relation(fields: [escrowId], references: [id], onDelete: SetNull)
+}
+
+enum HouseEscrowStatus {
+  PENDING_ACCEPTANCE
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  PENDING_PAYMENT
+  PAYMENT_INITIATING
+  PAYMENT_HELD
+  CONFIRMED
+  DISPUTED
+  ESCALATED
+  REFUNDED
+  COMPLETED
+  AUTO_RELEASED
+  CANCELLED
+}
+
+enum HouseDisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum HouseDisputeResult {
+  FULL_REFUND
+  FULL_RELEASE
+  PARTIAL
+}
+
+enum CustomEscrowStatus {
+  PENDING_ACCEPTANCE
+  REJECTED
+  ACCEPTED
+  PENDING_PAYMENT
+  PAYMENT_INITIATING
+  PAYMENT_HELD
+  BUYER_CONFIRMED
+  COMPLETED
+  DISPUTED
+  PAYMENT_MISMATCH
+  RELEASING_FUNDS
+  REFUNDED
+  CANCELLED
+}
+
+model CustomEscrow {
+  id                   String              @id @default(cuid())
+  buyerId              String
+  buyer                User                @relation("CustomBuyer", fields: [buyerId], references: [id])
+  counterpartyPhone    String
+  title                String
+  description          String
+  amount               Decimal             @db.Decimal(12, 2)
+  platformFee          Decimal             @db.Decimal(12, 2)
+  counterpartyReceives Decimal             @db.Decimal(12, 2)
+  isRisky              Boolean             @default(false)
+  riskDescription      String?
+  riskPhotos           String[]
+  additionalNotes      String?
+  completionHours      Int?
+  deadline             DateTime?
+  status               CustomEscrowStatus  @default(PENDING_ACCEPTANCE)
+  mpesaCheckoutId      String?             @unique
+  mpesaRef             String?
+  buyerConfirmedAt     DateTime?
+  counterpartyConfirmedAt DateTime?
+  completedAt          DateTime?
+  payoutQueuedAt       DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  mpesaTransactions    CustomMpesaTransaction[]
+  dispute              CustomDispute?
+  auditLogs            CustomAuditLog[]
+  b2cTransactions      CustomB2CTransaction[]
+}
+model CustomMpesaTransaction {
+  id                String       @id @default(cuid())
+  escrowId          String
+  escrow            CustomEscrow @relation(fields: [escrowId], references: [id])
+  checkoutRequestId String       @unique
+  merchantRequestId String?
+  amount            Decimal      @db.Decimal(12, 2)
+  fee               Decimal      @default(0) @db.Decimal(12, 2)
+  phone             String
+  status            String       @default("pending")
+  idempotencyKey    String       @unique
+  mpesaRef          String?
+  resultDesc        String?
+  processedAt       DateTime?
+  createdAt         DateTime     @default(now())
+}
+
+model CustomDispute {
+  id               String       @id @default(cuid())
+  escrowId         String       @unique
+  escrow           CustomEscrow @relation(fields: [escrowId], references: [id])
+  openedBy         String
+  openedByRole     String
+  reason           String
+  description      String
+  evidence         String[]
+  sellerResponse   String?
+  sellerEvidence   String[]
+  status           String       @default("OPEN")
+  resolution       String?
+  buyerAmount      Decimal?     @db.Decimal(12, 2)
+  sellerAmount     Decimal?     @db.Decimal(12, 2)
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+
+model CustomB2CTransaction {
+  id                       String       @id @default(cuid())
+  escrowId                 String
+  escrow                   CustomEscrow @relation(fields: [escrowId], references: [id])
+  type                     String       // 'payout' | 'refund'
+  originatorConversationId String       @unique
+  amount                   Decimal      @db.Decimal(12, 2)
+  phone                    String
+  status                   String       @default("pending") // pending | confirmed | failed
+  mpesaRef                 String?
+  resultCode               String?
+  resultDesc               String?
+  confirmedAt              DateTime?
+  createdAt                DateTime     @default(now())
+
+  @@index([escrowId])
+  @@index([status])
+  @@index([originatorConversationId])
+}
+
+model CustomAuditLog {
+  id        String       @id @default(cuid())
+  escrowId  String
+  escrow    CustomEscrow @relation(fields: [escrowId], references: [id])
+  action    String
+  meta      Json?
+  createdAt DateTime     @default(now())
+}
+
+// ═══════════════════════════════════════════
+// LINK-BOUND ORDER ESCROW (standalone service)
+// ═══════════════════════════════════════════
+enum OrderState {
+  HELD
+  RELEASED
+  DISPUTED
+  RESOLVED_BUYER
+  RESOLVED_SELLER
+  AUTO_RELEASED
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  reference    String      @unique
+  buyerId      String
+  sellerPhone  String
+  service      String
+  area         String
+  amount       Decimal     @db.Decimal(10,2)
+  platformFee   Decimal?    @db.Decimal(10,2)
+  sellerReceives Decimal?    @db.Decimal(10,2)
+  buyerTotal    Decimal?    @db.Decimal(10,2)
+  timerMinutes Int
+  state        OrderState  @default(HELD)
+  expiresAt    DateTime?
+  linkOpenedAt DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  buyer        User           @relation("BuyerOrders", fields: [buyerId], references: [id])
+  events       OrderEvent[]
+  dispute      OrderDispute?
+  linkSessions LinkSession[]
+  notifications Notification[]
+
+  @@index([state])
+  @@index([buyerId])
+  @@index([reference])
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  action    String
+  actor     String
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+}
+
+model OrderDispute {
+  id                String    @id @default(cuid())
+  orderId           String    @unique
+  reason            String
+  buyerNote         String?
+  sellerEvidenceUrl String?
+  sellerNote        String?
+  resolvedBy        String?
+  resolution        String?
+  createdAt         DateTime  @default(now())
+  resolvedAt        DateTime?
+
+  order             Order     @relation(fields: [orderId], references: [id])
+}
+
+model LinkSession {
+  id                String   @id @default(cuid())
+  orderId           String
+  ip                String?
+  deviceFingerprint String?
+  openedAt          DateTime @default(now())
+  actionTaken       String?
+
+  order             Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+}
+
+// ── Protected Transfer ───────────────────────────────────────────────────────
+
+model ProtectedTransfer {
+  id             String                 @id @default(uuid())
+  senderId       String
+  sender         User                   @relation("SentTransfers", fields: [senderId], references: [id])
+  recipientPhone String
+  recipientId    String?
+  recipient      User?                  @relation("ReceivedTransfers", fields: [recipientId], references: [id])
+  amount         Decimal                @db.Decimal(10, 2)
+  platformFee    Decimal                @db.Decimal(10, 2)
+  b2cCharge      Decimal                @db.Decimal(10, 2)
+  purpose        TransferPurpose        @default(OTHER)
+  description    String
+  state          ProtectedTransferState @default(PENDING)
+  mpesaRef       String?
+  b2cRef         String?
+  stkCheckoutId  String?
+  claimCode      String                 @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  declinedAt     DateTime?
+  cancelledAt    DateTime?
+  expiredAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+}
+
+enum TransferPurpose {
+  RENT
+  PURCHASE
+  SALARY
+  SCHOOL_FEES
+  LOAN
+  GIFT
+  OTHER
+}
+
+enum ProtectedTransferState {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+
+model RequestMoney {
+  id                String         @id @default(uuid())
+  requesterId       String
+  recipientPhone    String
+  recipientId       String?
+  amount            Decimal        @db.Decimal(12, 2)   // what requester receives
+  platformFee       Decimal        @db.Decimal(10, 2)   // LipaSafe keeps this
+  recipientPays     Decimal        @db.Decimal(12, 2)   // STK push amount (amount + platformFee)
+  purpose           RequestPurpose
+  note              String?
+  state             RequestState   @default(PENDING)
+  expiresAt         DateTime
+  checkoutRequestId String?        @unique               // set when STK is initiated
+  mpesaRef          String?                              // set after STK success callback
+  b2cRef            String?                              // set after B2C payout confirmed
+  b2cStatus         String?                              // pending, confirmed, failed
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  requester         User           @relation("RequesterRequests",  fields: [requesterId], references: [id])
+  recipient         User?          @relation("RecipientRequests",  fields: [recipientId],  references: [id])
+
+  @@index([requesterId])
+  @@index([recipientPhone])
+  @@index([state])
+}
+
+enum RequestPurpose {
+  RENT
+  SALARY
+  SCHOOL_FEES
+  PURCHASE
+  LOAN
+  GIFT
+  OTHER
+}
+
+enum RequestState {
+  PENDING
+  PAID
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
