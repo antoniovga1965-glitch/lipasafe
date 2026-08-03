@@ -1,0 +1,58 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --runInBand --forceExit --detectOpenHandles",
+    "dev": "fuser -k 4000/tcp 2>/dev/null; sleep 1; nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "africastalking": "^0.7.9",
+    "bcrypt": "^6.0.0",
+    "bullmq": "^5.77.6",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "cron": "^4.4.0",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.4.2",
+    "expo-server-sdk": "^6.1.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "ioredis": "^5.11.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^8.0.10",
+    "pg": "^8.21.0",
+    "prisma": "^7.8.0",
+    "resend": "^6.12.4",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.4.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/controllers/**/*.js",
+      "src/queues/**/*.js"
+    ]
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
