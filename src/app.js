@@ -35,7 +35,6 @@ const uploadRoutes         = require('./routes/upload.routes')
 const requestMoneyRoutes      = require('./routes/requestMoney.routes')
 const requestMoneyMpesaRoutes = require('./routes/requestMoneyMpesa.routes')
 
-const path = require('path')
 const app = express()
 app.use(express.static(path.join(__dirname, '../public')))
 app.set('trust proxy', 1)
