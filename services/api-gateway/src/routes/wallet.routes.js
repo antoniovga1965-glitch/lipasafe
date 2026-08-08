@@ -3,7 +3,7 @@ const express = require('express')
 const router = express.Router()
 const auth = require('../middleware/layer2-identity/auth')
 const { sendLimiter, checkPhoneLimiter } = require('../middleware/layer1-gate/rateLimiter')
-const { getBalance, checkPhone, sendMoney, recallMoney, getTransactions, deleteWalletTransaction } = require('../controllers/wallet.controller')
+const { getBalance, checkPhone, sendMoney, recallMoney, getTransactions, deleteWalletTransaction } = require('../../controllers/wallet.controller')
 
 // All wallet routes require auth
 router.use(auth)

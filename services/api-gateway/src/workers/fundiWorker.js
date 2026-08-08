@@ -25,7 +25,7 @@ const normalizePhone = (phone) => {
   return p
 }
 
-const INSPECTION_HOURS = 6
+const INSPECTION_HOURS = 3
 const MAX_EXTENSIONS   = 2
 
 // ── Non-blocking audit helper ─────────────────────────────────────────────
@@ -116,13 +116,28 @@ const createJob = async (req, res) => {
             fundiPhone,
             status: 'PENDING_PAYMENT',
           },
-          select: { id: true, totalCharged: true, createdAt: true },
+          select: {
+            id: true, totalCharged: true, createdAt: true,
+            beforePhotos: true, amount: true, description: true,
+            durationHours: true, category: true, deliverables: true,
+            fundiPhone: true,
+          },
         })
 
+        if (existing) {
+          // Network retry — job was created but response never reached client
+          // Resume instead of blocking
+          return res.status(200).json({
+            success:      true,
+            resumed:      true,
+            jobId:        existing.id,
+            totalCharged: existing.totalCharged,
+            message:      'Resuming your existing pending job.',
+          })
+        }
         return res.status(409).json({
-          success:       false,
-          message:       'You already have a pending payment for this fundi. Complete or cancel it first.',
-          existingJobId: existing?.id ?? null,
+          success: false,
+          message: 'You already have a pending payment for this fundi. Complete or cancel it first.',
         })
       }
 
@@ -132,6 +147,11 @@ const createJob = async (req, res) => {
 
     await audit({ action: 'JOB_CREATED', jobId: job.id, userId: buyerId, meta: { amount: amountStr } })
     logger.info('Fundi job created', { jobId: job.id, buyerId })
+
+    const { createAndSend: _cnNew } = require('../services/notificationService')
+    prisma.user.findFirst({ where: { phone: fundiPhone }, select: { id: true } })
+      .then(f => { if (f) _cnNew({ userId: f.id, type: 'FUNDI_JOB_CREATED', fundiJobId: job.id, messageEn: `New job request: ${parsed.data.description}. Amount: KES ${amountStr}.` }).catch(() => {}) })
+      .catch(() => {})
 
     return res.status(201).json({
       success: true,
@@ -160,7 +180,7 @@ const getJob = async (req, res) => {
 
     const job = await prisma.fundiJob.findUnique({
       where:   { id: jobId },
-      include: { escrow: true, dispute: true },
+      include: { escrow: true, dispute: true, extensionRequests: { orderBy: { createdAt: 'desc' }, take: 1 } },
     })
 
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' })
@@ -217,6 +237,9 @@ const markJobDone = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } })
     if (!user) return res.status(404).json({ success: false, message: 'User not found' })
 
+    const jobForNotif = await prisma.fundiJob.findUnique({ where: { id: jobId }, select: { buyerId: true } })
+    if (!jobForNotif) return res.status(404).json({ success: false, message: 'Job not found' })
+
     const normalizedFundiPhone = normalizePhone(user.phone)
 
     const completedAt          = new Date()
@@ -257,6 +280,9 @@ const markJobDone = async (req, res) => {
     await audit({ action: 'JOB_MARKED_DONE', jobId, userId, meta: {} })
     logger.info('Fundi marked job done', { jobId })
 
+    const { createAndSend: _cnDone } = require('../services/notificationService')
+    _cnDone({ userId: jobForNotif.buyerId, type: 'FUNDI_JOB_COMPLETED', fundiJobId: jobId, messageEn: `Fundi marked the job complete. You have ${INSPECTION_HOURS}h to review before funds auto-release.` }).catch(() => {})
+
     return res.json({
       success:              true,
       message:              'Job marked complete. Buyer has 12 hours to review.',
@@ -286,17 +312,19 @@ const approveJob = async (req, res) => {
     // Atomic status guard — prevents duplicate payouts
     const statusUpdate = await prisma.fundiJob.updateMany({
       where: { id: jobId, buyerId, status: 'AWAITING_BUYER_REVIEW' },
-      data:  { status: 'COMPLETED' },
+      data:  { status: 'AWAITING_PAYOUT' },
     })
 
     if (statusUpdate.count === 0) {
       return res.status(400).json({ success: false, message: 'Job already approved or not awaiting review' })
     }
 
-    // Guard escrow so we only release once
+    // Mark release in-flight, not done — the real 'released' write happens
+    // only after Safaricom confirms (see fundiEscrowStatus.syncFundiEscrowStatus,
+    // called from the callback controller and the reconciler).
     await prisma.fundiEscrow.updateMany({
-      where: { jobId, status: { not: 'released' } },
-      data:  { status: 'released', releasedAt: new Date() },
+      where: { jobId, status: { not: 'release_pending' } },
+      data:  { status: 'release_pending' },
     })
 
     // Queue B2C payout to fundi (deduped by jobId)
@@ -434,6 +462,194 @@ const extendDeadline = async (req, res) => {
   }
 }
 
+// ── REQUEST EXTENSION (fundi, only when OVERDUE) ────────────────────────────
+const requestExtension = async (req, res) => {
+  try {
+    const schema = z.object({
+      extraHours:     z.coerce.number().min(1).max(720),
+      reason:         z.string().min(5).max(500),
+      evidencePhotos: z.array(z.string().url()).min(1).max(10),
+    })
+    const parsed = schema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: parsed.error.issues[0].message })
+    }
+
+    const { jobId } = req.params
+    const userId    = req.user.userId
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } })
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+    const normalizedFundiPhone = normalizePhone(user.phone)
+
+    const job = await prisma.fundiJob.findUnique({ where: { id: jobId } })
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' })
+    if (job.fundiPhone !== normalizedFundiPhone) {
+      return res.status(403).json({ success: false, message: 'Not your job' })
+    }
+    if (job.status !== 'OVERDUE') {
+      return res.status(400).json({ success: false, message: 'Extensions can only be requested on overdue jobs' })
+    }
+    if (job.extensionCount >= MAX_EXTENSIONS) {
+      return res.status(400).json({ success: false, message: `Maximum ${MAX_EXTENSIONS} extensions reached` })
+    }
+
+    const guarded = await prisma.fundiJob.updateMany({
+      where: { id: jobId, extensionRequestStatus: null },
+      data:  { extensionRequestStatus: 'PENDING' },
+    })
+    if (guarded.count === 0) {
+      return res.status(400).json({ success: false, message: 'An extension request is already pending on this job' })
+    }
+
+    const request = await prisma.fundiExtensionRequest.create({
+      data: {
+        jobId,
+        requestedBy:    userId,
+        extraHours:     parsed.data.extraHours,
+        reason:         parsed.data.reason,
+        evidencePhotos: parsed.data.evidencePhotos,
+        status:         'PENDING',
+      },
+    })
+
+    const ref   = jobId.slice(0,8).toUpperCase()
+    const buyer = await prisma.user.findUnique({ where: { id: job.buyerId }, select: { phone: true } })
+    if (buyer) {
+      await fundiQueue.add('send_raw_sms', {
+        phone:   buyer.phone,
+        message: `LipaSafe: Fundi wa kazi ${ref} anaomba muda wa ziada wa masaa ${parsed.data.extraHours}. Angalia app kuamua.`,
+      })
+    }
+    const { createAndSend } = require('../services/notificationService')
+    await createAndSend({
+      userId: job.buyerId, type: 'FUNDI_EXTENSION_REQUESTED', fundiJobId: jobId,
+      messageEn: `Fundi requested a ${parsed.data.extraHours}h extension: "${parsed.data.reason}". Review in the app.`,
+      messageSw: `Fundi anaomba masaa ${parsed.data.extraHours} zaidi: "${parsed.data.reason}". Angalia app.`,
+    }).catch(() => {})
+
+    await audit({ action: 'EXTENSION_REQUESTED', jobId, userId, meta: { extraHours: parsed.data.extraHours } })
+    logger.info('Fundi requested extension', { jobId, requestId: request.id })
+
+    return res.json({ success: true, message: 'Extension request sent to buyer.', requestId: request.id })
+  } catch (err) {
+    console.error(err)
+    logger.error('requestExtension failed', { error: err.message })
+    return res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+}
+
+// ── RESPOND TO EXTENSION REQUEST (buyer: approve or reject) ─────────────────
+const extensionResponse = async (req, res) => {
+  try {
+    const schema = z.object({ decision: z.enum(['APPROVED', 'REJECTED']) })
+    const parsed = schema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: parsed.error.issues[0].message })
+    }
+
+    const { jobId } = req.params
+    const buyerId   = req.user.userId
+
+    const job = await prisma.fundiJob.findUnique({ where: { id: jobId } })
+    if (!job)                    return res.status(404).json({ success: false, message: 'Job not found' })
+    if (job.buyerId !== buyerId) return res.status(403).json({ success: false, message: 'Not your job' })
+    if (job.extensionRequestStatus !== 'PENDING') {
+      return res.status(400).json({ success: false, message: 'No pending extension request on this job' })
+    }
+
+    const request = await prisma.fundiExtensionRequest.findFirst({
+      where: { jobId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!request) return res.status(404).json({ success: false, message: 'Extension request not found' })
+
+    if (parsed.data.decision === 'APPROVED') {
+      const newDeadline = new Date(Date.now() + request.extraHours * 60 * 60 * 1000)
+
+      await prisma.$transaction([
+        prisma.fundiJob.update({
+          where: { id: jobId },
+          data: {
+            status: 'ACTIVE',
+            deadlineAt: newDeadline,
+            extensionCount: { increment: 1 },
+            extensionRequestStatus: null,
+          },
+        }),
+        prisma.fundiExtensionRequest.update({
+          where: { id: request.id },
+          data: { status: 'APPROVED', respondedAt: new Date() },
+        }),
+      ])
+
+      await fundiQueue.add('check_deadline', { jobId }, {
+        delay: request.extraHours * 60 * 60 * 1000,
+        jobId: `deadline_${jobId}`,
+      })
+
+      const ref = jobId.slice(0,8).toUpperCase()
+      await fundiQueue.add('send_raw_sms', {
+        phone:   job.fundiPhone,
+        message: `LipaSafe: Buyer amekubali ombi lako la muda wa ziada kwa kazi ${ref}. Muda mpya umewekwa.`,
+      })
+
+      const fundiUser = await prisma.user.findFirst({ where: { phone: job.fundiPhone } })
+      if (fundiUser) {
+        const { createAndSend } = require('../services/notificationService')
+        await createAndSend({
+          userId: fundiUser.id, type: 'FUNDI_EXTENSION_APPROVED', fundiJobId: jobId,
+          messageEn: `Your ${request.extraHours}h extension request was approved. New deadline set.`,
+          messageSw: `Ombi lako la masaa ${request.extraHours} zaidi limekubaliwa. Muda mpya umewekwa.`,
+        }).catch(() => {})
+      }
+
+      await audit({ action: 'EXTENSION_APPROVED', jobId, userId: buyerId, meta: { extraHours: request.extraHours } })
+      logger.info('Extension approved', { jobId, requestId: request.id })
+
+      return res.json({ success: true, message: 'Extension approved.', newDeadline })
+    } else {
+      const statusUpdate = await prisma.fundiJob.updateMany({
+        where: { id: jobId, buyerId, status: { in: ['AWAITING_BUYER_REVIEW', 'OVERDUE'] } },
+        data:  { status: 'DISPUTED', extensionRequestStatus: null },
+      })
+      if (statusUpdate.count === 0) {
+        return res.status(400).json({ success: false, message: 'Job already disputed or cannot be disputed in current status' })
+      }
+
+      await prisma.fundiDispute.create({
+        data: {
+          jobId,
+          openedBy:       buyerId,
+          reason:         'Extension request rejected by buyer',
+          description:    `Fundi requested ${request.extraHours}h extension: "${request.reason}"`,
+          evidencePhotos: request.evidencePhotos,
+          status:         'OPEN',
+        },
+      })
+
+      await prisma.fundiEscrow.updateMany({
+        where: { jobId },
+        data:  { status: 'disputed' },
+      })
+
+      await prisma.fundiExtensionRequest.update({
+        where: { id: request.id },
+        data: { status: 'REJECTED', respondedAt: new Date() },
+      })
+
+      await audit({ action: 'EXTENSION_REJECTED', jobId, userId: buyerId, meta: {} })
+      logger.info('Extension rejected, dispute opened', { jobId })
+
+      return res.json({ success: true, message: 'Extension rejected. Dispute opened for admin review.' })
+    }
+  } catch (err) {
+    console.error(err)
+    logger.error('extensionResponse failed', { error: err.message })
+    return res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+}
+
 // ── CANCEL & REFUND (buyer, before acceptance) ──────────────────────────────
 const cancelJob = async (req, res) => {
   try {
@@ -461,9 +677,11 @@ const cancelJob = async (req, res) => {
     }
 
     if (job.escrow) {
+      // Mark refund in-flight, not done — real 'refunded' write happens only
+      // after Safaricom confirms.
       await prisma.fundiEscrow.updateMany({
-        where: { jobId, status: { not: 'refunded' } },
-        data:  { status: 'refunded', refundedAt: new Date() },
+        where: { jobId, status: { not: 'refund_pending' } },
+        data:  { status: 'refund_pending' },
       })
 
       // Policy: never refund the service fee — refund principal only
@@ -498,7 +716,7 @@ const listSellerJobs = async (req, res) => {
         deletedAt:  null,
       },
       orderBy: { createdAt: 'desc' },
-      include: { escrow: true },
+      include: { escrow: true, buyer: { select: { phone: true } } },
     })
 
     return res.json({ success: true, orders })
@@ -664,14 +882,16 @@ const resolveDispute = async (req, res) => {
 
         if (disputeUpdate.count === 0) throw new Error(ALREADY_RESOLVED)
 
+        // Record the amounts now (admin's decision is final and audited), but
+        // status stays 'resolution_pending' until each B2C leg actually
+        // confirms — syncFundiEscrowStatus derives the real combined status
+        // from FundiPayout once the callback/reconciler resolves each leg.
         await db.fundiEscrow.updateMany({
-          where: { jobId, status: { not: 'resolved' } },
+          where: { jobId, status: { not: 'resolution_pending' } },
           data:  {
-            status:                'resolved',
+            status:                'resolution_pending',
             partialReleasedAmount: releaseCents > 0 ? fromCents(releaseCents) : null,
             partialRefundAmount:   refundCents  > 0 ? fromCents(refundCents)  : null,
-            releasedAt:            releaseCents > 0 ? new Date() : null,
-            refundedAt:            refundCents  > 0 ? new Date() : null,
           },
         })
 
@@ -875,6 +1095,9 @@ const acceptJob = async (req, res) => {
     await audit({ action: 'JOB_ACCEPTED', jobId, userId, meta: {} })
     logger.info('Fundi accepted job in-app', { jobId, fundiUserId: userId })
 
+    const { createAndSend: _cnAccept } = require('../services/notificationService')
+    _cnAccept({ userId: job.buyerId, type: 'FUNDI_JOB_ACCEPTED', fundiJobId: job.id, messageEn: `Fundi has accepted your job. Deadline: ${job.durationHours}h.` }).catch(() => {})
+
     return res.json({
       success: true,
       message: 'Job accepted. Timer started.',
@@ -896,7 +1119,7 @@ const deleteJob = async (req, res) => {
     const job = await prisma.fundiJob.findUnique({ where: { id: jobId }, select: { buyerId: true, status: true } });
     if (!job)                   return res.status(404).json({ success: false, message: 'Job not found' });
     if (job.buyerId !== userId) return res.status(403).json({ success: false, message: 'Not authorized' });
-    const moneyHeld = ['WAITING_FOR_FUNDI_ACCEPTANCE','ACTIVE','AWAITING_BUYER_REVIEW','OVERDUE','DISPUTED']
+    const moneyHeld = ['WAITING_FOR_FUNDI_ACCEPTANCE','ACTIVE','AWAITING_BUYER_REVIEW','AWAITING_PAYOUT','OVERDUE','DISPUTED']
     if (moneyHeld.includes(job.status)) {
       return res.status(400).json({ success: false, message: 'Cannot delete — job is active or disputed' })
     }
@@ -916,6 +1139,8 @@ module.exports = {
   approveJob,
   disputeJob,
   extendDeadline,
+  requestExtension,
+  extensionResponse,
   cancelJob,
   listSellerJobs,
   resendOtp,

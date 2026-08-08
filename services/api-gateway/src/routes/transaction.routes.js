@@ -1,7 +1,7 @@
 'use strict'
 const router = require('express').Router()
 const auth   = require('../middleware/layer2-identity/auth')
-const ctrl   = require('../controllers/transaction.controller')
+const ctrl   = require('../../controllers/transaction.controller')
 
 router.post('/bundle/initiate',       auth, ctrl.initiate)
 router.get( '/bundle/status/:id',     auth, ctrl.pollBundleStatus)

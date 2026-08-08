@@ -15,16 +15,29 @@ const getPlatformWalletId = async () => {
 }
 
 const credit = async (db, amount, transactionId, note = 'Platform fee from escrow release') => {
-  const walletId = await getPlatformWalletId()
+  let walletId = await getPlatformWalletId()
 
-  await db.wallet.update({
-    where: { id: walletId },
+  const doUpdate = (id) => db.wallet.update({
+    where: { id },
     data: {
       availableBalance: { increment: amount },
       totalIn:          { increment: amount },
       lastUpdated:      new Date()
     }
   })
+
+  try {
+    await doUpdate(walletId)
+  } catch (err) {
+    // Stale cached wallet ID (e.g. after DB reset/reseed) — clear cache and retry once
+    if (err.code === 'P2025') {
+      cachedWalletId = null
+      walletId = await getPlatformWalletId()
+      await doUpdate(walletId)
+    } else {
+      throw err
+    }
+  }
 
   await db.walletTransaction.upsert({
     where:  { reference: transactionId },

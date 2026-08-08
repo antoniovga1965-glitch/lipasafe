@@ -12,6 +12,8 @@ const {
   approveJob,
   disputeJob,
   extendDeadline,
+  requestExtension,
+  extensionResponse,
   cancelJob,
   listSellerJobs,
   resendOtp,
@@ -33,6 +35,8 @@ router.post('/:jobId/done',           authenticate, markJobDone)
 router.post('/:jobId/approve',        authenticate, approveJob)
 router.post('/:jobId/dispute',        authenticate, disputeJob)
 router.post('/:jobId/extend',         authenticate, extendDeadline)
+router.post('/:jobId/request-extension',  authenticate, requestExtension)
+router.patch('/:jobId/extension-response', authenticate, extensionResponse)
 router.post('/:jobId/cancel',         authenticate, cancelJob)
 router.get('/seller/pending',          authenticate, listSellerJobs)
 

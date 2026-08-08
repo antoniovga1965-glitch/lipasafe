@@ -2,7 +2,7 @@
 const express = require('express')
 const router = express.Router()
 const authenticate = require('../middleware/layer2-identity/auth')
-const { createRequest, payRequest, getMyRequests, getIncomingRequests } = require('../controllers/paymentRequest.controller')
+const { createRequest, payRequest, getMyRequests, getIncomingRequests } = require('../../controllers/paymentRequest.controller')
 
 router.post('/', authenticate, createRequest)
 router.post('/pay/:reference', authenticate, payRequest)

@@ -18,11 +18,11 @@ const {
   openDispute,
   sellerDisputeRespond,
   adminResolveDispute,
-} = require('../controllers/customEscrow.controller')
+} = require('../../controllers/customEscrow.controller')
 
-const { initiateCustomPayment, customMpesaCallback } = require('../controllers/customMpesa.controller')
+const { initiateCustomPayment, customMpesaCallback } = require('../../controllers/customMpesa.controller')
 const { uploadCustomEscrowPhotos, uploadDisputeEvidence } = require('../utils/cloudinary')
-const { customB2cResult, customB2cTimeout }          = require('../controllers/customB2cCallback.controller')
+const { customB2cResult, customB2cTimeout }          = require('../../controllers/customB2cCallback.controller')
 
 // Deal lifecycle
 router.post('/',                         auth, escrowCreateLimiter, uploadCustomEscrowPhotos.array('photos', 10), createCustomEscrow)

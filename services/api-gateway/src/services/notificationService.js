@@ -16,6 +16,7 @@ const createAndSend = async ({
   requestId = null,
   deliveryOrderId = null,
   customEscrowId = null,
+  fundiJobId = null,
   channel = 'push' 
 }) => {
   try {
@@ -30,6 +31,7 @@ const createAndSend = async ({
         requestId,
         deliveryOrderId,
         customEscrowId,
+        fundiJobId,
         status: 'pending' 
       }
     })
@@ -69,6 +71,7 @@ const createAndSend = async ({
             requestId,
             deliveryOrderId: notif.deliveryOrderId || null,
             customEscrowId: notif.customEscrowId || null,
+            fundiJobId: notif.fundiJobId || null,
             screen: type === 'NEW_DELIVERY_ORDER'    ? 'MyDeliveries' :
                     type === 'BEFORE_PHOTO_UPLOADED' ? 'MyDeliveries' :
                     type === 'BEFORE_PHOTO_REJECTED' ? 'MyDeliveries' :

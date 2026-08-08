@@ -32,11 +32,11 @@ const getTimestamp = () => {
  * Initiate an STK push (M-Pesa Express / Lipa Na M-Pesa Online).
  *
  * @param {object}        opts
- * @param {string}        opts.phone          – customer phone (07XX or 254XX)
- * @param {number}        opts.amount         – integer KES
- * @param {string}        opts.accountRef     – shown on customer's M-Pesa screen (≤12 chars)
- * @param {string}        opts.description    – transaction description (≤13 chars)
- * @param {string}        [opts.callbackURL]  – override env default
+ * @param {string}        opts.phone          
+ * @param {number}        opts.amount        
+ * @param {string}        opts.accountRef   
+ * @param {string}        opts.description   
+ * @param {string}        [opts.callbackURL] 
  *
  * @returns {Promise<{ CheckoutRequestID, MerchantRequestID, ResponseCode, ResponseDescription, CustomerMessage }>}
  */
@@ -84,5 +84,3 @@ const initiateSTK = async ({ phone, amount, accountRef, description, callbackURL
 }
 
 module.exports = { initiateSTK }
-
-745866

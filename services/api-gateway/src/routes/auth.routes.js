@@ -2,7 +2,7 @@
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const { register, verifyOtp, setPin, login, forgotPin, resetPin,logout, requestPinChangeOtp, verifyPinChangeOtp, confirmPinChange } = require('../controllers/auth.controller')
+const { register, verifyOtp, setPin, login, forgotPin, resetPin,logout, requestPinChangeOtp, verifyPinChangeOtp, confirmPinChange } = require('../../controllers/auth.controller')
 const authMiddleware = require('../middleware/layer2-identity/auth')
 
 router.post('/register', register)

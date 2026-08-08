@@ -67,7 +67,8 @@ const stopCv = () => {
 const comparePhotos = async (orderId) => {
   const photos = await prisma.deliveryPhoto.findMany({
     where:   { orderId },
-    select:  { photoType: true, cloudinaryUrl: true },
+    select:  { photoType: true, cloudinaryUrl: true, photoIndex: true },
+    orderBy: { photoIndex: 'asc' },
   })
   const before = photos.find(p => p.photoType === 'BEFORE')?.cloudinaryUrl || null
   const during = photos.find(p => p.photoType === 'DURING')?.cloudinaryUrl || null
@@ -139,7 +140,7 @@ const openDispute = async ({ orderId, claimerType, reason, claimerId }) => {
     throw new Error('Cannot open dispute — transaction already completed')
   }
   // cannot dispute before goods have arrived
-  const DISPUTABLE_STATUSES = ['DELIVERY_PHOTO_UPLOADED', 'AWAITING_RECEIPT']
+  const DISPUTABLE_STATUSES = ['DELIVERY_PHOTO_UPLOADED', 'RECEIPT_OTP_ISSUED']
   if (!DISPUTABLE_STATUSES.includes(order.status)) {
     throw new Error(`Cannot raise dispute at this stage. Order is currently: ${order.status}`)
   }

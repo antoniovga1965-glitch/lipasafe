@@ -85,7 +85,7 @@ const processOverdueOrders = async () => {
         // atomic status update — prevent double processing
         const updated = await prisma.deliveryOrder.updateMany({
           where: { id: order.id, status: "IN_TRANSIT" },
-          data: { status: "REFUND_INITIATED" },
+          data: { status: "AUTO_REFUNDED" },
         });
 
         if (updated.count === 0) {

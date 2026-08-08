@@ -15,8 +15,8 @@ const {
   getHouseDisputes,
   resolveHouseDispute,
   acceptHouseDealAuth,
-  rejectHouseDealAuth} = require('../controllers/house.controller')
-const { initiateHousePayment } = require('../controllers/houseMpesa.controller')
+  rejectHouseDealAuth} = require('../../controllers/house.controller')
+const { initiateHousePayment } = require('../../controllers/houseMpesa.controller')
 
 router.post('/create',              auth, createHouseEscrow)
 router.post('/pay',                 auth, initiateHousePayment)

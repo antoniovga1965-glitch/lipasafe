@@ -37,7 +37,7 @@ const fundiStorage = new CloudinaryStorage({
     transformation:  [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }],
   },
 })
-const uploadFundiPhotos = multer({ storage: fundiStorage, limits: { fileSize: 10 * 1024 * 1024 } })
+const uploadFundiPhotos = multer({ storage: fundiStorage, limits: { fileSize: 5 * 1024 * 1024 } })
 
 const deliveryStorage = new CloudinaryStorage({
   cloudinary,

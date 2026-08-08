@@ -144,6 +144,33 @@ function calcFeesDelivery(agreedAmount) {
 
 
 /**
+ * REQUEST MONEY ONLY fee calc — requester gets the FULL agreed amount.
+ * Recipient pays amount + platform fee (2%) + B2C payout cost, all on top.
+ * recipientPays is ceiled to whole KES (Safaricom STK push rejects decimals).
+ * Any sub-shilling rounding fraction is absorbed into platformFee (revenue line) —
+ * single source of truth: computed once at request creation, never recomputed on read.
+ * Independent from calcFees()/calcFeesSecondHand()/calcFeesFundi() — kept separate per Request Money's own rules.
+ * @param {number|string|Decimal} requestedAmount — what requester agreed to receive
+ * @returns {{ amount, platformFee, b2cCost, totalFee, recipientPays }} all as Decimal
+ */
+function calcFeesRequestMoney(requestedAmount) {
+  const amount          = new Decimal(requestedAmount)
+  const rawPlatformFee  = amount.times(PLATFORM_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+  const b2c             = new Decimal(b2cCost(amount))
+  const rawTotal         = amount.plus(rawPlatformFee).plus(b2c)
+  const recipientPays    = rawTotal.toDecimalPlaces(0, Decimal.ROUND_CEIL)
+  const platformFee      = recipientPays.minus(amount).minus(b2c)
+  const totalFee         = platformFee.plus(b2c)
+  return {
+    amount,
+    platformFee,
+    b2cCost:       b2c,
+    totalFee,
+    recipientPays,
+  }
+}
+
+/**
  * INSTANT SEND fee calc — sender pays amount + platform fee (2%) + B2C charge, ceiled to whole KES.
  * Recipient receives the full agreed amount directly on M-Pesa via B2C.
  * @param {number|string|Decimal} sendAmount
@@ -159,4 +186,4 @@ function calcFeesInstantSend(sendAmount) {
   return { platformFee, b2cCharge: b2c, totalDeduct }
 }
 
-module.exports = { calcFeesInstantSend, calcFees, calcFeesBuyerSide, calcFeesSecondHand, calcFeesFundi, calcFeesDelivery, b2cCost, b2bCost, PLATFORM_RATE }
+module.exports = { calcFeesInstantSend, calcFeesRequestMoney, calcFees, calcFeesBuyerSide, calcFeesSecondHand, calcFeesFundi, calcFeesDelivery, b2cCost, b2bCost, PLATFORM_RATE }

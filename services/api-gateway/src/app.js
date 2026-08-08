@@ -63,45 +63,28 @@ const httpLogger = require('./middleware/layer1-gate/httpLogger')
 app.use(httpLogger)
 
 
-// ─── SAFARICOM IP WHITELIST ───────────────────────
-// Only Safaricom servers can hit M-Pesa callback endpoints
-// IPs from: https://developer.safaricom.co.ke/docs#ip-whitelist
-const SAFARICOM_IPS = [
-  '196.201.214.200', '196.201.214.206', '196.201.213.114',
-  '196.201.214.207', '196.201.214.208', '196.201.213.44',
-  '196.201.212.127', '196.201.212.138', '196.201.212.129',
-  '196.201.212.136', '196.201.212.74',  '196.201.212.69',
-]
-const safaricomOnly = (req, res, next) => {
-  // In sandbox mode allow all IPs (ngrok tunnels change IP constantly)
-  if (process.env.MPESA_ENV === 'sandbox') return next()
-  const ip = req.ip || req.connection.remoteAddress || ''
-  const clean = ip.replace('::ffff:', '')
-  if (SAFARICOM_IPS.includes(clean)) return next()
-  logger.warn('Blocked non-Safaricom callback attempt', { ip: clean, url: req.originalUrl })
-  return res.status(403).json({ success: false, message: 'Forbidden' })
-}
+const safaricomOnly = require('./middleware/layer1-gate/safaricomOnly')
 
 // ─── ROUTES ───────────────────────────────────────
 app.use('/auth', authLimiter, authRoutes) 
 app.use('/second-hand', secondHandRoutes)
 app.use('/user', userRoutes)
 app.use('/wallet', walletRoutes)
-app.use('/mpesa',  safaricomOnly, mpesaRoutes)
+app.use('/mpesa',  mpesaRoutes)
 app.use('/transactions', transactionRoutes)
 app.use('/admin', adminRoutes)
 app.use('/custom', customRoutes)
 app.use('/sms',   smsRoutes)
 app.use('/fundi',          fundiRoutes)
-app.use('/fundi-mpesa',    safaricomOnly, fundiMpesaRoutes)
+app.use('/fundi-mpesa',    fundiMpesaRoutes)
 app.use('/fundi-sms',      fundiSmsRoutes)
 app.use('/house',            houseRoutes)
-app.use('/house-mpesa',      safaricomOnly, houseMpesaRoutes)
+app.use('/house-mpesa',      houseMpesaRoutes)
 app.use('/delivery',         deliveryRoutes)
-app.use('/delivery-mpesa',   safaricomOnly, deliveryMpesaRoutes)
+app.use('/delivery-mpesa',   deliveryMpesaRoutes)
 app.use('/disputes',         disputeRoutes)
 app.use('/kyc',              kycRoutes)
-app.use('/kyc-mpesa',        safaricomOnly, kycMpesaRoutes)
+app.use('/kyc-mpesa',        kycMpesaRoutes)
 app.use('/transfer',         transferRoutes)
 app.use('/transfer-mpesa',   safaricomOnly, transferMpesaRoutes)
 app.use('/orders',           orderRoutes)
@@ -130,16 +113,61 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }))
 
 // ─── GLOBAL ERROR HANDLER ─────────────────────────
-// Catches anything that slips past controller try/catch
 app.use((err, req, res, next) => {
-    console.error('GLOBAL ERROR CAUGHT:', err.message, err.stack)
+  console.error('GLOBAL ERROR CAUGHT:')
+  console.dir(err, { depth: null })
+
   logger.error('Unhandled error', {
+    // Error details
+    name: err.name,
     message: err.message,
+    code: err.code,
+    status: err.status || err.statusCode,
     stack: err.stack,
+
+    // Request details
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
+    userId: req.user?.id,
+
+    // Axios / HTTP client errors
+    axios: err.config
+      ? {
+          method: err.config.method,
+          url: err.config.url,
+          baseURL: err.config.baseURL,
+          timeout: err.config.timeout,
+        }
+      : undefined,
+
+    response: err.response
+      ? {
+          status: err.response.status,
+          data: err.response.data,
+        }
+      : undefined,
+
+    // Network errors
+    errno: err.errno,
+    syscall: err.syscall,
+    address: err.address,
+    port: err.port,
+
+    // Only log request payloads in development
+    body: process.env.NODE_ENV === 'development' ? req.body : undefined,
+    params: req.params,
+    query: req.query,
   })
+
+  res.status(err.status || err.statusCode || 500).json({
+    success: false,
+    message:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
+        : err.message,
+  })
+
 
   // Prisma known errors
   if (err.code === 'P2002') return res.status(409).json({ success: false, message: 'Duplicate record conflict.' })

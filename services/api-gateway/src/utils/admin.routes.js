@@ -1,9 +1,10 @@
 'use strict'
+const ctrl = require('../../controllers/admin.controller')
+const orderCtrl = require('../../controllers/order.controller')
+
 const router = require('express').Router()
 const auth = require('../middleware/layer2-identity/auth')
 const adminAuth = require('../middleware/layer2-identity/adminAuth')
-const ctrl = require('../controllers/admin.controller')
-const orderCtrl = require('../controllers/order.controller')
 
 router.get('/dashboard',           auth, adminAuth, ctrl.getDashboardStats)
 router.get('/disputes',            auth, adminAuth, ctrl.getDisputes)

@@ -4,6 +4,7 @@ const { getToken } = require('../utils/mpesaToken');
 const logger  = require('../utils/logger')
 const axios   = require('axios')
 const { releaseFunds } = require('../services/bundleService')
+const { releaseToSeller } = require('../services/secondHandService')
 
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000
 const ADMIN_PHONE        = process.env.ADMIN_PHONE
@@ -79,17 +80,22 @@ const reconcileStuckPayouts = async () => {
   try {
     stuck = await prisma.transaction.findMany({
       where: {
-        state: 'payout_pending',
-        payoutInitiatedAt: { lte: cutoff }
+        OR: [
+          { state: 'payout_pending', payoutInitiatedAt: { lte: cutoff } },
+          { state: 'releasing',      payoutInitiatedAt: { lte: cutoff } },
+          { state: 'releasing',      payoutInitiatedAt: null, completedAt: { lte: cutoff } }
+        ]
       },
       select: {
         id: true,
         referenceNo: true,
         amount: true,
         buyerId: true,
+        category: true,
         sellerReceives: true,
         sellerTill: true,
-        payoutInitiatedAt: true
+        payoutInitiatedAt: true,
+        completedAt: true
       },
       take: 20
     })
@@ -201,10 +207,24 @@ const reconcileStuckPayouts = async () => {
 
         // Safaricom says not paid (or query failed) — safe to revert and retry
         if (!safaricomConfirmed) {
+          // releasing + open dispute = admin must resolve, not reconciler
+          if (tx.state === 'releasing') {
+            const openDispute = await prisma.dispute.findFirst({
+              where:  { transactionId: tx.id, status: 'open' },
+              select: { id: true },
+            })
+            if (openDispute) {
+              logger.warn('payoutReconciler: releasing tx has open dispute — skipping, admin must resolve', {
+                transactionId: tx.id, disputeId: openDispute.id
+              })
+              continue
+            }
+          }
           await prisma.$transaction(async (db) => {
+            const revertState = tx.state === 'releasing' ? 'held' : 'confirmed'
             await db.transaction.update({
               where: { id: tx.id },
-              data: { state: 'confirmed', payoutInitiatedAt: null }
+              data: { state: revertState, payoutInitiatedAt: null }
             })
             await db.wallet.update({
               where: { userId: tx.buyerId },
@@ -229,8 +249,13 @@ const reconcileStuckPayouts = async () => {
               }
             })
           })
-          logger.warn('payoutReconciler: reverted to confirmed — triggering retry', { transactionId: tx.id })
-          await releaseFunds(tx.id)
+          const revertLabel = tx.state === 'releasing' ? 'held' : 'confirmed'
+          logger.warn(`payoutReconciler: reverted to ${revertLabel} — triggering retry`, { transactionId: tx.id, category: tx.category })
+          if (tx.category === 'second_hand') {
+            await releaseToSeller(tx.id, 'reconciler_retry')
+          } else {
+            await releaseFunds(tx.id)
+          }
         }
       }
 
@@ -276,8 +301,11 @@ const reconcileEscrowBalances = async () => {
 }
 
 // Boot + schedule
+const { reconcileStuckFundiPayouts } = require('./fundiPayoutReconciler')
+
 const runReconciliation = async () => {
   await reconcileStuckPayouts()
+  await reconcileStuckFundiPayouts()
   await reconcileEscrowBalances()
 }
 
@@ -287,4 +315,4 @@ process.on('SIGTERM', () => clearInterval(interval))
 process.on('SIGINT',  () => clearInterval(interval))
 
 logger.info('Payout reconciler started — sweeping every 5 minutes')
-module.exports = { reconcileStuckPayouts, reconcileEscrowBalances }
+module.exports = { reconcileStuckPayouts, reconcileEscrowBalances, queryB2cStatus }

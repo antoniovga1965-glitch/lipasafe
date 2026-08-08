@@ -5,7 +5,7 @@ const {
   getHouseLinkEscrow,
   acceptHouseDealPublic,
   rejectHouseDealPublic,
-} = require('../controllers/house.controller')
+} = require('../../controllers/house.controller')
 // Public — no auth. Ghost sellers reach this via SMS link, no app/login required.
 // Accept/Reject require phone confirmation in body + are rate-limited .
 router.get('/:escrowId',            getHouseLinkEscrow)

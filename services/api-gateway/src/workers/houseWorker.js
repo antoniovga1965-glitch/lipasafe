@@ -110,12 +110,12 @@ async function payoutSeller({ escrowId, sellerPhone, sellerReceives }) {
     }
 
     await redis.set(
-      `house:b2c:originator:${data.OriginatorConversationID}`,
+      `house:b2c:originator:${originatorId}`,
       JSON.stringify({ escrowId, type: 'payout' }),
       'EX', 86400
     )
     await prisma.houseAuditLog.create({
-      data: { escrowId, action: 'PAYOUT_INITIATED', meta: { amount, phone, conversationId: data.OriginatorConversationID } },
+      data: { escrowId, action: 'PAYOUT_INITIATED', meta: { amount, phone, conversationId: originatorId } },
     })
 
     logger.info('House B2C payout initiated', { escrowId, amount, phone })
@@ -168,9 +168,9 @@ async function refundBuyer({ escrowId, buyerId, amount: rawAmount }) {
     const data = res.data
     if (data.ResponseCode !== '0') throw new Error(data.ResponseDescription || 'B2C refund initiation failed')
 
-    await redis.set(`house:b2c:originator:${data.OriginatorConversationID}`, JSON.stringify({ escrowId, type: 'refund' }), 'EX', 86400)
+    await redis.set(`house:b2c:originator:${originatorId}`, JSON.stringify({ escrowId, type: 'refund' }), 'EX', 86400)
     await prisma.houseAuditLog.create({
-      data: { escrowId, action: 'REFUND_INITIATED', meta: { amount, phone, conversationId: data.OriginatorConversationID } },
+      data: { escrowId, action: 'REFUND_INITIATED', meta: { amount, phone, conversationId: originatorId } },
     })
 
     logger.info('House B2C refund initiated', { escrowId, amount, phone })

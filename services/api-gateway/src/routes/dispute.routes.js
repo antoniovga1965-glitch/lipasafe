@@ -1,7 +1,7 @@
 'use strict'
 const router = require('express').Router()
 const auth   = require('../middleware/layer2-identity/auth')
-const ctrl   = require('../controllers/dispute.controller')
+const ctrl   = require('../../controllers/dispute.controller')
 
 router.post('/open',                auth, ctrl.open)
 router.get('/:disputeId',           auth, ctrl.getOne)

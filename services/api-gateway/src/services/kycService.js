@@ -3,7 +3,7 @@ const prisma  = require('../utils/prisma')
 const logger  = require('../utils/logger')
 
 const KYC_TIERS = {
-  verified: { fee: 1, transactionLimit: '50000.00' },
+  verified: { fee: 150, transactionLimit: '50000.00' },
   trusted:  { fee: 300, transactionLimit: '500000.00' },
 }
 

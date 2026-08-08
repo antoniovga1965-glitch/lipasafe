@@ -539,6 +539,23 @@ const releaseToSeller = async (transactionId, trigger = 'buyer_accept') => {
     return
   }
 
+  // Guard: only admin_decision may release a disputed transaction.
+  // All other triggers (timers, buyer accept, OTP) are blocked if an open dispute exists.
+  if (trigger !== 'admin_decision') {
+    const openDispute = await prisma.dispute.findFirst({
+      where:  { transactionId, status: 'open' },
+      select: { id: true },
+    })
+    if (openDispute) {
+      logger.warn('releaseToSeller: blocked — open dispute exists', {
+        transactionId, trigger, disputeId: openDispute.id
+      })
+      throw new Error(
+        `releaseToSeller: open dispute ${openDispute.id} blocks release for trigger=${trigger}`
+      )
+    }
+  }
+
   // Read stored values — never recalculate at release time
   const fee    = new Decimal(tx.platformFee   || '0')
   const payout = new Decimal(tx.sellerReceives || '0')
@@ -548,7 +565,7 @@ const releaseToSeller = async (transactionId, trigger = 'buyer_accept') => {
     // State lock FIRST — if concurrent release already happened, throw before touching wallet
   const updated = await db.transaction.updateMany({
   where: { id: transactionId, state: { in: ['held', 'confirmed', 'delivered', 'disputed'] } },
-  data:  { state: 'released', completedAt: new Date() },
+  data:  { state: 'releasing', completedAt: new Date(), payoutInitiatedAt: new Date() },
 })
 
     if (updated.count === 0) {
@@ -579,7 +596,7 @@ const releaseToSeller = async (transactionId, trigger = 'buyer_accept') => {
         entityType:    'Transaction',
         entityId:      transactionId,
         amount:        payout.toString(),
-        newState:      { state: 'released', trigger },
+        newState:      { state: 'releasing', trigger },
         transactionId,
       },
     })
@@ -587,35 +604,9 @@ const releaseToSeller = async (transactionId, trigger = 'buyer_accept') => {
     await pw.credit(db, fee.toNumber(), transactionId)
   }, { isolationLevel: 'Serializable' })
 
-  // B2C payout to seller
+  // Payout in-flight — notifications fire from Safaricom callback once confirmed
   await b2cPayout(transactionId)
-  await createAndSend({ userId: tx.sellerId, type: 'money_released', transactionId, messageEn: `KES ${payout} released to your account. Ref: ${tx.referenceNo}` }).catch(() => {})
-  await createAndSend({ userId: tx.buyerId,  type: 'money_released', transactionId, messageEn: `Transaction complete. Funds sent to seller. Ref: ${tx.referenceNo}` }).catch(() => {})
-
-  // SMS seller
-  if (tx.seller?.phone) {
-    await smsQueue.add('second_hand_released_seller', {
-      type:          'second_hand_released_seller',
-      phone:         normalizePhone(tx.seller.phone),
-      amount:        payout.toString(),
-      transactionId,
-    })
-  }
-
-  // SMS buyer
-  if (tx.buyer?.phone) {
-    await smsQueue.add('second_hand_released_buyer', {
-      type:          'second_hand_released_buyer',
-      phone:         normalizePhone(tx.buyer.phone),
-      transactionId,
-    })
-  }
-
-  logger.info('Second hand funds released to seller', {
-    transactionId,
-    payout:  payout.toString(),
-    trigger,
-  })
+  logger.info('Second hand payout in-flight, state=releasing', { transactionId, payout: payout.toString(), trigger })
 }
 
 const handleDisputeSellerTimeout = async (transactionId) => {

@@ -9,7 +9,7 @@ const {
   getMyListings, getMySecondHandTransactions, deleteSecondHandTransaction,
   dealBuy, getSellerPending, getOrderById, getTransactionStatus,
   uploadListingPhotosHandler,
-} = require('../controllers/secondHand.controller')
+} = require('../../controllers/secondHand.controller')
 const { uploadListingPhotos, uploadDisputeEvidence } = require('../utils/cloudinary')
 
 // ─── PHOTO UPLOAD ────────────────────────────────

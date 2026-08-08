@@ -1,28 +1,32 @@
-
-
 'use strict'
 const crypto = require('crypto')
 const fs     = require('fs')
 const path   = require('path')
 const logger = require('./logger')
 
-const SANDBOX_CERT    = path.join(__dirname, '../certs/sandbox.cer')
-const PROD_CERT       = path.join(__dirname, '../certs/production.cer')
+const SANDBOX_CERT = path.join(__dirname, '../certs/sandbox.cer')
+const PROD_CERT    = path.join(__dirname, '../certs/production.cer')
 
 function getB2CCredential () {
+  // ── Fast path: use pre-computed credential from env ──
+  const precomputed = process.env.MPESA_B2C_SECURITY_CREDENTIAL
+  if (precomputed && !precomputed.startsWith('FILL')) {
+    logger.info('[getB2CCredential] Using pre-computed SecurityCredential from env')
+    return precomputed
+  }
+
+  // ── Fallback: compute from cert + password ──
   const isProduction = process.env.NODE_ENV === 'production'
   const certPath     = isProduction ? PROD_CERT : SANDBOX_CERT
   const password     = process.env.B2C_INITIATOR_PASSWORD
 
-  // ── 1. Guard: catch missing env vars early, never default passwords ──
-  if (!password) {
+  if (!password || password.startsWith('FILL')) {
     throw new Error(
-      '[getB2CCredential] B2C_INITIATOR_PASSWORD is not set in environment. ' +
-      'Add it to your .env file.'
+      '[getB2CCredential] B2C_INITIATOR_PASSWORD is not set and no pre-computed ' +
+      'MPESA_B2C_SECURITY_CREDENTIAL found. Set one of these in your .env'
     )
   }
 
-  // ── 2. Guard: catch missing cert file with actionable message ──
   if (!fs.existsSync(certPath)) {
     throw new Error(
       `[getB2CCredential] Cert file not found: ${certPath}\n` +
@@ -30,11 +34,7 @@ function getB2CCredential () {
     )
   }
 
-  // ── 3. Read cert buffer ──
   const certBuffer = fs.readFileSync(certPath)
-
-  // ── 4. THE FIX: Extract public key FROM the certificate ──
- 
   let publicKey
   try {
     const x509 = new crypto.X509Certificate(certBuffer)
@@ -47,20 +47,14 @@ function getB2CCredential () {
     )
   }
 
-  // ── 5. Encrypt with extracted public key ──
   let encrypted
   try {
     encrypted = crypto.publicEncrypt(
-      {
-        key:     publicKey,
-        padding: crypto.constants.RSA_PKCS1_PADDING,
-      },
+      { key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING },
       Buffer.from(password, 'utf8')
     )
   } catch (err) {
-    throw new Error(
-      `[getB2CCredential] Encryption failed: ${err.message}`
-    )
+    throw new Error(`[getB2CCredential] Encryption failed: ${err.message}`)
   }
 
   const credential = encrypted.toString('base64')

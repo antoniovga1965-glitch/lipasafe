@@ -24,7 +24,7 @@ ALLOWED_DOMAINS    = ['res.cloudinary.com', 'cloudinary.com']
 EXIF_DATETIME_ORIG = 36867
 
 # ── MobileNet lazy load ───────────────────────────────────────────────────────
-# loads ONLY when first /compare is called — zero fan noise on startup
+# loads ONLY when called
 _mb_extractor = None
 _mb_transform = None
 

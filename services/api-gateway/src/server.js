@@ -22,14 +22,19 @@ require('./workers/customWorker')
 require('./workers/customPaymentInitiatingSweeper')
 require('./workers/housePaymentInitiatingSweeper')
 require('./workers/houseB2cStuckReconciler')
+require('./workers/protectedTransferStuckReconciler')
+require('./workers/protectedTransferStuckReconciler')
 require('./workers/houseAcceptanceExpirySweeper')
 require('./workers/deliveryAutoRefundWorker')
 require('./workers/ghostWalletRecallWorker')
 require('./workers/disputeSlaWorker')
 require('./workers/Requestmoneyexpiry')
 
+// ── Protected-transfer expiry reconciler  re-enqueues missed BullMQ jobs ──
+require('./workers/transferReconciler').start()
+
 // ── STK push reconciler — sweeps stuck initiated/payment_pending every 10 mins ──
-const { reconcilePendingTransactions } = require('./controllers/mpesa.controller')
+const { reconcilePendingTransactions } = require('../controllers/mpesa.controller')
 const { run: recoverStuckPayouts } = require('./jobs/recoverStuckPayouts')
 reconcilePendingTransactions()
 setInterval(reconcilePendingTransactions, 10 * 60 * 1000)
@@ -89,7 +94,23 @@ process.on('unhandledRejection', (reason, promise) => {
 })
 
 // Handle uncaught exceptions — log and die gracefully
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   logger.error('Uncaught exception', { err: err.message, stack: err.stack })
+  try {
+    const AfricasTalking = require('africastalking')
+    const at = AfricasTalking({
+      apiKey:   process.env.AT_API_KEY,
+      username: process.env.AT_USERNAME,
+    })
+    const isSandbox = process.env.AT_ENVIRONMENT === 'sandbox'
+    const payload = {
+      to:      [`+${process.env.ALERT_PHONE}`],
+      message: `LipaSafe CRASH: ${err.message}`.slice(0, 160),
+    }
+    if (!isSandbox) payload.from = 'LipaSafe'
+    await at.SMS.send(payload)
+  } catch (smsErr) {
+    logger.error('Failed to send crash alert SMS', { smsErr: smsErr.message })
+  }
   process.exit(1)
 })

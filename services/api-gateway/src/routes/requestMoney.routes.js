@@ -2,7 +2,7 @@
 const express = require('express')
 const router  = express.Router()
 const auth    = require('../middleware/layer2-identity/auth')
-const { createRequest, payRequest, rejectRequest, cancelRequest, getRequest } = require('../controllers/Requestmoney.controler')
+const { createRequest, payRequest, rejectRequest, cancelRequest, getRequest } = require('../../controllers/Requestmoney.controler')
 
 router.post('/',               auth, createRequest)
 router.post('/:id/pay',        auth, payRequest)

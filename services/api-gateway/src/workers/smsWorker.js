@@ -11,6 +11,7 @@ const at = AfricasTalking({
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
 }
 
 const sendSMS = async (phone, message) => {
@@ -37,7 +38,7 @@ const sendSMS = async (phone, message) => {
 
 const worker = new Worker('sms', async (job) => {
   const { amount, isGhost, senderPhone, type } = job.data
-  const phone = job.data.phone || job.data.to  // support both field names
+  const phone = job.data.phone || job.data.to  
 
   const message =
     type === 'bundle_seller_notify_till'

@@ -2,8 +2,8 @@
 const router       = require('express').Router()
 const authenticate = require('../middleware/layer2-identity/auth')
 
-const { accept, decline, cancel, getTransfer, listTransfers } = require('../controllers/transfer.controller')
-const { initiateSafeSend, safeSendStatus }                   = require('../controllers/transferMpesa.controller')
+const { accept, decline, cancel, getTransfer, listTransfers } = require('../../controllers/transfer.controller')
+const { initiateSafeSend, safeSendStatus }                   = require('../../controllers/transferMpesa.controller')
 
 // Authenticated
 router.get('/',                    authenticate, listTransfers)

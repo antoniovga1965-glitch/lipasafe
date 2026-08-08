@@ -21,6 +21,7 @@ const toAmount = (v) => Number(new Decimal(v).toFixed(2))
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
 }
 
 // ── fundi queue (for scheduling delayed jobs) ────────────────────────────────
@@ -92,6 +93,19 @@ const fundiQueueWorker = new Worker('fundi', async (job) => {
         `Reply SMS: ACCEPT ${otp} — au kubali kwenye app.`
       await sendSms(fundiPhone, message)
       logger.info('send_acceptance_sms done', { fundiPhone, jobId: data.jobId })
+
+      // push fallback — fires instantly if fundi has the app, SMS above is the guaranteed path
+      const fundiUser = await prisma.user.findFirst({ where: { phone: fundiPhone }, select: { id: true, pushToken: true } })
+      if (fundiUser) {
+        await createAndSend({
+          userId:    fundiUser.id,
+          type:      'FUNDI_OTP_ISSUED',
+          fundiJobId: smsJobId,
+          messageEn: `New fundi job. ${categoryLine}KES ${amount} held in escrow. OTP: ${otp} (expires ${expiryStr}).`,
+          messageSw: `Kazi mpya ya fundi. KES ${amount} imehifadhiwa. OTP: ${otp} (inaisha ${expiryStr}).`,
+        }).catch((err) => logger.error('FUNDI_OTP_ISSUED push failed (non-fatal)', { err: err.message }))
+      }
+
       // notify buyer
       if (data.buyerId) {
         await createAndSend({ userId: data.buyerId, type: 'payment_received', transactionId: null,
@@ -226,6 +240,10 @@ const fundiQueueWorker = new Worker('fundi', async (job) => {
         jobId: `overdue_timeout_${jobId}`,
       })
       logger.info('check_deadline: job marked OVERDUE, overdue_timeout scheduled 72h', { jobId })
+      await fundiQueue.add('extension_grace', { jobId }, {
+        delay: 60 * 60 * 1000,
+        jobId: `extension_grace_${jobId}`,
+      })
       if (buyer) {
         await createAndSend({ userId: job.buyerId, type: 'deliver_now', transactionId: null,
           messageEn: `Your fundi job is overdue. The fundi has not completed the work on time. You can extend or dispute.`,
@@ -294,10 +312,56 @@ const fundiQueueWorker = new Worker('fundi', async (job) => {
     // Direct B2C payout after buyer approval or admin FULL_RELEASE/PARTIAL
     case 'payout_fundi': {
       const { jobId, fundiPhone, amount } = data
-      const result = await b2cPayout(fundiPhone, toAmount(amount), `payout_fundi_${jobId}`)
+
+      // Postgres-backed guard — survives Redis TTL expiry/eviction. If a real
+      // (non-init) originatorConversationId already exists, Safaricom already
+      // has this payout; skip instead of firing a second B2C request.
+      const existing = await prisma.fundiPayout.findUnique({
+        where: { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'payout' } }
+      })
+      // Block only on a truly in-flight ('sent', awaiting its first callback)
+      // or already-'completed' payout. A 'pending' row means a previous
+      // attempt failed and was reset for retry by the callback/reconciler —
+      // that's an intentional retry, not an accidental duplicate.
+      if (existing && (existing.status === 'sent' || existing.status === 'completed')) {
+        logger.warn('payout_fundi: existing in-flight/completed payout found — skipping duplicate B2C call', {
+          jobId, existingStatus: existing.status, originatorId: existing.originatorConversationId
+        })
+        await redis.set(`fundi:b2c:originator:${existing.originatorConversationId}`,
+          JSON.stringify({ jobId, type: 'payout' }), 'EX', 86400)
+        break
+      }
+
+      await prisma.fundiPayout.upsert({
+        where:  { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'payout' } },
+        create: {
+          fundiJobId: jobId, payoutType: 'payout', amount: toAmount(amount), phone: fundiPhone,
+          status: 'pending', originatorConversationId: `init_payout_fundi_${jobId}`
+        },
+        update: { status: 'pending' }
+      })
+
+      // A previous real attempt left behind a non-init tracking ID — this is
+      // a confirmed retry, not a first attempt. Force a fresh tracking ID so
+      // it doesn't bounce off Safaricom's duplicate-detection again.
+      const isRetry = !!(existing?.originatorConversationId && !existing.originatorConversationId.startsWith('init_'))
+      const result = await b2cPayout(
+        fundiPhone, toAmount(amount), `payout_fundi_${jobId}`, 'full',
+        process.env.MPESA_FUNDI_B2C_RESULT_URL,
+        process.env.MPESA_FUNDI_B2C_TIMEOUT_URL,
+        isRetry
+      )
       const originatorId = result?.OriginatorConversationID
       if (originatorId) {
         await redis.set(`fundi:b2c:originator:${originatorId}`, JSON.stringify({ jobId, type: 'payout' }), 'EX', 86400)
+        await prisma.fundiJob.update({
+          where: { id: jobId },
+          data: { originatorConversationId: originatorId, payoutInitiatedAt: new Date() }
+        })
+        await prisma.fundiPayout.update({
+          where: { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'payout' } },
+          data:  { status: 'sent', originatorConversationId: originatorId }
+        })
       }
       logger.info('payout_fundi done', { jobId, fundiPhone, amount, originatorId })
       break
@@ -315,8 +379,48 @@ const fundiQueueWorker = new Worker('fundi', async (job) => {
         logger.error('refund_buyer: buyer not found', { buyerId, jobId })
         throw new Error(`Buyer ${buyerId} not found — will retry`)
       }
-      await b2cPayout(buyer.phone, toAmount(amount), `refund_buyer_${jobId}`)
-      logger.info('refund_buyer done', { jobId, buyerId, amount })
+
+      const existing = await prisma.fundiPayout.findUnique({
+        where: { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'refund' } }
+      })
+      if (existing && (existing.status === 'sent' || existing.status === 'completed')) {
+        logger.warn('refund_buyer: existing in-flight/completed refund found — skipping duplicate B2C call', {
+          jobId, existingStatus: existing.status, originatorId: existing.originatorConversationId
+        })
+        await redis.set(`fundi:b2c:originator:${existing.originatorConversationId}`,
+          JSON.stringify({ jobId, type: 'refund' }), 'EX', 86400)
+        break
+      }
+
+      await prisma.fundiPayout.upsert({
+        where:  { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'refund' } },
+        create: {
+          fundiJobId: jobId, payoutType: 'refund', amount: toAmount(amount), phone: buyer.phone,
+          status: 'pending', originatorConversationId: `init_refund_buyer_${jobId}`
+        },
+        update: { status: 'pending' }
+      })
+
+      const isRefundRetry = !!(existing?.originatorConversationId && !existing.originatorConversationId.startsWith('init_'))
+      const refundResult = await b2cPayout(
+        buyer.phone, toAmount(amount), `refund_buyer_${jobId}`, 'full',
+        process.env.MPESA_FUNDI_B2C_RESULT_URL,
+        process.env.MPESA_FUNDI_B2C_TIMEOUT_URL,
+        isRefundRetry
+      )
+      const refundOriginatorId = refundResult?.OriginatorConversationID
+      if (refundOriginatorId) {
+        await redis.set(`fundi:b2c:originator:${refundOriginatorId}`, JSON.stringify({ jobId, type: 'refund' }), 'EX', 86400)
+        await prisma.fundiJob.update({
+          where: { id: jobId },
+          data: { originatorConversationId: refundOriginatorId, payoutInitiatedAt: new Date() }
+        })
+        await prisma.fundiPayout.update({
+          where: { fundiJobId_payoutType: { fundiJobId: jobId, payoutType: 'refund' } },
+          data:  { status: 'sent', originatorConversationId: refundOriginatorId }
+        })
+      }
+      logger.info('refund_buyer done', { jobId, buyerId, amount, refundOriginatorId })
       await createAndSend({ userId: buyerId, type: 'refund_sent', transactionId: null,
         messageEn: `Your refund of KES ${amount} has been sent to your M-Pesa.`,
         messageSw: `Refund ya KES ${amount} imetumwa kwenye M-Pesa yako.` })
@@ -325,6 +429,49 @@ const fundiQueueWorker = new Worker('fundi', async (job) => {
 
     // ── 9. overdue_timeout ──────────────────────────────────────────────────
     // Fires 72h after OVERDUE — auto-refund buyer if still stuck
+    // ── extension_grace ─────────────────────────────────────────────────
+    // Fires 1h after OVERDUE if fundi never requested an extension
+    case 'extension_grace': {
+      const { jobId } = data
+
+      const updated = await prisma.fundiJob.updateMany({
+        where: { id: jobId, status: 'OVERDUE', extensionRequestStatus: null },
+        data:  { status: 'REFUNDED' },
+      })
+      if (updated.count === 0) {
+        logger.info('extension_grace: job already actioned (extension requested or resolved)', { jobId })
+        break
+      }
+
+      await prisma.fundiEscrow.updateMany({
+        where: { jobId, status: { not: 'refunded' } },
+        data:  { status: 'refunded', refundedAt: new Date() },
+      })
+
+      const job = await prisma.fundiJob.findUnique({
+        where:  { id: jobId },
+        select: { amount: true, buyerId: true },
+      })
+      if (!job) break
+
+      const buyer = await prisma.user.findUnique({
+        where:  { id: job.buyerId },
+        select: { phone: true },
+      })
+      if (!buyer) { logger.error('extension_grace: buyer not found', { jobId }); break }
+
+      await b2cPayout(buyer.phone, toAmount(job.amount), `extension_grace_refund_${jobId}`)
+      await sendSmsSafe(buyer.phone,
+        `LipaSafe: Kazi ${jobId.slice(0,8).toUpperCase()} imefungwa - fundi hakuomba muda wa ziada. ` +
+        `Refund ya KES ${job.amount} imetumwa.`)
+      await createAndSend({ userId: job.buyerId, type: 'refund_sent', transactionId: null,
+        messageEn: `Job auto-refunded — fundi did not request an extension in time. KES ${job.amount} sent to your M-Pesa.`,
+        messageSw: `Kazi imerudishwa - fundi hakuomba muda kwa wakati. KES ${job.amount} imetumwa kwenye M-Pesa yako.` })
+
+      logger.info('extension_grace: buyer refunded', { jobId, amount: job.amount })
+      break
+    }
+
     case 'overdue_timeout': {
       const { jobId } = data
 

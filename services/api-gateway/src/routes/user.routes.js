@@ -49,7 +49,7 @@ router.get('/notifications', async (req, res) => {
         orderBy: { createdAt: 'desc' },
         skip,
         take:    limit,
-        select:  { id: true, type: true, messageEn: true, messageSw: true, status: true, createdAt: true, transactionId: true, transferId: true, houseEscrowId: true, orderId: true, requestId: true, deliveryOrderId: true, customEscrowId: true }
+        select:  { id: true, type: true, messageEn: true, messageSw: true, status: true, createdAt: true, transactionId: true, transferId: true, houseEscrowId: true, orderId: true, requestId: true, deliveryOrderId: true, customEscrowId: true, fundiJobId: true }
       }),
       prisma.notification.count({ where: { userId: req.user.userId } }),
       prisma.notification.count({ where: { userId: req.user.userId, status: 'pending' } }),
@@ -176,7 +176,7 @@ router.delete('/notifications/:id', async (req, res) => {
     return res.status(500).json({ success: false, message: err.message })
   }
 })
-module.exports = router
+
 
 // TEMP: socket smoke test — remove after testing
 router.get('/test-socket/:userId', (req, res) => {
@@ -188,3 +188,4 @@ router.get('/test-socket/:userId', (req, res) => {
   })
   res.json({ sent: true })
 })
+module.exports = router

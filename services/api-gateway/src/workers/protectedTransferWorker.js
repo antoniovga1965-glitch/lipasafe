@@ -52,7 +52,7 @@ const worker = new Worker(
       // Notify sender
       createAndSend({
         userId:   transfer.senderId,
-        type:     'TRANSFER_EXPIRED',
+        type:     'transfer_expired',
         title:    'SafeSend Expired',
         body:     `Your KES ${transfer.amount} SafeSend to ${transfer.recipientPhone} expired. Full refund on the way to your M-pesa.`,
         channels: ['PUSH', 'SMS'],
@@ -63,7 +63,7 @@ const worker = new Worker(
       if (transfer.recipientId) {
         createAndSend({
           userId:   transfer.recipientId,
-          type:     'TRANSFER_EXPIRED',
+          type:     'transfer_expired',
           title:    'SafeSend Expired',
           body:     `A KES ${transfer.amount} SafeSend from ${transfer.sender.fullName} expired unclaimed.`,
           channels: ['PUSH'],

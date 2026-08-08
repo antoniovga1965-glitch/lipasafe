@@ -109,12 +109,19 @@ const processEscrowPayment = async (mpesaTx, amount, mpesaRef, bundleTx) => {
 }
 
 // ─── B2C PAYOUT ──────────────────────────────────
-const b2cPayout = async (phone, amount, transactionId, payoutType = 'full') => {
+const b2cPayout = async (phone, amount, transactionId, payoutType = 'full', resultURL, timeoutURL, forceNewId = false) => {
   const idempKey  = `b2c:${transactionId}:${payoutType}`
   const legacyKey = `b2c:${transactionId}`
-  let originatorId = await redis.get(idempKey)
+
+  // forceNewId = true means: this is a confirmed retry after a real Safaricom
+  // failure, not an accidental duplicate. Throw away any cached tracking ID
+  // (Redis and DB) and mint a fresh one so the request actually reaches
+  // Safaricom instead of bouncing off their own duplicate-detection and
+  // getting falsely treated as a success.
+  let originatorId = forceNewId ? null : await redis.get(idempKey)
+
   // Fallback: check legacy key so in-flight txs don't double-pay during deploy
-  if (!originatorId && payoutType === 'full') {
+  if (!originatorId && !forceNewId && payoutType === 'full') {
     originatorId = await redis.get(legacyKey)
     if (originatorId) {
       await redis.set(idempKey, originatorId, 'EX', 86400)
@@ -123,18 +130,24 @@ const b2cPayout = async (phone, amount, transactionId, payoutType = 'full') => {
     }
   }
   if (!originatorId) {
-    // Check DB first — survives Redis eviction and TTL expiry
-    const existingPayout = await prisma.payout.findUnique({
-      where:  { transactionId_payoutType: { transactionId, payoutType } },
-      select: { originatorConversationId: true }
-    })
-    if (existingPayout?.originatorConversationId &&
-        !existingPayout.originatorConversationId.startsWith('init_') &&
-        !existingPayout.originatorConversationId.startsWith('refund_init_')) {
-      originatorId = existingPayout.originatorConversationId
-      logger.info('b2cPayout: recovered originatorId from DB after Redis miss', { transactionId, originatorId })
-    } else {
+    if (!forceNewId) {
+      // Check DB first — survives Redis eviction and TTL expiry
+      const existingPayout = await prisma.payout.findUnique({
+        where:  { transactionId_payoutType: { transactionId, payoutType } },
+        select: { originatorConversationId: true }
+      })
+      if (existingPayout?.originatorConversationId &&
+          !existingPayout.originatorConversationId.startsWith('init_') &&
+          !existingPayout.originatorConversationId.startsWith('refund_init_')) {
+        originatorId = existingPayout.originatorConversationId
+        logger.info('b2cPayout: recovered originatorId from DB after Redis miss', { transactionId, originatorId })
+      }
+    }
+    if (!originatorId) {
       originatorId = crypto.randomUUID()
+      if (forceNewId) {
+        logger.info('b2cPayout: forceNewId — discarded cached tracking ID, minted fresh one for retry', { transactionId, payoutType, originatorId })
+      }
     }
     await redis.set(idempKey, originatorId, 'EX', 86400)
     await redis.set(`originator:${originatorId}`, transactionId, 'EX', 86400)
@@ -157,8 +170,8 @@ const b2cPayout = async (phone, amount, transactionId, payoutType = 'full') => {
         PartyA:                   process.env.MPESA_B2C_SHORTCODE || process.env.MPESA_SHORTCODE,
         PartyB:                   normalizedPhone,
         Remarks:                  `LipaSafe bundle ${transactionId}`,
-        QueueTimeOutURL:          process.env.MPESA_B2C_TIMEOUT_URL,
-        ResultURL:                process.env.MPESA_B2C_RESULT_URL
+        QueueTimeOutURL:          timeoutURL || process.env.MPESA_B2C_TIMEOUT_URL,
+        ResultURL:                resultURL  || process.env.MPESA_B2C_RESULT_URL
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 })
 
       if (res.data.ResponseCode !== '0') {
@@ -190,7 +203,7 @@ const b2cPayout = async (phone, amount, transactionId, payoutType = 'full') => {
 // ─── PERMANENT Safaricom error codes — never retry these ─────────────
 // Retrying a permanent error wastes API quota and delays alerting the team
 const B2B_PERMANENT_ERRORS = new Set([
-  'SFC_IC0003',  // Receiver party is invalid  ← your current bug
+  'SFC_IC0003',  // Receiver party is invalid 
   'SFC_IC0009',  // Invalid till number
   'SFC_IC0002',  // Initiator credentials invalid
   'SFC_IC0007',  // Invalid amount
@@ -200,12 +213,10 @@ const B2B_PERMANENT_ERRORS = new Set([
 const b2bPayout = async (tillNumber, amount, transactionId) => {
   const prismaLocal = require('../utils/prisma')
 
-  // ── FIX 1: Validate BEFORE hitting Safaricom ──────────────────────
-  // Catches bad input at your boundary, not theirs
-  // Till numbers are 5-7 digits — nothing else is valid
+  
   const cleanTill = String(tillNumber).trim()
-  if (!/^\d{5,7}$/.test(cleanTill)) {
-    throw new Error(`B2B: invalid till number "${tillNumber}" — expected 5-7 digits`)
+  if (!/^\d{5,8}$/.test(cleanTill)) {
+    throw new Error(`B2B: invalid till number "${tillNumber}" — expected 5-8 digits`)
   }
 
   // ── Idempotency: resolve or generate originatorId ─────────────────
@@ -275,7 +286,7 @@ const b2bPayout = async (tillNumber, amount, transactionId) => {
         throw new Error(`B2B rejected at initiation: ${res.data.ResponseDescription}`)
       }
 
-      // ── FIX 4: Store Safaricom's ConversationID as a second reverse key ──
+      //  Store Safaricom's ConversationID as a second reverse key ──
     
       if (res.data.ConversationID) {
         await redis.set(`b2b:reverse:${res.data.ConversationID}`, transactionId, 'EX', 86400)
@@ -311,7 +322,7 @@ const b2bPayout = async (tillNumber, amount, transactionId) => {
           reason: err.response?.data?.ResultDesc,
           tillNumber: cleanTill,
         })
-        throw err  // Bubble up immediately
+        throw err 
       }
 
       lastErr = err
@@ -606,7 +617,7 @@ const refundBuyer = async (transactionId) => {
       const refundB2cRes = await b2cPayout(tx.buyer.phone, refundAmount.toNumber(), transactionId, 'refund')
       refundOriginatorId = refundB2cRes?.OriginatorConversationID
     } catch (payoutErr) {
-      // FIX: same issue as releaseFunds — DB already marked 'refunded' and escrow already
+      // : same issue as releaseFunds — DB already marked 'refunded' and escrow already
       // decremented. Mark the payout 'failed' on exhausted retries so it surfaces for
       // manual reconciliation instead of sitting silently as 'pending' forever.
       logger.error('refundBuyer: Safaricom refund failed after retries — marking failed', {
@@ -717,7 +728,7 @@ const handleAutoRelease = async (transactionId) => {
       where: { transactionId, jobType: 'auto_release', status: 'pending' },
       data:  { status: 'fired', firedAt: new Date() }
     })
-    // FIX: releaseFunds only accepts 'confirmed' or 'held'. Without this transition,
+    // releaseFunds only accepts 'confirmed' or 'held'. Without this transition,
     // a tx still in 'delivered' state hits releaseFunds' state guard and silently
     // no-ops — the timer fires but nothing actually releases.
     if (tx.state === 'delivered') {

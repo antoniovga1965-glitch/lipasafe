@@ -1,7 +1,7 @@
 'use strict'
 const express = require('express')
 const router  = express.Router()
-const { handleStkCallback } = require('../controllers/Requestmoneystkcallback')
+const { handleStkCallback } = require('../../controllers/Requestmoneystkcallback')
 
 router.post('/stk-callback', handleStkCallback)
 

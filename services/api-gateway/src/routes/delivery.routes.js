@@ -19,21 +19,21 @@ const {
   highRiskStatus,
   history,
   deleteDeliveryOrder,
-} = require('../controllers/delivery.controller')
+} = require('../../controllers/delivery.controller')
 const {
   open: openDispute,
   resolve: resolveDispute,
   compare: comparePhotos,
   getOne: getDispute,
   getOpen: getOpenDisputes,
-} = require('../controllers/dispute.controller')
+} = require('../../controllers/dispute.controller')
 
 // ─── ORDER ────────────────────────────────────────
 router.post('/create',                authenticate, createOrder)
 
 // ─── PHOTO UPLOADS ────────────────────────────────
-router.post('/before-photo',          authenticate, uploadDeliveryPhotos.single('photo'), beforePhoto)
-router.post('/during-photo',          authenticate, uploadDeliveryPhotos.single('photo'), duringPhoto)
+router.post('/before-photo',          authenticate, uploadDeliveryPhotos.array('photos', 5), beforePhoto)
+router.post('/during-photo',          authenticate, uploadDeliveryPhotos.array('photos', 5), duringPhoto)
 router.post('/after-photo',           authenticate, uploadDeliveryPhotos.single('photo'), afterPhoto)
 
 // ─── OTP FLOW ─────────────────────────────────────

@@ -5,7 +5,7 @@ const { ipKeyGenerator } = require('express-rate-limit')
 // ─── GENERIC API LIMITER ──────────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 3000000,
+  max: 3000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please slow down.' },
@@ -16,7 +16,7 @@ const globalLimiter = rateLimit({
 // Login/register — prevent brute force
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100000,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts. Try again in 15 minutes.' },
@@ -26,7 +26,7 @@ const authLimiter = rateLimit({
 // Tightest limit — financial action
 const sendLimiter = rateLimit({
   windowMs: 60 * 1000, 
-  max: 56,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many send attempts. Wait a moment and try again.' },

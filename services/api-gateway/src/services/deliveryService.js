@@ -79,7 +79,7 @@ const createDeliveryOrder = async ({ buyerId, deliveryGuyPhone, amount, goods, p
 }
 
 
-const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, cloudinaryUrl, cloudinaryPublicId }) => {
+const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, photos }) => {
   // ─── 1. Validate order exists
   const order = await prisma.deliveryOrder.findUnique({ where: { id: orderId } })
   if (!order) throw new Error(`Order not found: ${orderId}`)
@@ -93,17 +93,14 @@ const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, cloudinaryUrl, clo
   // ─── 2. Transaction with proper error wrapping
   try {
     await prisma.$transaction(async (db) => {
-      await db.deliveryPhoto.upsert({
-        where:  { orderId_photoType: { orderId, photoType: 'BEFORE' } },
-        update: {
-          cloudinaryUrl,
-          cloudinaryPublicId,
-          uploadedAt:       new Date(),
-          buyerConfirmedAt: null,
-        },
-        create: {
+      // delete previous BEFORE photos (handles re-upload after buyer rejection)
+      await db.deliveryPhoto.deleteMany({ where: { orderId, photoType: 'BEFORE' } })
+      // insert all photos in one shot, indexed from 0
+      await db.deliveryPhoto.createMany({
+        data: photos.map(({ cloudinaryUrl, cloudinaryPublicId }, i) => ({
           orderId,
           photoType:         'BEFORE',
+          photoIndex:        i,
           cloudinaryUrl,
           cloudinaryPublicId,
           uploadedBy:        'DELIVERY_GUY',
@@ -111,7 +108,7 @@ const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, cloudinaryUrl, clo
           latitude:          null,
           longitude:         null,
           deviceId:          null,
-        },
+        })),
       })
 
       await db.deliveryOrder.update({
@@ -119,7 +116,10 @@ const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, cloudinaryUrl, clo
         data:  { status: 'PHOTO_WAITING_BUYER_CONFIRMATION' },
       })
 
-      await logTimeline(db, orderId, 'BEFORE_PHOTO_UPLOADED', 'DELIVERY_GUY', { cloudinaryUrl })
+      await logTimeline(db, orderId, 'BEFORE_PHOTO_UPLOADED', 'DELIVERY_GUY', {
+        photoCount: photos.length,
+        primaryUrl: photos[0].cloudinaryUrl,
+      })
     })
   } catch (txErr) {
     //  Prisma transaction errors are often wrapped — unwrap them
@@ -223,7 +223,7 @@ const buyerConfirmsBeforePhoto = async ({ orderId, buyerId, confirmed }) => {
 
   await smsQueue.add('send-sms', {
     to:      normalizePhone(order.deliveryGuyPhone),
-    message: `LipaSafe: Buyer confirmed your photo! Your PICKUP OTP is: ${otp}. Enter it in the app to start delivery. Expires in 10 mins.`,
+    message: `LipaSafe: Buyer confirmed your photos! Your PICKUP OTP is: ${otp}. Enter it in the app to start delivery. Expires in 10 mins.`,
   })
   const dgUserConf = await prisma.user.findUnique({
     where: { phone: normalizePhone(order.deliveryGuyPhone) }, select: { id: true }
@@ -232,7 +232,7 @@ const buyerConfirmsBeforePhoto = async ({ orderId, buyerId, confirmed }) => {
     await createAndSend({
       userId:    dgUserConf.id,
       type:      'PICKUP_OTP_ISSUED',
-      messageEn: `Buyer confirmed your photo! Your PICKUP OTP is: ${otp}. Enter it to start delivery.`,
+      messageEn: `Buyer confirmed your photos! Your PICKUP OTP is: ${otp}. Enter it to start delivery.`,
       channel:   'push',
       deliveryOrderId: orderId,
     }).catch(e => logger.warn('Push failed: pickupOTP', { e: e.message }))
@@ -310,30 +310,33 @@ const enterPickupOTP = async ({ orderId, deliveryGuyPhone, otp }) => {
 }
 
 // ─── 5. UPLOAD DURING PHOTO ──────────────────────
-const uploadDuringPhoto = async ({ orderId, deliveryGuyPhone, cloudinaryUrl, cloudinaryPublicId }) => {
+const uploadDuringPhoto = async ({ orderId, deliveryGuyPhone, photos }) => {
   const order = await prisma.deliveryOrder.findUnique({ where: { id: orderId } })
   if (!order) throw new Error('Order not found')
   if (order.status !== 'IN_TRANSIT') throw new Error(`Invalid status: ${order.status}`)
   if (normalizePhone(order.deliveryGuyPhone) !== normalizePhone(deliveryGuyPhone)) throw new Error('Unauthorized')
 
   await prisma.$transaction(async (db) => {
-   await db.deliveryPhoto.upsert({
-  where:  { orderId_photoType: { orderId, photoType: 'DURING' } },
-  update: { cloudinaryUrl, cloudinaryPublicId, uploadedAt: new Date() },
-  create: {
-    orderId,
-    photoType:         'DURING',
-    cloudinaryUrl,
-    cloudinaryPublicId,
-    uploadedBy:        'DELIVERY_GUY',
-    uploadedAt:        new Date(),
-    latitude:          null,
-    longitude:         null,
-    deviceId:          null,
-  },
-})
-    await db.deliveryOrder.update({ where: { id: orderId }, data: { status: 'DELIVERY_PHOTO_UPLOADED' } })
-    await logTimeline(db, orderId, 'DURING_PHOTO_UPLOADED', 'DELIVERY_GUY', { cloudinaryUrl })
+      await db.deliveryPhoto.deleteMany({ where: { orderId, photoType: 'DURING' } })
+      await db.deliveryPhoto.createMany({
+        data: photos.map(({ cloudinaryUrl, cloudinaryPublicId }, i) => ({
+          orderId,
+          photoType:         'DURING',
+          photoIndex:        i,
+          cloudinaryUrl,
+          cloudinaryPublicId,
+          uploadedBy:        'DELIVERY_GUY',
+          uploadedAt:        new Date(),
+          latitude:          null,
+          longitude:         null,
+          deviceId:          null,
+        })),
+      })
+      await db.deliveryOrder.update({ where: { id: orderId }, data: { status: 'DELIVERY_PHOTO_UPLOADED' } })
+      await logTimeline(db, orderId, 'DURING_PHOTO_UPLOADED', 'DELIVERY_GUY', {
+        photoCount: photos.length,
+        primaryUrl: photos[0].cloudinaryUrl,
+      })
   })
 
   // Generate DELIVERY OTP for buyer
@@ -409,12 +412,12 @@ const uploadAfterPhoto = async ({ orderId, buyerId, cloudinaryUrl, cloudinaryPub
   if (!order) throw new Error('Order not found')
   if (order.buyerId !== buyerId) throw new Error('Unauthorized')
 
-  await prisma.deliveryPhoto.upsert({
-    where: { orderId_photoType: { orderId, photoType: 'AFTER' } },
-    update: { cloudinaryUrl, cloudinaryPublicId, uploadedAt: new Date() },
-    create: {
+  await prisma.deliveryPhoto.deleteMany({ where: { orderId, photoType: 'AFTER' } })
+  await prisma.deliveryPhoto.create({
+    data: {
       orderId,
       photoType:         'AFTER',
+      photoIndex:        0,
       cloudinaryUrl,
       cloudinaryPublicId,
       uploadedBy:        'BUYER',
@@ -428,7 +431,7 @@ const uploadAfterPhoto = async ({ orderId, buyerId, cloudinaryUrl, cloudinaryPub
 
 
 // ─── DELIVERY B2C PAYOUT ─────────────────────────────────────────────────────
-const deliveryB2cPayout = async (orderId, phone, amount) => {
+const deliveryB2cPayout = async (orderId, phone, amount, type = 'payout') => {
   const baseURL  = process.env.MPESA_BASE_URL || 'https://sandbox.safaricom.co.ke'
   const idempKey = `delivery:b2c:originator:fixed:${orderId}`
 
@@ -455,7 +458,7 @@ const deliveryB2cPayout = async (orderId, phone, amount) => {
   const attempt = await redis.incr(`delivery:b2c:attempt:${orderId}`)
   await redis.set(
     `delivery:b2c:originator:${originatorId}`,
-    JSON.stringify({ orderId, type: 'payout', attempt }),
+    JSON.stringify({ orderId, type, attempt }),
     'EX', 86400
   )
   const token = await getToken()
@@ -574,7 +577,7 @@ const extendDeliveryTime = async ({ orderId, buyerId, extensionMinutes }) => {
 }
 
 // ─── 10. OPEN DISPUTE ─────────────────────────────
-const DISPUTABLE_STATUSES = ['DELIVERY_PHOTO_UPLOADED', 'AWAITING_RECEIPT']
+const DISPUTABLE_STATUSES = ['DELIVERY_PHOTO_UPLOADED', 'RECEIPT_OTP_ISSUED']
 
 const openDispute = async ({ orderId, claimerType, reason, claimerId }) => {
   const order = await prisma.deliveryOrder.findUnique({ where: { id: orderId } })
