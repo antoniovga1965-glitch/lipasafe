@@ -95,7 +95,6 @@ app.use('/house-link',       houseLinkRoutes)
 app.use('/upload',           uploadRoutes)
 app.use('/request-money',       requestMoneyRoutes)
 app.use('/request-money-mpesa', safaricomOnly, requestMoneyMpesaRoutes)
-const path = require('path')
 // Relaxed CSP for seller link page — allows inline scripts (no user data here)
 app.use('/order', helmet.contentSecurityPolicy({
   directives: {
