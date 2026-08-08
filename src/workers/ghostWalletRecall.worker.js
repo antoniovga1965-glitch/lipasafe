@@ -7,6 +7,7 @@ const Decimal = require('decimal.js')
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
 }
 
 const ghostWalletRecallWorker = new Worker('ghost-wallet-recall', async (job) => {
