@@ -16,7 +16,7 @@ const sendOTP = async (email, otp, type = 'register') => {
     : 'Enter the code below in the LipaSafe app to complete your registration. This code expires in <strong>10 minutes</strong>.'
 
   await resend.emails.send({
-    from: 'LipaSafe <onboarding@resend.dev>',
+    from: 'LipaSafe <noreply@lipasafe.co.ke>',
     to: email,
     subject: isReset ? `${otp} — Your LipaSafe PIN Reset Code` : isChangePin ? `${otp} — Confirm Your PIN Change` : `${otp} is your LipaSafe verification code`,
     html: `
