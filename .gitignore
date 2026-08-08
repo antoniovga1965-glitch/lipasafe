@@ -3,3 +3,4 @@ logs/
 *.log
 .env
 prisma/*.db
+public/lipasafe.apk
