@@ -100,7 +100,7 @@ const houseB2cResult = async (req, res) => {
         const { createAndSend: _pushHR } = require('../src/services/notificationService')
         const _hrv = escrow.buyerPhone.startsWith('254') ? ['0'+escrow.buyerPhone.slice(3), escrow.buyerPhone] : [escrow.buyerPhone, '254'+escrow.buyerPhone.slice(1)]
         const _hru = await prisma.user.findFirst({ where: { phone: { in: _hrv } }, select: { id: true } })
-        if (_hru) await _pushHR({ userId: _hru.id, type: 'house_refunded', houseEscrowId: escrowId,
+        if (_hru) await _pushHR({ userId: _hru.id, type: 'refund_sent', houseEscrowId: escrowId,
           messageEn: `Refund of KES ${Number(escrow.amount).toFixed(2)} sent to your M-Pesa. Ref: ${mpesaRef}` }).catch(() => {})
         logger.info('House B2C refund confirmed', { escrowId, mpesaRef })
       }
