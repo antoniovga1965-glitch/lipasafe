@@ -24,7 +24,7 @@
     "api": "cd services/api-gateway && node src/server.js",
     "mobile": "cd apps/mobile && npx expo start",
     "generate": "cd services/api-gateway && npx prisma generate",
-    "start": "node src/server.js"
+    "start": "cd services/api-gateway && node src/server.js"
   },
   "keywords": [],
   "author": "",
