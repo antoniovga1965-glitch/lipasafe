@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import * as ImagePicker from 'expo-image-picker';
 import LipaHeader from '../components/LipaHeader';
 import LipaButton from '../components/LipaButton';
-import { authFetch } from '../utils/api';
+import { authFetch, BASE_URL } from '../utils/api';
 import { getAccessToken } from '../utils/secureStorage';
 import { Buffer } from 'buffer';
 
@@ -25,6 +25,13 @@ export default function FundiJobScreen({ navigation, route }) {
   const [isOverdue, setIsOverdue] = useState(false);
 
   const [isBuyer, setIsBuyer] = useState(null);
+
+  // Extension-request form state
+  const [extraHours, setExtraHours] = useState('');
+  const [extensionReason, setExtensionReason] = useState('');
+  const [extensionPhotos, setExtensionPhotos] = useState([]);
+  const [submittingExtension, setSubmittingExtension] = useState(false);
+  const [respondingExtension, setRespondingExtension] = useState(false);
 
   useEffect(() => {
     if (!job) return;
@@ -125,12 +132,120 @@ export default function FundiJobScreen({ navigation, route }) {
 
   const removePhoto = (index) => setAfterPhotos(afterPhotos.filter((_, i) => i !== index));
 
+  // ── Extension request photos ────────────────────────────────────────────
+  const pickExtensionPhotos = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) { Alert.alert('Permission needed', 'Please allow photo access'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) setExtensionPhotos([...extensionPhotos, ...result.assets]);
+  };
+
+  const removeExtensionPhoto = (index) => setExtensionPhotos(extensionPhotos.filter((_, i) => i !== index));
+
+  const submitExtensionRequest = async () => {
+    const hoursNum = parseInt(extraHours, 10);
+    if (!hoursNum || hoursNum < 1) {
+      Alert.alert('Required', 'Enter how many extra hours you need');
+      return;
+    }
+    if (!extensionReason.trim() || extensionReason.trim().length < 5) {
+      Alert.alert('Required', 'Explain why you need more time');
+      return;
+    }
+    if (extensionPhotos.length === 0) {
+      Alert.alert('Photos Required', 'Add at least one progress photo');
+      return;
+    }
+    try {
+      setSubmittingExtension(true);
+      const token = await getAccessToken();
+      const uploadedUrls = [];
+      for (const photo of extensionPhotos) {
+        const formData = new FormData();
+        formData.append('photos', { uri: photo.uri, name: 'extension.jpg', type: 'image/jpeg' });
+        const uploadRes = await fetch(`${BASE_URL}/fundi/upload-photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.success) {
+          Alert.alert('Upload Failed', uploadData.message || 'Could not upload photo.');
+          setSubmittingExtension(false);
+          return;
+        }
+        uploadedUrls.push(...uploadData.urls);
+      }
+      const res = await authFetch(`/fundi/${job.id}/request-extension`, {
+        method: 'POST',
+        body: JSON.stringify({
+          extraHours:     hoursNum,
+          reason:         extensionReason.trim(),
+          evidencePhotos: uploadedUrls,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Request Sent', 'The buyer has been notified and will respond soon.');
+        setExtraHours('');
+        setExtensionReason('');
+        setExtensionPhotos([]);
+        fetchJob();
+      } else {
+        Alert.alert('Error', data.message || 'Could not send extension request');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed. Check connection.');
+    } finally {
+      setSubmittingExtension(false);
+    }
+  };
+
+  const handleExtensionDecision = (decision) => {
+    const title   = decision === 'APPROVED' ? 'Approve Extension?' : 'Reject Extension?';
+    const message = decision === 'APPROVED'
+      ? 'The fundi will get more time to finish the job.'
+      : 'This will open a dispute for admin review. This cannot be undone.';
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', style: decision === 'REJECTED' ? 'destructive' : 'default', onPress: () => submitExtensionDecision(decision) },
+    ]);
+  };
+
+  const submitExtensionDecision = async (decision) => {
+    try {
+      setRespondingExtension(true);
+      const res  = await authFetch(`/fundi/${job.id}/extension-response`, {
+        method: 'PATCH',
+        body:   JSON.stringify({ decision }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert(
+          decision === 'APPROVED' ? 'Extension Approved' : 'Dispute Opened',
+          decision === 'APPROVED' ? 'The fundi has been notified.' : 'Admin will review this dispute.'
+        );
+        fetchJob();
+      } else {
+        Alert.alert('Error', data.message || 'Could not process response');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed. Check connection.');
+    } finally {
+      setRespondingExtension(false);
+    }
+  };
+
   const handleJobDone = async () => {
     if (afterPhotos.length === 0) {
       Alert.alert('Photos Required', 'Upload after photos before marking job done');
       return;
     }
-    Alert.alert('Confirm Job Done', 'This will start the 12hr buyer inspection window. Are you sure?', [
+    Alert.alert('Confirm Job Done', 'This will start the 3hr buyer inspection window. Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Yes, Done', onPress: submitJobDone }
     ]);
@@ -139,13 +254,32 @@ export default function FundiJobScreen({ navigation, route }) {
   const submitJobDone = async () => {
     try {
       setLoading(true);
+      // Upload all after photos to Cloudinary first
+      const token = await getAccessToken();
+      const uploadedUrls = [];
+      for (const photo of afterPhotos) {
+        const formData = new FormData();
+        formData.append('photos', { uri: photo.uri, name: 'after.jpg', type: 'image/jpeg' });
+        const uploadRes = await fetch(`${BASE_URL}/fundi/upload-photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.success) {
+          Alert.alert('Upload Failed', uploadData.message || 'Could not upload photo.');
+          setLoading(false);
+          return;
+        }
+        uploadedUrls.push(...uploadData.urls);
+      }
       const res = await authFetch(`/fundi/${job.id}/done`, {
         method: 'POST',
-        body:   JSON.stringify({ afterPhotos: afterPhotos.map(p => p.uri), notes: '' }),
+        body:   JSON.stringify({ afterPhotos: uploadedUrls, notes: '' }),
       });
       const data = await res.json();
       if (data.success) {
-        Alert.alert(' Done!', 'Buyer inspection window started. You will be paid within 12 hours.');
+        Alert.alert(' Done!', 'Buyer inspection window started. You will be paid within 3 hours.');
         navigation.navigate('SellerDashboard');
       } else {
         Alert.alert('Error', data.message || 'Something went wrong');
@@ -261,6 +395,7 @@ export default function FundiJobScreen({ navigation, route }) {
 
     // ── ACTIVE / OVERDUE ──────────────────────────────────────────────────
     return (
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <LipaHeader title="Fundi Job" navigation={navigation} onBack={() => navigation.goBack()} />
         <View style={styles.content}>
@@ -294,6 +429,59 @@ export default function FundiJobScreen({ navigation, route }) {
                   Funds are held in escrow. You will be notified when the fundi marks the job done so you can inspect the work.
                 </Text>
               </View>
+
+              {job?.extensionRequestStatus === 'PENDING' && job?.extensionRequests?.[0] && (
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Extension Requested</Text>
+                  <Text style={styles.label}>Extra Time Needed</Text>
+                  <Text style={styles.value}>{job.extensionRequests[0].extraHours}h</Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Fundi's Reason</Text>
+                  <Text style={styles.value}>{job.extensionRequests[0].reason}</Text>
+                  {job.extensionRequests[0].evidencePhotos?.length > 0 && (
+                    <>
+                      <Text style={[styles.label, { marginTop: 16 }]}>Progress Photos</Text>
+                      <Text style={styles.photoHint}>Tap a photo to enlarge</Text>
+                      <FlatList
+                        data={job.extensionRequests[0].evidencePhotos}
+                        horizontal
+                        keyExtractor={(_, i) => i.toString()}
+                        ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+                        renderItem={({ item }) => (
+                          <Pressable onPress={() => setViewerUri(item)}>
+                            <Image source={{ uri: item }} style={styles.photoLarge} />
+                          </Pressable>
+                        )}
+                      />
+                    </>
+                  )}
+                  {respondingExtension
+                    ? <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+                    : (
+                      <View style={{ marginTop: 16 }}>
+                        <LipaButton title="Approve Extension" onPress={() => handleExtensionDecision('APPROVED')} />
+                        <LipaButton
+                          title="Reject & Open Dispute"
+                          onPress={() => handleExtensionDecision('REJECTED')}
+                          style={{ backgroundColor: colors.error }}
+                        />
+                      </View>
+                    )
+                  }
+                  <Modal visible={!!viewerUri} transparent animationType="fade" onRequestClose={() => setViewerUri(null)}>
+                    <Pressable
+                      style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center', justifyContent: 'center' }}
+                      onPress={() => setViewerUri(null)}
+                    >
+                      <Image
+                        source={{ uri: viewerUri }}
+                        style={{ width: '90%', height: '70%', borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
+                      <Text style={{ color: 'white', marginTop: 16, fontSize: 13 }}>Tap anywhere to close</Text>
+                    </Pressable>
+                  </Modal>
+                </View>
+              )}
             </>
           )}
 
@@ -315,30 +503,104 @@ export default function FundiJobScreen({ navigation, route }) {
                   KES {parseFloat(job?.fundiReceives || job?.amount || 0).toFixed(2)}
                 </Text>
               </View>
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>After Photos</Text>
-                <Text style={styles.photoHint}>Upload photos showing completed work (required)</Text>
-                <TouchableOpacity style={styles.photoBtn} onPress={pickPhotos}>
-                  <Text style={styles.photoBtnText}>+ Add After Photos</Text>
-                </TouchableOpacity>
-                {afterPhotos.length > 0 && (
-                  <FlatList
-                    data={afterPhotos}
-                    horizontal
-                    keyExtractor={(_, i) => i.toString()}
-                    renderItem={({ item, index }) => (
-                      <View style={styles.photoWrapper}>
-                        <Pressable onPress={() => setViewerUri(item.uri)}>
-                          <Image source={{ uri: item.uri }} style={styles.photo} />
-                        </Pressable>
-                        <TouchableOpacity style={styles.removePhoto} onPress={() => removePhoto(index)}>
-                          <Text style={styles.removePhotoText}>X</Text>
-                        </TouchableOpacity>
-                      </View>
+              {!isOverdue && (
+                <>
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>After Photos</Text>
+                    <Text style={styles.photoHint}>Upload photos showing completed work (required)</Text>
+                    <TouchableOpacity style={styles.photoBtn} onPress={pickPhotos}>
+                      <Text style={styles.photoBtnText}>+ Add After Photos</Text>
+                    </TouchableOpacity>
+                    {afterPhotos.length > 0 && (
+                      <FlatList
+                        data={afterPhotos}
+                        horizontal
+                        keyExtractor={(_, i) => i.toString()}
+                        renderItem={({ item, index }) => (
+                          <View style={styles.photoWrapper}>
+                            <Pressable onPress={() => setViewerUri(item.uri)}>
+                              <Image source={{ uri: item.uri }} style={styles.photo} />
+                            </Pressable>
+                            <TouchableOpacity style={styles.removePhoto} onPress={() => removePhoto(index)}>
+                              <Text style={styles.removePhotoText}>X</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      />
                     )}
+                  </View>
+                  {loading
+                    ? <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+                    : <LipaButton
+                        title={afterPhotos.length === 0 ? 'Upload Photos First' : 'Mark Job Done'}
+                        onPress={handleJobDone}
+                        disabled={afterPhotos.length === 0}
+                      />
+                  }
+                </>
+              )}
+
+              {isOverdue && job?.extensionRequestStatus === 'PENDING' && (
+                <View style={styles.warningCard}>
+                  <Text style={styles.warningText}>
+                    Extension request sent. Waiting for buyer to respond — you'll be notified once they decide.
+                  </Text>
+                </View>
+              )}
+
+              {isOverdue && job?.extensionRequestStatus !== 'PENDING' && (
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Request More Time</Text>
+                  <Text style={styles.photoHint}>
+                    This job is overdue — you can no longer submit after photos. Request extra hours from the buyer instead.
+                  </Text>
+                  <Text style={styles.label}>Extra Hours Needed</Text>
+                  <TextInput
+                    style={styles.extensionInput}
+                    value={extraHours}
+                    onChangeText={setExtraHours}
+                    placeholder="e.g. 2"
+                    placeholderTextColor={colors.grayDark}
+                    keyboardType="number-pad"
+                    maxLength={3}
                   />
-                )}
-              </View>
+                  <Text style={styles.label}>Reason for Delay</Text>
+                  <TextInput
+                    style={[styles.extensionInput, { height: 80, textAlignVertical: 'top' }]}
+                    value={extensionReason}
+                    onChangeText={setExtensionReason}
+                    placeholder="Explain briefly why you need more time"
+                    placeholderTextColor={colors.grayDark}
+                    multiline
+                  />
+                  <Text style={styles.photoHint}>Progress photos (at least 1, required)</Text>
+                  <TouchableOpacity style={styles.photoBtn} onPress={pickExtensionPhotos}>
+                    <Text style={styles.photoBtnText}>+ Add Progress Photos</Text>
+                  </TouchableOpacity>
+                  {extensionPhotos.length > 0 && (
+                    <FlatList
+                      data={extensionPhotos}
+                      horizontal
+                      keyExtractor={(_, i) => i.toString()}
+                      renderItem={({ item, index }) => (
+                        <View style={styles.photoWrapper}>
+                          <Pressable onPress={() => setViewerUri(item.uri)}>
+                            <Image source={{ uri: item.uri }} style={styles.photo} />
+                          </Pressable>
+                          <TouchableOpacity style={styles.removePhoto} onPress={() => removeExtensionPhoto(index)}>
+                            <Text style={styles.removePhotoText}>X</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    />
+                  )}
+                  {submittingExtension
+                    ? <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+                    : <LipaButton title="Send Extension Request" onPress={submitExtensionRequest} />
+                  }
+                </View>
+              )}
+
               <Modal visible={!!viewerUri} transparent animationType="fade" onRequestClose={() => setViewerUri(null)}>
                 <Pressable
                   style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center', justifyContent: 'center' }}
@@ -352,14 +614,6 @@ export default function FundiJobScreen({ navigation, route }) {
                   <Text style={{ color: 'white', marginTop: 16, fontSize: 13 }}>Tap anywhere to close</Text>
                 </Pressable>
               </Modal>
-              {loading
-                ? <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
-                : <LipaButton
-                    title={afterPhotos.length === 0 ? 'Upload Photos First' : 'Mark Job Done'}
-                    onPress={handleJobDone}
-                    disabled={afterPhotos.length === 0}
-                  />
-              }
             </>
           )}
 
@@ -369,6 +623,7 @@ export default function FundiJobScreen({ navigation, route }) {
 
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -393,6 +648,7 @@ const styles = StyleSheet.create({
   value:              { fontSize: 15, fontWeight: '600', color: colors.black, marginTop: 2 },
   amount:             { color: colors.primary, fontSize: 18 },
   otpInput:           { borderWidth: 1.5, borderColor: colors.primary, borderRadius: 12, padding: 16, fontSize: 24, fontWeight: '700', letterSpacing: 8, textAlign: 'center', color: colors.black, marginVertical: 16 },
+  extensionInput:     { borderWidth: 1.5, borderColor: colors.primary, borderRadius: 10, padding: 14, fontSize: 15, fontWeight: '400', textAlign: 'left', color: colors.black, marginVertical: 10 },
   warningCard:        { backgroundColor: '#FEF3C7', borderRadius: 12, padding: 14, marginBottom: 16 },
   warningText:        { fontSize: 13, color: '#92400E', lineHeight: 20 },
   photoHint:          { fontSize: 12, color: colors.grayDark, marginBottom: 10 },
@@ -400,6 +656,7 @@ const styles = StyleSheet.create({
   photoBtnText:       { color: colors.primary, fontWeight: '600', fontSize: 15 },
   photoWrapper:       { marginRight: 10, position: 'relative' },
   photo:              { width: 80, height: 80, borderRadius: 8 },
+  photoLarge:         { width: 100, height: 100, borderRadius: 10, marginRight: 4 },
   removePhoto:        { position: 'absolute', top: -6, right: -6, backgroundColor: 'red', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   removePhotoText:    { color: 'white', fontSize: 10, fontWeight: 'bold' },
 });

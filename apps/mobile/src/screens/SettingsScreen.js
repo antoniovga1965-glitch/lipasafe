@@ -41,7 +41,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
         <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('ChangePin')}>
           <Text style={styles.label}>{t.changePIN}</Text>
-          <Text style={styles.arrow}>→</Text>
+          <Text style={styles.arrow}>&gt;</Text>
         </TouchableOpacity>
       </View>
     </View>

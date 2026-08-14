@@ -227,6 +227,13 @@ if (autoVerdict === 'PENDING_ADMIN' || confidence < 50) {
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: A dispute has been raised for order ${orderId.slice(0,8).toUpperCase()}. We are reviewing photo evidence. You will be notified.`,
     }, { jobId: `dispute-opened-dg-${orderId}` })
+    const { createAndSend: _pushDO } = require('./notificationService')
+    await _pushDO({ userId: order.buyerId, type: 'dispute_opened', deliveryOrderId: orderId,
+      messageEn: `Dispute opened for order ${orderId.slice(0,8).toUpperCase()}. We are reviewing evidence and will notify you of the outcome.` }).catch(() => {})
+    const _dgov = order.deliveryGuyPhone.startsWith('254') ? ['0'+order.deliveryGuyPhone.slice(3), order.deliveryGuyPhone] : [order.deliveryGuyPhone, '254'+order.deliveryGuyPhone.slice(1)]
+    const _dgou = await prisma.user.findFirst({ where: { phone: { in: _dgov } }, select: { id: true } })
+    if (_dgou) await _pushDO({ userId: _dgou.id, type: 'dispute_opened', deliveryOrderId: orderId,
+      messageEn: `A dispute has been raised for order ${orderId.slice(0,8).toUpperCase()}. We are reviewing photo evidence. You will be notified.` }).catch(() => {})
   }
 
   // Auto-trigger payout or refund if CV confidence is high enough
@@ -348,6 +355,13 @@ async function resolveDispute({ disputeId, resolution, adminNotes, adminId }) {
       message: `LipaSafe: Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Refund issued to buyer. Your dispute count has been updated.`,
     })
 
+    const { createAndSend: _pushDR } = require('./notificationService')
+    await _pushDR({ userId: order.buyerId, type: 'dispute_resolved_refund', deliveryOrderId: order.id,
+      messageEn: `Dispute resolved in your favor. Refund of KES ${refundAmount} is being processed to your M-Pesa.` }).catch(() => {})
+    const _dgrv = order.deliveryGuyPhone.startsWith('254') ? ['0'+order.deliveryGuyPhone.slice(3), order.deliveryGuyPhone] : [order.deliveryGuyPhone, '254'+order.deliveryGuyPhone.slice(1)]
+    const _dgru = await prisma.user.findFirst({ where: { phone: { in: _dgrv } }, select: { id: true } })
+    if (_dgru) await _pushDR({ userId: _dgru.id, type: 'dispute_resolved_refund', deliveryOrderId: order.id,
+      messageEn: `Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Refund issued to buyer.` }).catch(() => {})
     logger.info('Dispute resolved — refund queued', { disputeId, orderId: order.id, refundAmount: refundAmount.toString() })
     return { success: true, resolution: 'REFUND', refundAmount: refundAmount.toString() }
 
@@ -395,6 +409,13 @@ async function resolveDispute({ disputeId, resolution, adminNotes, adminId }) {
       message: `LipaSafe: Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Payment released to delivery guy.`,
     })
 
+    const { createAndSend: _pushDP } = require('./notificationService')
+    await _pushDP({ userId: order.buyerId, type: 'dispute_resolved_pay', deliveryOrderId: order.id,
+      messageEn: `Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Payment released to delivery agent.` }).catch(() => {})
+    const _dgpv = order.deliveryGuyPhone.startsWith('254') ? ['0'+order.deliveryGuyPhone.slice(3), order.deliveryGuyPhone] : [order.deliveryGuyPhone, '254'+order.deliveryGuyPhone.slice(1)]
+    const _dgpu = await prisma.user.findFirst({ where: { phone: { in: _dgpv } }, select: { id: true } })
+    if (_dgpu) await _pushDP({ userId: _dgpu.id, type: 'dispute_resolved_pay', deliveryOrderId: order.id,
+      messageEn: `Dispute resolved in your favor. Payment of KES ${escrow.amount} is being processed to your M-Pesa.` }).catch(() => {})
     logger.info('Dispute resolved — payout queued', { disputeId, orderId: order.id })
     return { success: true, resolution: 'PAY' }
 

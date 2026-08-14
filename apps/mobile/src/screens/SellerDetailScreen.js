@@ -223,7 +223,7 @@ export default function SellerDetailScreen({ route, navigation }) {
               }}
             >
               <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-              <Text style={[styles.contactBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+              <Text style={[styles.contactBtnText, { color: '#25D366' }]}>App</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactBtn}

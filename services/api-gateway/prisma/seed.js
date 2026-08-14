@@ -1,6 +1,6 @@
 'use strict'
 require('dotenv').config()
-const prisma = require('../../api-gateway/src/utils/prisma')
+const prisma = require('../src/utils/prisma')
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
 
@@ -16,7 +16,7 @@ async function seed() {
   })
 
   if (existing) {
-    console.log('✓ Platform user already exists — skipping create')
+    console.log('Platform user already exists  skipping create')
     console.log('  email:', existing.email)
     console.log('  wallet id:', existing.wallet?.id ?? 'no wallet found')
     return

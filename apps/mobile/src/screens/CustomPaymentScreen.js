@@ -98,10 +98,10 @@ export default function CustomPaymentScreen({ navigation }) {
           <LipaButton title={t.continue} onPress={next} disabled={!valid} />
 
           <Text style={styles.note}>
-            💡 For large or risky deals, use Custom Escrow instead — funds are held until both parties confirm.
+             For large or risky deals, use Custom Escrow instead — funds are held until both parties confirm.
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('CustomEscrowCreate')}>
-            <Text style={styles.escrowLink}>Switch to Custom Escrow →</Text>
+            <Text style={styles.escrowLink}>Switch to Custom Escrow &gt;</Text>
           </TouchableOpacity>
         </View>
         <View style={{ height: 48 }} />

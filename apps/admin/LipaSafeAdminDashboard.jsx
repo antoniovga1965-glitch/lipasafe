@@ -679,8 +679,10 @@ const DisputeCenter = ({ token }) => {
             buyer: { fullName: d.opener?.fullName || 'Buyer', phone: d.opener?.phone || '' },
             buyerPhone: d.opener?.phone || '', sellerPhone: d.job?.fundiPhone || '',
             seller: d.job?.fundiPhone || '—', amount: d.job?.amount || 0,
-            reason: d.reason, status: d.status, createdAt: d.createdAt, _raw: 'fundi',
+            reason: d.reason, description: d.description, status: d.status, createdAt: d.createdAt, _raw: 'fundi',
            _jobId: d.jobId,
+            buyerEvidence: { photos: d.evidencePhotos || [] },
+            sellerEvidence: { photos: d.job?.afterPhotos || [] },
           
           }));
           const deliveryList = (delivery?.success ? (delivery.data || delivery.disputes || []) : []).map(d => ({
@@ -690,11 +692,12 @@ const DisputeCenter = ({ token }) => {
             seller: d.order?.deliveryGuyPhone || '—', amount: d.order?.amount || 0,
             reason: d.reason, status: d.status, createdAt: d.createdAt, _raw: 'delivery',
           }));
-          const merged = [...generalList, ...houseList, ...fundiList, ...deliveryList]
-setDisputes(merged.filter((d, i, arr) =>
-  arr.findIndex(x => x._raw === d._raw && x.id === d.id) === i
-))
-          // setDisputes([...(generalList||[]), ...(houseList||[]), ...(fundiList||[]), ...(deliveryList||[])]);
+          const disputeMap = new Map();
+          generalList.forEach(d => disputeMap.set(`${d._raw}:${d.id}`, d));
+          houseList.forEach(d => disputeMap.set(`${d._raw}:${d.id}`, d));
+          fundiList.forEach(d => disputeMap.set(`${d._raw}:${d.id}`, d));
+          deliveryList.forEach(d => disputeMap.set(`${d._raw}:${d.id}`, d));
+          setDisputes(Array.from(disputeMap.values()));
           
         })
         .catch(console.error)
@@ -739,7 +742,7 @@ setDisputes(merged.filter((d, i, arr) =>
   : `/admin/disputes/${selectedDispute._id}/resolve`
       const resolveMethod = ['house', 'fundi'].includes(selectedDispute._raw) ? 'PATCH' : 'POST'
       // delivery controller expects disputeId in body and resolution as 'REFUND'|'PAY'
-      const deliveryActionMap = { 'Refund Buyer': 'REFUND', 'Release to Seller': 'N/A' }
+      const deliveryActionMap = { 'Refund Buyer': 'REFUND', 'Release to Seller': 'PAY' }
       const body = selectedDispute._raw === 'delivery'
         ? { disputeId: selectedDispute._id, resolution: deliveryActionMap[action] || action, adminNotes: resolutionNote }
         : { action, note: resolutionNote, service: selectedDispute._raw };
@@ -1834,7 +1837,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, isOpen, setIsOpen, setToken, s
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 
-const API_URL = 'http://localhost:4000';
+const API_URL = 'https://lipasafe-production.up.railway.app';
 const apiFetch = async (path, token, opts = {}) => {
   const r = await fetch(`${API_URL}${path}`, {
     ...opts,

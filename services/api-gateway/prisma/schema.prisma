@@ -1,72 +1,72 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
 }
 
 model User {
-  id                 String             @id @default(uuid())
-  phone              String             @unique
-  fullName           String
-  pinHash            String
-  deviceId           String?
-  kycStatus          KycStatus          @default(unverified)
-  kycTier            String             @default("basic")
-  role               Role               @default(buyer)
-  accountStatus      AccountStatus      @default(active)
-  reputationScore    Decimal            @default(100.00) @db.Decimal(5, 2)
-  totalTransactions  Int                @default(0)
-  totalDisputed      Int                @default(0)
-  totalCompleted     Int                @default(0)
-  simLastChanged     DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  lastLogin          DateTime?
-  email              String             @unique
-  pushToken          String?
-  avatarUrl          String?
-  sentTransfers      ProtectedTransfer[]  @relation("SentTransfers")
-  receivedTransfers  ProtectedTransfer[]  @relation("ReceivedTransfers")
-  auditLogs          AuditLog[]
-  disputesOpened     Dispute[]          @relation("DisputeOpener")
-  disputesResolved   Dispute[]          @relation("DisputeResolver")
-  fraudSignals       FraudSignal[]
-  mpesaTransactions  MpesaTransaction[]
-  notifications      Notification[]
-  paymentRequests    PaymentRequest[]
-  listings           SecondHandListing[]
-  fundiJobsBuyer     FundiJob[]         @relation("BuyerFundiJobs")
-  fundiDisputesOpened FundiDispute[]    @relation("FundiDisputeOpener")
-  sellerProfile      SellerProfile?
-  buyerTransactions  Transaction[]      @relation("BuyerTransactions")
-  sellerTransactions Transaction[]      @relation("SellerTransactions")
-  wallet             Wallet?
-  fundiAuditLogs     FundiAuditLog[]
-    buyerDeliveries       DeliveryOrder[]       @relation("BuyerDeliveries")
-  houseEscrows          HouseEscrow[]         @relation("BuyerHouseEscrows")
-  customEscrowsAsBuyer  CustomEscrow[]        @relation("CustomBuyer")
+  id                    String              @id @default(uuid())
+  phone                 String              @unique
+  fullName              String
+  pinHash               String
+  deviceId              String?
+  kycStatus             KycStatus           @default(unverified)
+  kycTier               String              @default("basic")
+  role                  Role                @default(buyer)
+  accountStatus         AccountStatus       @default(active)
+  reputationScore       Decimal             @default(100.00) @db.Decimal(5, 2)
+  totalTransactions     Int                 @default(0)
+  totalDisputed         Int                 @default(0)
+  totalCompleted        Int                 @default(0)
+  simLastChanged        DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  lastLogin             DateTime?
+  email                 String              @unique
+  pushToken             String?
+  avatarUrl             String?
+  sentTransfers         ProtectedTransfer[] @relation("SentTransfers")
+  receivedTransfers     ProtectedTransfer[] @relation("ReceivedTransfers")
+  auditLogs             AuditLog[]
+  disputesOpened        Dispute[]           @relation("DisputeOpener")
+  disputesResolved      Dispute[]           @relation("DisputeResolver")
+  fraudSignals          FraudSignal[]
+  mpesaTransactions     MpesaTransaction[]
+  notifications         Notification[]
+  paymentRequests       PaymentRequest[]
+  listings              SecondHandListing[]
+  fundiJobsBuyer        FundiJob[]          @relation("BuyerFundiJobs")
+  fundiDisputesOpened   FundiDispute[]      @relation("FundiDisputeOpener")
+  sellerProfile         SellerProfile?
+  buyerTransactions     Transaction[]       @relation("BuyerTransactions")
+  sellerTransactions    Transaction[]       @relation("SellerTransactions")
+  wallet                Wallet?
+  fundiAuditLogs        FundiAuditLog[]
+  buyerDeliveries       DeliveryOrder[]     @relation("BuyerDeliveries")
+  houseEscrows          HouseEscrow[]       @relation("BuyerHouseEscrows")
+  customEscrowsAsBuyer  CustomEscrow[]      @relation("CustomBuyer")
   kycPayments           KycPayment[]
-  orders                Order[]               @relation("BuyerOrders")
-  sentMoneyRequests      RequestMoney[]        @relation("RequesterRequests")
-  receivedMoneyRequests  RequestMoney[]           @relation("RecipientRequests")
- 
+  orders                Order[]             @relation("BuyerOrders")
+  sentMoneyRequests     RequestMoney[]      @relation("RequesterRequests")
+  receivedMoneyRequests RequestMoney[]      @relation("RecipientRequests")
 }
 
 model SellerProfile {
-  id               String    @id @default(uuid())
-  userId           String    @unique
-  businessName     String?
-  category         Category
-  idNumber         String?
-  idDocUrl         String?
-  faceVerified     Boolean   @default(false)
-  tillNumber       String?
-  transactionLimit Decimal   @default(500.00) @db.Decimal(10, 2)
-  rating           Decimal   @default(5.00) @db.Decimal(3, 2)
-  totalEarned      Decimal   @default(0.00) @db.Decimal(12, 2)
-  isActive         Boolean   @default(true)
-  status           String    @default("active")
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  businessName       String?
+  category           Category
+  idNumber           String?
+  idDocUrl           String?
+  faceVerified       Boolean   @default(false)
+  tillNumber         String?
+  transactionLimit   Decimal   @default(500.00) @db.Decimal(10, 2)
+  rating             Decimal   @default(5.00) @db.Decimal(3, 2)
+  totalEarned        Decimal   @default(0.00) @db.Decimal(12, 2)
+  isActive           Boolean   @default(true)
+  status             String    @default("active")
   verifiedAt         DateTime?
   idBackUrl          String?
   selfieUrl          String?
@@ -78,7 +78,6 @@ model SellerProfile {
   createdAt          DateTime  @default(now())
   user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
 
 model KycPayment {
   id                String    @id @default(cuid())
@@ -95,26 +94,27 @@ model KycPayment {
   createdAt         DateTime  @default(now())
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 model Wallet {
-  id               String              @id @default(uuid())
-  userId           String              @unique
-  availableBalance Decimal             @default(0.00) @db.Decimal(12, 2)
-  escrowBalance    Decimal             @default(0.00) @db.Decimal(12, 2)
-  pendingBalance   Decimal             @default(0.00) @db.Decimal(12, 2)
-  totalIn          Decimal             @default(0.00) @db.Decimal(12, 2)
-  totalOut         Decimal             @default(0.00) @db.Decimal(12, 2)
-  currency         String              @default("KES")
-  lastUpdated      DateTime            @default(now())
-  claimedAt        DateTime?
-  isGhost          Boolean             @default(false)
-  recallAt         DateTime?
-  recallStartedAt  DateTime?
+  id                String              @id @default(uuid())
+  userId            String              @unique
+  availableBalance  Decimal             @default(0.00) @db.Decimal(12, 2)
+  escrowBalance     Decimal             @default(0.00) @db.Decimal(12, 2)
+  pendingBalance    Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalIn           Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalOut          Decimal             @default(0.00) @db.Decimal(12, 2)
+  currency          String              @default("KES")
+  lastUpdated       DateTime            @default(now())
+  claimedAt         DateTime?
+  isGhost           Boolean             @default(false)
+  recallAt          DateTime?
+  recallStartedAt   DateTime?
   recallCompletedAt DateTime?
-  dailySendDate    DateTime?
-  dailySendTotal   Decimal             @default(0.00) @db.Decimal(12, 2)
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactionsOut  WalletTransaction[] @relation("WalletOut")
-  transactionsIn   WalletTransaction[] @relation("WalletIn")
+  dailySendDate     DateTime?
+  dailySendTotal    Decimal             @default(0.00) @db.Decimal(12, 2)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionsOut   WalletTransaction[] @relation("WalletOut")
+  transactionsIn    WalletTransaction[] @relation("WalletIn")
 }
 
 model Milestone {
@@ -151,30 +151,33 @@ model Dispute {
   resolver         User?             @relation("DisputeResolver", fields: [resolvedBy], references: [id])
   transaction      Transaction       @relation(fields: [transactionId], references: [id])
 }
+
 model Notification {
-  id            String              @id @default(uuid())
-  userId        String
-  transactionId String?
-  transferId    String?
-  houseEscrowId String?             
-  orderId       String?
-  requestId     String?
+  id              String              @id @default(uuid())
+  userId          String
+  transactionId   String?
+  transferId      String?
+  houseEscrowId   String?
+  orderId         String?
+  requestId       String?
   deliveryOrderId String?
   customEscrowId  String?
-  type          NotificationType
-  channel       NotificationChannel
-  messageEn     String?
-  messageSw     String?
-  status        NotificationStatus  @default(pending)
-  sentAt        DateTime?
-  deliveredAt   DateTime?
-  createdAt     DateTime            @default(now())
+  fundiJobId      String?
+  type            NotificationType
+  channel         NotificationChannel
+  messageEn       String?
+  messageSw       String?
+  status          NotificationStatus  @default(pending)
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime            @default(now())
 
-  transaction   Transaction?        @relation(fields: [transactionId], references: [id])
-  houseEscrow   HouseEscrow?        @relation(fields: [houseEscrowId], references: [id])  // ← ADD THIS LINE
-  order         Order?              @relation(fields: [orderId], references: [id])
-  deliveryOrder DeliveryOrder?      @relation(fields: [deliveryOrderId], references: [id])
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id])
+  houseEscrow   HouseEscrow?   @relation(fields: [houseEscrowId], references: [id]) // ← ADD THIS LINE
+  order         Order?         @relation(fields: [orderId], references: [id])
+  deliveryOrder DeliveryOrder? @relation(fields: [deliveryOrderId], references: [id])
+  fundiJob      FundiJob?      @relation(fields: [fundiJobId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, status])
@@ -262,6 +265,7 @@ model MpesaTransaction {
   resultDesc        String?
   fee               Decimal?  @db.Decimal(10, 2)
   user              User      @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([status])
 }
@@ -408,6 +412,7 @@ enum NotificationType {
   inspection_expired
   auto_release
   transfer_received
+  transfer_failed
   transfer_sent
   transfer_accepted
   transfer_declined
@@ -432,7 +437,14 @@ enum NotificationType {
   CUSTOM_DEAL_REJECTED
   CUSTOM_BUYER_CONFIRMED
   CUSTOM_PAYMENT_RELEASED
+  FUNDI_JOB_CREATED
+  FUNDI_OTP_ISSUED
+  FUNDI_JOB_ACCEPTED
+  FUNDI_JOB_COMPLETED
+  FUNDI_EXTENSION_REQUESTED
+  FUNDI_EXTENSION_APPROVED
 }
+
 enum NotificationChannel {
   sms
   push
@@ -478,6 +490,7 @@ enum ActorType {
   admin
   system
 }
+
 enum TimerJobType {
   delivery_reminder
   auto_release
@@ -493,7 +506,6 @@ enum TimerJobType {
   buyer_decision_deadline
   auto_otp
 }
-
 
 enum TimerJobStatus {
   pending
@@ -572,9 +584,9 @@ model Transaction {
   category             Category
   description          String?
   state                TransactionState   @default(initiated)
-  mpesaCheckoutId      String?   // STK push checkout ID only
-  b2bOriginatorId      String?   // B2B till payout originator ID
-  b2cOriginatorId      String?   // B2C pochi payout originator ID
+  mpesaCheckoutId      String? // STK push checkout ID only
+  b2bOriginatorId      String? // B2B till payout originator ID
+  b2cOriginatorId      String? // B2C pochi payout originator ID
   mpesaRef             String?
   mpesaReceipt         String?
   buyerPhone           String?
@@ -618,12 +630,12 @@ model Transaction {
   buyer                User               @relation("BuyerTransactions", fields: [buyerId], references: [id])
   seller               User               @relation("SellerTransactions", fields: [sellerId], references: [id])
 
-@@index([buyerId])
-@@index([sellerId])
-@@index([state])
-@@index([buyerId, state])
-@@index([sellerId, state])
-@@index([createdAt])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([state])
+  @@index([buyerId, state])
+  @@index([sellerId, state])
+  @@index([createdAt])
 }
 
 // ═══════════════════════════════════════════
@@ -631,55 +643,82 @@ model Transaction {
 // ═══════════════════════════════════════════
 
 model FundiJob {
-  id                    String         @id @default(uuid())
-  buyerId               String
-  fundiPhone            String
-  buyerPhone            String?                         
-  amount                Decimal        @db.Decimal(10, 2)
-  serviceFee            Decimal        @db.Decimal(10, 2)
-  totalCharged          Decimal        @db.Decimal(10, 2)
-  b2cCost               Decimal        @db.Decimal(10, 2) @default(0)
-  description           String
-  durationHours         Int
-  category              String?
-  deliverables          String[]
-  extensionCount        Int            @default(0)      
-  status                FundiJobStatus @default(PENDING_PAYMENT)
-  beforePhotos          String[]
-  afterPhotos           String[]
-  otpHash               String?
-  otpExpiresAt          DateTime?
-  otpFailedAttempts     Int            @default(0)
-  otpLockedAt           DateTime?
-  acceptedAt            DateTime?
-  deadlineAt            DateTime?
-  completedAt           DateTime?
-  inspectionDeadlineAt  DateTime?
-  overdueSentAt         DateTime?
-  mpesaCheckoutId       String?        @unique
-  mpesaRef              String?
-  createdAt             DateTime       @default(now())
-  deletedAt          DateTime?
-  updatedAt             DateTime       @updatedAt
-  buyer                 User           @relation("BuyerFundiJobs", fields: [buyerId], references: [id])
-  escrow                FundiEscrow?
-  dispute               FundiDispute?
-  smsReplies            FundiSmsReply[]
-  auditLogs             FundiAuditLog[]
+  id                       String                  @id @default(uuid())
+  buyerId                  String
+  fundiPhone               String
+  buyerPhone               String?
+  amount                   Decimal                 @db.Decimal(10, 2)
+  serviceFee               Decimal                 @db.Decimal(10, 2)
+  totalCharged             Decimal                 @db.Decimal(10, 2)
+  b2cCost                  Decimal                 @default(0) @db.Decimal(10, 2)
+  description              String
+  durationHours            Int
+  category                 String?
+  deliverables             String[]
+  extensionCount           Int                     @default(0)
+  extensionRequestStatus   ExtensionRequestStatus?
+  status                   FundiJobStatus          @default(PENDING_PAYMENT)
+  beforePhotos             String[]
+  afterPhotos              String[]
+  otpHash                  String?
+  otpExpiresAt             DateTime?
+  otpFailedAttempts        Int                     @default(0)
+  otpLockedAt              DateTime?
+  acceptedAt               DateTime?
+  deadlineAt               DateTime?
+  completedAt              DateTime?
+  inspectionDeadlineAt     DateTime?
+  overdueSentAt            DateTime?
+  mpesaCheckoutId          String?                 @unique
+  mpesaRef                 String?
+  originatorConversationId String?
+  payoutInitiatedAt        DateTime?
+  createdAt                DateTime                @default(now())
+  deletedAt                DateTime?
+  updatedAt                DateTime                @updatedAt
+  buyer                    User                    @relation("BuyerFundiJobs", fields: [buyerId], references: [id])
+  escrow                   FundiEscrow?
+  dispute                  FundiDispute?
+  extensionRequests        FundiExtensionRequest[]
+  smsReplies               FundiSmsReply[]
+  auditLogs                FundiAuditLog[]
+  notifications            Notification[]
+  fundiPayouts             FundiPayout[]
+
   @@index([buyerId, fundiPhone, status])
 }
 
+model FundiPayout {
+  id                       String    @id @default(uuid())
+  fundiJobId               String
+  payoutType               String // 'payout' | 'refund'
+  amount                   Decimal   @db.Decimal(10, 2)
+  phone                    String
+  status                   String    @default("pending")
+  originatorConversationId String    @unique
+  mpesaRef                 String?
+  resultCode               Int?
+  resultDesc               String?
+  initiatedAt              DateTime  @default(now())
+  completedAt              DateTime?
+  failedAt                 DateTime?
+  createdAt                DateTime  @default(now())
+  fundiJob                 FundiJob  @relation(fields: [fundiJobId], references: [id])
+
+  @@unique([fundiJobId, payoutType])
+}
+
 model FundiEscrow {
-  id                    String      @id @default(uuid())
-  jobId                 String      @unique
-  amount                Decimal     @db.Decimal(10, 2)
-  status                String      @default("held")
-  heldAt                DateTime    @default(now())
+  id                    String    @id @default(uuid())
+  jobId                 String    @unique
+  amount                Decimal   @db.Decimal(10, 2)
+  status                String    @default("held")
+  heldAt                DateTime  @default(now())
   releasedAt            DateTime?
   refundedAt            DateTime?
-  partialReleasedAmount Decimal?    @db.Decimal(10, 2)
-  partialRefundAmount   Decimal?    @db.Decimal(10, 2)
-  job                   FundiJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  partialReleasedAmount Decimal?  @db.Decimal(10, 2)
+  partialRefundAmount   Decimal?  @db.Decimal(10, 2)
+  job                   FundiJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 model FundiDispute {
@@ -687,7 +726,7 @@ model FundiDispute {
   jobId          String              @unique
   openedBy       String
   reason         String
-  purpose        TransferPurpose        @default(OTHER)
+  purpose        TransferPurpose     @default(OTHER)
   description    String?
   evidencePhotos String[]
   decision       FundiDisputeResult?
@@ -701,14 +740,14 @@ model FundiDispute {
 }
 
 model FundiSmsReply {
-  id          String    @id @default(uuid())
-  jobId       String?
-  phone       String
-  message     String
-  receivedAt  DateTime  @default(now())
-  processed   Boolean   @default(false)
-  result      String?
-  job         FundiJob? @relation(fields: [jobId], references: [id])
+  id         String    @id @default(uuid())
+  jobId      String?
+  phone      String
+  message    String
+  receivedAt DateTime  @default(now())
+  processed  Boolean   @default(false)
+  result     String?
+  job        FundiJob? @relation(fields: [jobId], references: [id])
 }
 
 model FundiMpesaTransaction {
@@ -728,7 +767,6 @@ model FundiMpesaTransaction {
   createdAt         DateTime  @default(now())
 }
 
-
 model FundiAuditLog {
   id        String    @id @default(uuid())
   action    String
@@ -746,11 +784,14 @@ enum FundiJobStatus {
   ACTIVE
   AWAITING_BUYER_REVIEW
   OVERDUE
+  AWAITING_PAYOUT
   COMPLETED
+  REFUNDED
+  PAYOUT_FAILED
   EXPIRED
   CANCELLED
   DISPUTED
-  RESOLVED                     
+  RESOLVED
   CLOSED
 }
 
@@ -767,68 +808,66 @@ enum FundiDisputeResult {
   PARTIAL
 }
 
-
-
 model DeliveryOrder {
-// ═══════════════════════════════════════════════════════════════════════════════
-// DELIVERY SYSTEM 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // DELIVERY SYSTEM 
 
-  id                    String    @id @default(cuid())
-  
-  buyerId               String
-  buyer                 User      @relation("BuyerDeliveries", fields: [buyerId], references: [id], onDelete: Cascade)
-  deliveryGuyPhone      String
-  deliveryGuyName       String?
-  
-  amount                Decimal   @db.Decimal(10,2)
-  goods                 String
-  address               String
-  latitude              Float?
-  longitude             Float?
-  
-  setDeliveryTime       DateTime
-  originalDeliveryTime  DateTime
-  acceptedAt            DateTime?
-  pickupOtpEnteredAt    DateTime?
-  deliveryStartedAt     DateTime?
-  receivedAt            DateTime?
-  completedAt           DateTime?
-  
-  status                DeliveryStatus  @default(PENDING_PHOTO_UPLOAD)
-  
-  mpesaCheckoutId       String?   @unique
-  mpesaRef              String?   @unique
-  productDescription    String?
-  paymentRef            String?   @unique
-  paymentAttempts       Int       @default(0)
-  b2cOriginatorId       String?
-  lastPaymentAttempt    DateTime?
-  paymentFailureReason  String?
-  
-  extensionCount        Int       @default(0)
-  totalExtendedMinutes  Int       @default(0)
-  
-  hasDispute            Boolean   @default(false)
-  disputeOpenedAt       DateTime?
-  notifications         Notification[]
-  disputeResolution     String?
-  adminNotesOnDispute   String?
-  
-  deliveryGuyRiskScore  Int       @default(0)
-  requiresAfterPhoto    Boolean   @default(false)
-  
-  photos                DeliveryPhoto[]
-  timeline              DeliveryTimeline[]
-  otps                  DeliveryOTP[]
-  dispute               DeliveryDispute?
-  rating                DeliveryRating?
-  mpesaTx               DeliveryMpesaTransaction?
-  escrow                DeliveryEscrow?
-  
-  createdAt             DateTime  @default(now())
-  deletedAt          DateTime?
-  updatedAt             DateTime  @updatedAt
-  
+  id String @id @default(cuid())
+
+  buyerId          String
+  buyer            User    @relation("BuyerDeliveries", fields: [buyerId], references: [id], onDelete: Cascade)
+  deliveryGuyPhone String
+  deliveryGuyName  String?
+
+  amount    Decimal @db.Decimal(10, 2)
+  goods     String
+  address   String
+  latitude  Float?
+  longitude Float?
+
+  setDeliveryTime      DateTime
+  originalDeliveryTime DateTime
+  acceptedAt           DateTime?
+  pickupOtpEnteredAt   DateTime?
+  deliveryStartedAt    DateTime?
+  receivedAt           DateTime?
+  completedAt          DateTime?
+
+  status DeliveryStatus @default(PENDING_PHOTO_UPLOAD)
+
+  mpesaCheckoutId      String?   @unique
+  mpesaRef             String?   @unique
+  productDescription   String?
+  paymentRef           String?   @unique
+  paymentAttempts      Int       @default(0)
+  b2cOriginatorId      String?
+  lastPaymentAttempt   DateTime?
+  paymentFailureReason String?
+
+  extensionCount       Int @default(0)
+  totalExtendedMinutes Int @default(0)
+
+  hasDispute          Boolean        @default(false)
+  disputeOpenedAt     DateTime?
+  notifications       Notification[]
+  disputeResolution   String?
+  adminNotesOnDispute String?
+
+  deliveryGuyRiskScore Int     @default(0)
+  requiresAfterPhoto   Boolean @default(false)
+
+  photos   DeliveryPhoto[]
+  timeline DeliveryTimeline[]
+  otps     DeliveryOTP[]
+  dispute  DeliveryDispute?
+  rating   DeliveryRating?
+  mpesaTx  DeliveryMpesaTransaction?
+  escrow   DeliveryEscrow?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
+
   @@index([buyerId])
   @@index([deliveryGuyPhone])
   @@index([status])
@@ -837,194 +876,195 @@ model DeliveryOrder {
 }
 
 model DeliveryPhoto {
-  id                    String    @id @default(cuid())
-  orderId               String
-  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  photoType             DeliveryPhotoType
-  cloudinaryUrl         String
-  cloudinaryPublicId    String
-  uploadedBy            DeliveryActorType
-  uploadedAt            DateTime   @default(now())
-  
-  latitude              Float?
-  longitude             Float?
-  deviceId              String?
-  
-  buyerConfirmedAt      DateTime?
-  comparisonScore       Float?
-  fraudRiskScore        Float?
-  flaggedIssues         String[]
-  
-  createdAt             DateTime  @default(now())
-  
+  id      String        @id @default(cuid())
+  orderId String
+  order   DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  photoType          DeliveryPhotoType
+  cloudinaryUrl      String
+  cloudinaryPublicId String
+  uploadedBy         DeliveryActorType
+  uploadedAt         DateTime          @default(now())
+
+  latitude   Float?
+  longitude  Float?
+  deviceId   String?
+  photoIndex Int     @default(0)
+
+  buyerConfirmedAt DateTime?
+  comparisonScore  Float?
+  fraudRiskScore   Float?
+  flaggedIssues    String[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, photoType, photoIndex])
   @@index([orderId])
   @@index([photoType])
   @@index([uploadedBy])
-  @@unique([orderId, photoType])
 }
 
 model DeliveryOTP {
-  id                    String    @id @default(cuid())
-  orderId               String
-  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  otpType               DeliveryOTPType
-  otp                   String
-  expiresAt             DateTime
-  enteredAt             DateTime?
-  enteredBy             DeliveryActorType?
-  isValid               Boolean   @default(false)
-  attempts              Int       @default(0)
-  
-  createdAt             DateTime  @default(now())
-  
+  id      String        @id @default(cuid())
+  orderId String
+  order   DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  otpType   DeliveryOTPType
+  otp       String
+  expiresAt DateTime
+  enteredAt DateTime?
+  enteredBy DeliveryActorType?
+  isValid   Boolean            @default(false)
+  attempts  Int                @default(0)
+
+  createdAt DateTime @default(now())
+
   @@index([orderId])
   @@index([otpType])
   @@index([expiresAt])
 }
 
 model DeliveryTimeline {
-  id                    String    @id @default(cuid())
-  orderId               String
-  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  event                 String
-  actor                 DeliveryActorType
-  timestamp             DateTime  @default(now())
-  details               String?
-  
-  createdAt             DateTime  @default(now())
-  
+  id      String        @id @default(cuid())
+  orderId String
+  order   DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  event     String
+  actor     DeliveryActorType
+  timestamp DateTime          @default(now())
+  details   String?
+
+  createdAt DateTime @default(now())
+
   @@index([orderId])
   @@index([timestamp])
   @@index([event])
 }
 
 model DeliveryDispute {
-  id                    String    @id @default(cuid())
-  orderId               String    @unique
-  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  claimerType           DeliveryActorType
-  reason                String
-  claimDescription      String?
-  
-  photoComparison       DeliveryPhotoComparison?
-  cvAnalysisReport      String?
-  evidenceBundle        String?
-  
-  status                DeliveryDisputeStatus @default(OPEN)
-  resolution            String?
-  adminAssignedTo       String?
-  resolvedAt            DateTime?
-  adminNotes            String?
-  
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
+  id      String        @id @default(cuid())
+  orderId String        @unique
+  order   DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  claimerType      DeliveryActorType
+  reason           String
+  claimDescription String?
+
+  photoComparison  DeliveryPhotoComparison?
+  cvAnalysisReport String?
+  evidenceBundle   String?
+
+  status          DeliveryDisputeStatus @default(OPEN)
+  resolution      String?
+  adminAssignedTo String?
+  resolvedAt      DateTime?
+  adminNotes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([status])
   @@index([claimerType])
   @@index([createdAt])
 }
 
 model DeliveryPhotoComparison {
-  id                    String    @id @default(cuid())
-  disputeId             String    @unique
-  dispute               DeliveryDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
-  
-  beforePhotoUrl        String
-  duringPhotoUrl        String
-  afterPhotoUrl         String?
-  
-  resembleScore         Float?
-  pHashDistance         Int?
-  orbMatches            Int?
-  clipSimilarity        Float?
-  dinoV2Similarity      Float?
-  
-  tamperedScore         Float?
-  substitutedScore      Float?
-  damageDetected        Boolean?
-  missingItemDetected   Boolean?
-  
-  finalVerdict          String?
-  confidence            Float?
-  
-  createdAt             DateTime  @default(now())
-  
+  id        String          @id @default(cuid())
+  disputeId String          @unique
+  dispute   DeliveryDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  beforePhotoUrl String
+  duringPhotoUrl String
+  afterPhotoUrl  String?
+
+  resembleScore    Float?
+  pHashDistance    Int?
+  orbMatches       Int?
+  clipSimilarity   Float?
+  dinoV2Similarity Float?
+
+  tamperedScore       Float?
+  substitutedScore    Float?
+  damageDetected      Boolean?
+  missingItemDetected Boolean?
+
+  finalVerdict String?
+  confidence   Float?
+
+  createdAt DateTime @default(now())
+
   @@index([disputeId])
 }
 
 model DeliveryGuyRiskProfile {
-  id                    String    @id @default(cuid())
-  phone                 String    @unique
-  
-  totalDisputes         Int       @default(0)
-  minorDisputes         Int       @default(0)
-  refundDisputes        Int       @default(0)
-  fraudConfirmed        Int       @default(0)
-  
-  riskScore             Int       @default(0)
-  riskLevel             DeliveryRiskLevel @default(LOW)
-  
-  lastDisputeAt         DateTime?
-  cautiondedAt          DateTime?
-  flaggedForReview      Boolean   @default(false)
-  
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
+  id    String @id @default(cuid())
+  phone String @unique
+
+  totalDisputes  Int @default(0)
+  minorDisputes  Int @default(0)
+  refundDisputes Int @default(0)
+  fraudConfirmed Int @default(0)
+
+  riskScore Int               @default(0)
+  riskLevel DeliveryRiskLevel @default(LOW)
+
+  lastDisputeAt    DateTime?
+  cautiondedAt     DateTime?
+  flaggedForReview Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([riskScore])
   @@index([riskLevel])
   @@index([phone])
 }
 
 model DeliveryPaymentRetryLog {
-  id                    String    @id @default(cuid())
-  orderId               String
-  
-  attempt               Int
-  reason                String
-  mpesaResponseCode     String?
-  mpesaResponseDesc     String?
-  nextRetryAt           DateTime?
-  
-  createdAt             DateTime  @default(now())
-  
+  id      String @id @default(cuid())
+  orderId String
+
+  attempt           Int
+  reason            String
+  mpesaResponseCode String?
+  mpesaResponseDesc String?
+  nextRetryAt       DateTime?
+
+  createdAt DateTime @default(now())
+
   @@index([orderId])
   @@index([createdAt])
 }
 
 model DeliveryEvidenceBundle {
-  id                    String    @id @default(cuid())
-  disputeId             String    @unique
-  
-  beforePhoto           String
-  duringPhoto           String
-  afterPhoto            String?
-  
-  photoComparison       String
-  cvAnalysisReport      String
-  timeline              String
-  gpsData               String
-  otpLogs               String
-  smsSentLogs           String
-  paymentLogs           String
-  
-  generatedAt           DateTime  @default(now())
-  
+  id        String @id @default(cuid())
+  disputeId String @unique
+
+  beforePhoto String
+  duringPhoto String
+  afterPhoto  String?
+
+  photoComparison  String
+  cvAnalysisReport String
+  timeline         String
+  gpsData          String
+  otpLogs          String
+  smsSentLogs      String
+  paymentLogs      String
+
+  generatedAt DateTime @default(now())
+
   @@index([disputeId])
 }
 
 model DeliveryRating {
-  id                    String    @id @default(cuid())
-  orderId               String    @unique
-  order                 DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  rating                Int
-  review                String?
-  ratedAt               DateTime  @default(now())
+  id      String        @id @default(cuid())
+  orderId String        @unique
+  order   DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  rating  Int
+  review  String?
+  ratedAt DateTime @default(now())
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1085,37 +1125,37 @@ enum DeliveryRiskLevel {
 }
 
 model DeliveryMpesaTransaction {
-  id                String    @id @default(cuid())
-  orderId           String    @unique
+  id                String        @id @default(cuid())
+  orderId           String        @unique
   order             DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  checkoutRequestId String    @unique
+  checkoutRequestId String        @unique
   merchantRequestId String?
-  amount            Decimal   @db.Decimal(10,2)
-  fee               Decimal   @db.Decimal(10,2)
-  totalCharged      Decimal   @db.Decimal(10,2)
+  amount            Decimal       @db.Decimal(10, 2)
+  fee               Decimal       @db.Decimal(10, 2)
+  totalCharged      Decimal       @db.Decimal(10, 2)
   phone             String
-  status            String    @default("pending")
-  mpesaRef          String?   @unique
+  status            String        @default("pending")
+  mpesaRef          String?       @unique
   resultDesc        String?
   processedAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([orderId])
   @@index([status])
 }
 
 model DeliveryEscrow {
-  id          String    @id @default(cuid())
-  orderId     String    @unique
-  order       DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  amount      Decimal   @db.Decimal(10,2)
-  status      String    @default("held")
-  heldAt      DateTime
-  releasedAt  DateTime?
-  refundedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String        @id @default(cuid())
+  orderId    String        @unique
+  order      DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount     Decimal       @db.Decimal(10, 2)
+  status     String        @default("held")
+  heldAt     DateTime
+  releasedAt DateTime?
+  refundedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@index([orderId])
   @@index([status])
@@ -1143,9 +1183,9 @@ model HouseEscrow {
   description        String
   serviceType        String            @default("general")
   address            String?
-  amount             Decimal           @db.Decimal(10,2)
-  platformFee        Decimal?          @db.Decimal(10,2)
-  sellerReceives     Decimal?          @db.Decimal(10,2)
+  amount             Decimal           @db.Decimal(10, 2)
+  platformFee        Decimal?          @db.Decimal(10, 2)
+  sellerReceives     Decimal?          @db.Decimal(10, 2)
   status             HouseEscrowStatus @default(PENDING_ACCEPTANCE)
   acceptanceDeadline DateTime?
   mpesaCheckoutId    String?           @unique
@@ -1156,15 +1196,15 @@ model HouseEscrow {
   completedAt        DateTime?
   autoReleasedAt     DateTime?
 
-  buyer              User                   @relation("BuyerHouseEscrows", fields: [buyerId], references: [id])
-  dispute            HouseDispute?
-  mpesaTx            HouseMpesaTransaction?
-  auditLogs          HouseAuditLog[]
-  notifications      Notification[]         
+  buyer         User                   @relation("BuyerHouseEscrows", fields: [buyerId], references: [id])
+  dispute       HouseDispute?
+  mpesaTx       HouseMpesaTransaction?
+  auditLogs     HouseAuditLog[]
+  notifications Notification[]
 
-  createdAt          DateTime          @default(now())
-  deletedAt          DateTime?
-  updatedAt          DateTime          @updatedAt
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
 
   @@index([status])
   @@index([buyerId])
@@ -1173,48 +1213,48 @@ model HouseEscrow {
 }
 
 model HouseDispute {
-  id             String              @id @default(cuid())
-  escrowId       String              @unique
-  openedBy       String
-  reason         String
-  purpose        TransferPurpose        @default(OTHER)
-  description    String?
-  buyerPhotos    String[]
-  adminNotes     String?
-  decision       HouseDisputeResult?
-  status         HouseDisputeStatus  @default(OPEN)
-  resolvedAt     DateTime?
-  createdAt      DateTime            @default(now())
+  id          String              @id @default(cuid())
+  escrowId    String              @unique
+  openedBy    String
+  reason      String
+  purpose     TransferPurpose     @default(OTHER)
+  description String?
+  buyerPhotos String[]
+  adminNotes  String?
+  decision    HouseDisputeResult?
+  status      HouseDisputeStatus  @default(OPEN)
+  resolvedAt  DateTime?
+  createdAt   DateTime            @default(now())
 
-  escrow         HouseEscrow         @relation(fields: [escrowId], references: [id])
+  escrow HouseEscrow @relation(fields: [escrowId], references: [id])
 }
 
 model HouseMpesaTransaction {
-  id                String      @id @default(cuid())
-  escrowId          String      @unique
-  checkoutRequestId String      @unique
+  id                String    @id @default(cuid())
+  escrowId          String    @unique
+  checkoutRequestId String    @unique
   merchantRequestId String?
-  amount            Decimal     @db.Decimal(10,2)
-  fee               Decimal?    @db.Decimal(10,2)
+  amount            Decimal   @db.Decimal(10, 2)
+  fee               Decimal?  @db.Decimal(10, 2)
   phone             String
-  status            String      @default("pending")
-  mpesaRef          String?     @unique
-  idempotencyKey    String?     @unique
+  status            String    @default("pending")
+  mpesaRef          String?   @unique
+  idempotencyKey    String?   @unique
   resultDesc        String?
   processedAt       DateTime?
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime  @default(now())
 
-  escrow            HouseEscrow @relation(fields: [escrowId], references: [id])
+  escrow HouseEscrow @relation(fields: [escrowId], references: [id])
 }
 
 model HouseAuditLog {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   escrowId  String?
   action    String
   meta      Json?
-  createdAt DateTime     @default(now())
+  createdAt DateTime @default(now())
 
-  escrow    HouseEscrow? @relation(fields: [escrowId], references: [id], onDelete: SetNull)
+  escrow HouseEscrow? @relation(fields: [escrowId], references: [id], onDelete: SetNull)
 }
 
 enum HouseEscrowStatus {
@@ -1264,36 +1304,39 @@ enum CustomEscrowStatus {
 }
 
 model CustomEscrow {
-  id                   String              @id @default(cuid())
-  buyerId              String
-  buyer                User                @relation("CustomBuyer", fields: [buyerId], references: [id])
-  counterpartyPhone    String
-  title                String
-  description          String
-  amount               Decimal             @db.Decimal(12, 2)
-  platformFee          Decimal             @db.Decimal(12, 2)
-  counterpartyReceives Decimal             @db.Decimal(12, 2)
-  isRisky              Boolean             @default(false)
-  riskDescription      String?
-  riskPhotos           String[]
-  additionalNotes      String?
-  completionHours      Int?
-  deadline             DateTime?
-  status               CustomEscrowStatus  @default(PENDING_ACCEPTANCE)
-  mpesaCheckoutId      String?             @unique
-  mpesaRef             String?
-  buyerConfirmedAt     DateTime?
+  id                      String                   @id @default(cuid())
+  buyerId                 String
+  buyer                   User                     @relation("CustomBuyer", fields: [buyerId], references: [id])
+  counterpartyPhone       String
+  title                   String
+  description             String
+  amount                  Decimal                  @db.Decimal(12, 2)
+  platformFee             Decimal                  @db.Decimal(12, 2)
+  counterpartyReceives    Decimal                  @db.Decimal(12, 2)
+  b2cCost                 Decimal?                 @db.Decimal(12, 2)
+  buyerTotal              Decimal?                 @db.Decimal(12, 2)
+  isRisky                 Boolean                  @default(false)
+  riskDescription         String?
+  riskPhotos              String[]
+  additionalNotes         String?
+  completionHours         Int?
+  deadline                DateTime?
+  status                  CustomEscrowStatus       @default(PENDING_ACCEPTANCE)
+  mpesaCheckoutId         String?                  @unique
+  mpesaRef                String?
+  buyerConfirmedAt        DateTime?
   counterpartyConfirmedAt DateTime?
-  completedAt          DateTime?
-  payoutQueuedAt       DateTime?
-  deletedAt            DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  mpesaTransactions    CustomMpesaTransaction[]
-  dispute              CustomDispute?
-  auditLogs            CustomAuditLog[]
-  b2cTransactions      CustomB2CTransaction[]
+  completedAt             DateTime?
+  payoutQueuedAt          DateTime?
+  deletedAt               DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  mpesaTransactions       CustomMpesaTransaction[]
+  dispute                 CustomDispute?
+  auditLogs               CustomAuditLog[]
+  b2cTransactions         CustomB2CTransaction[]
 }
+
 model CustomMpesaTransaction {
   id                String       @id @default(cuid())
   escrowId          String
@@ -1312,32 +1355,31 @@ model CustomMpesaTransaction {
 }
 
 model CustomDispute {
-  id               String       @id @default(cuid())
-  escrowId         String       @unique
-  escrow           CustomEscrow @relation(fields: [escrowId], references: [id])
-  openedBy         String
-  openedByRole     String
-  reason           String
-  description      String
-  evidence         String[]
-  sellerResponse   String?
-  sellerEvidence   String[]
-  status           String       @default("OPEN")
-  resolution       String?
-  buyerAmount      Decimal?     @db.Decimal(12, 2)
-  sellerAmount     Decimal?     @db.Decimal(12, 2)
-  resolvedBy       String?
-  resolvedAt       DateTime?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  escrowId       String       @unique
+  escrow         CustomEscrow @relation(fields: [escrowId], references: [id])
+  openedBy       String
+  openedByRole   String
+  reason         String
+  description    String
+  evidence       String[]
+  sellerResponse String?
+  sellerEvidence String[]
+  status         String       @default("OPEN")
+  resolution     String?
+  buyerAmount    Decimal?     @db.Decimal(12, 2)
+  sellerAmount   Decimal?     @db.Decimal(12, 2)
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
-
 
 model CustomB2CTransaction {
   id                       String       @id @default(cuid())
   escrowId                 String
   escrow                   CustomEscrow @relation(fields: [escrowId], references: [id])
-  type                     String       // 'payout' | 'refund'
+  type                     String // 'payout' | 'refund'
   originatorConversationId String       @unique
   amount                   Decimal      @db.Decimal(12, 2)
   phone                    String
@@ -1375,27 +1417,27 @@ enum OrderState {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  reference    String      @unique
-  buyerId      String
-  sellerPhone  String
-  service      String
-  area         String
-  amount       Decimal     @db.Decimal(10,2)
-  platformFee   Decimal?    @db.Decimal(10,2)
-  sellerReceives Decimal?    @db.Decimal(10,2)
-  buyerTotal    Decimal?    @db.Decimal(10,2)
-  timerMinutes Int
-  state        OrderState  @default(HELD)
-  expiresAt    DateTime?
-  linkOpenedAt DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id             String     @id @default(cuid())
+  reference      String     @unique
+  buyerId        String
+  sellerPhone    String
+  service        String
+  area           String
+  amount         Decimal    @db.Decimal(10, 2)
+  platformFee    Decimal?   @db.Decimal(10, 2)
+  sellerReceives Decimal?   @db.Decimal(10, 2)
+  buyerTotal     Decimal?   @db.Decimal(10, 2)
+  timerMinutes   Int
+  state          OrderState @default(HELD)
+  expiresAt      DateTime?
+  linkOpenedAt   DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  buyer        User           @relation("BuyerOrders", fields: [buyerId], references: [id])
-  events       OrderEvent[]
-  dispute      OrderDispute?
-  linkSessions LinkSession[]
+  buyer         User           @relation("BuyerOrders", fields: [buyerId], references: [id])
+  events        OrderEvent[]
+  dispute       OrderDispute?
+  linkSessions  LinkSession[]
   notifications Notification[]
 
   @@index([state])
@@ -1411,7 +1453,7 @@ model OrderEvent {
   metadata  Json?
   timestamp DateTime @default(now())
 
-  order     Order    @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
 }
@@ -1428,7 +1470,7 @@ model OrderDispute {
   createdAt         DateTime  @default(now())
   resolvedAt        DateTime?
 
-  order             Order     @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model LinkSession {
@@ -1439,7 +1481,7 @@ model LinkSession {
   openedAt          DateTime @default(now())
   actionTaken       String?
 
-  order             Order    @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
 }
@@ -1461,7 +1503,7 @@ model ProtectedTransfer {
   state          ProtectedTransferState @default(PENDING)
   mpesaRef       String?
   b2cRef         String?
-  stkCheckoutId  String?
+  stkCheckoutId  String?                @unique
   claimCode      String                 @unique
   expiresAt      DateTime
   acceptedAt     DateTime?
@@ -1484,33 +1526,35 @@ enum TransferPurpose {
 
 enum ProtectedTransferState {
   PENDING
+  RELEASING
+  REFUNDING
   ACCEPTED
   DECLINED
   CANCELLED
   EXPIRED
 }
 
-
 model RequestMoney {
   id                String         @id @default(uuid())
   requesterId       String
   recipientPhone    String
   recipientId       String?
-  amount            Decimal        @db.Decimal(12, 2)   // what requester receives
-  platformFee       Decimal        @db.Decimal(10, 2)   // LipaSafe keeps this
-  recipientPays     Decimal        @db.Decimal(12, 2)   // STK push amount (amount + platformFee)
+  amount            Decimal        @db.Decimal(12, 2) // what requester receives
+  platformFee       Decimal        @db.Decimal(10, 2) // LipaSafe keeps this
+  b2cCost           Decimal        @default(0) @db.Decimal(10, 2) // Safaricom B2C charge passed to recipient
+  recipientPays     Decimal        @db.Decimal(12, 2) // STK push amount (amount + platformFee + b2cCost)
   purpose           RequestPurpose
   note              String?
   state             RequestState   @default(PENDING)
   expiresAt         DateTime
-  checkoutRequestId String?        @unique               // set when STK is initiated
-  mpesaRef          String?                              // set after STK success callback
-  b2cRef            String?                              // set after B2C payout confirmed
-  b2cStatus         String?                              // pending, confirmed, failed
+  checkoutRequestId String?        @unique // set when STK is initiated
+  mpesaRef          String? // set after STK success callback
+  b2cRef            String? // set after B2C payout confirmed
+  b2cStatus         String? // pending, confirmed, failed
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  requester         User           @relation("RequesterRequests",  fields: [requesterId], references: [id])
-  recipient         User?          @relation("RecipientRequests",  fields: [recipientId],  references: [id])
+  requester         User           @relation("RequesterRequests", fields: [requesterId], references: [id])
+  recipient         User?          @relation("RecipientRequests", fields: [recipientId], references: [id])
 
   @@index([requesterId])
   @@index([recipientPhone])
@@ -1533,4 +1577,30 @@ enum RequestState {
   REJECTED
   CANCELLED
   EXPIRED
+}
+
+model StkPushLog {
+  id         String   @id @default(cuid())
+  checkoutId String   @unique
+  context    Json
+  createdAt  DateTime @default(now())
+}
+
+model FundiExtensionRequest {
+  id             String                 @id @default(uuid())
+  jobId          String
+  requestedBy    String
+  extraHours     Int
+  reason         String
+  evidencePhotos String[]
+  status         ExtensionRequestStatus @default(PENDING)
+  respondedAt    DateTime?
+  createdAt      DateTime               @default(now())
+  job            FundiJob               @relation(fields: [jobId], references: [id])
+}
+
+enum ExtensionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

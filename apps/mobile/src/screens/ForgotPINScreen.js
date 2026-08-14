@@ -5,8 +5,9 @@ import LipaHeader from '../components/LipaHeader';
 import LipaButton from '../components/LipaButton';
 import LipaInput from '../components/LipaInput';
 import { useLang } from '../context/LanguageContext';
+import { API } from '../utils/api';
 
-const API = 'http://10.222.77.252:4000/auth';
+// const API = 'http://10.186.68.127:4000/auth';
 
 export default function ForgotPINScreen({ navigation }) {
   const { t } = useLang();

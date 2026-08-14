@@ -23,7 +23,7 @@ export default function PaymentProcessingScreen({ navigation, route }) {
   const [statusText, setStatusText] = useState('Initiating secure payment...');
 
   useEffect(() => {
-    console.log('PaymentProcessing params:', JSON.stringify(route.params));
+  
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.3, duration: 800, useNativeDriver: true }),
@@ -66,9 +66,8 @@ export default function PaymentProcessingScreen({ navigation, route }) {
           setStatusText('SafeSend held securely!');
           navigation.replace('PaymentSuccess', {
             tx: {
-              id:     transferId,
+              id:     data.transferId,
               amount,
-              status: 'waiting_acceptance',
               isSafeSend: true,
             },
           });
@@ -130,27 +129,34 @@ export default function PaymentProcessingScreen({ navigation, route }) {
       setStatusText('Creating fundi job...');
 
       // Step 1 — create job
-      const jobRes = await authFetch('/fundi', {
-        method: 'POST',
-        body: JSON.stringify({
-          fundiPhone,
-          amount:        parseFloat(amount),
-          description,
-          durationHours: parseInt(durationHours),
-          beforePhotos:  beforePhotos || [],
-          category,
-          deliverables:  deliverables || [],
-        }),
-      });
+      // Job already created during photo upload — skip if jobId passed in params
+     
+      let jobId = route.params?.jobId ?? null;
+      
+      if (!jobId) {
+        const jobRes = await authFetch('/fundi', {
+          method: 'POST',
+          body: JSON.stringify({
+            fundiPhone,
+            amount:        parseFloat(amount),
+            description,
+            durationHours: parseInt(durationHours),
+            beforePhotos:  beforePhotos || [],
+            category,
+            deliverables:  deliverables || [],
+          }),
+        });
 
-      const jobData = await jobRes.json();
-      if (!jobRes.ok || !jobData.success) {
-        Alert.alert('Failed', jobData.message || 'Could not create job.');
-        navigation.goBack();
-        return;
+        const jobData = await jobRes.json();
+        if (!jobRes.ok || !jobData.success) {
+          Alert.alert('Failed', jobData.message || 'Could not create job.');
+          navigation.goBack();
+          return;
+        }
+
+        jobId = jobData.job?.id ?? jobData.jobId ?? null;
+        if (!jobId) { Alert.alert('Failed', 'Could not get job ID.'); navigation.goBack(); return; }
       }
-
-      const jobId = jobData.job.id;
       setStatusText('Initiating M-Pesa payment...');
 
       // Step 2 — STK push
@@ -232,7 +238,7 @@ export default function PaymentProcessingScreen({ navigation, route }) {
           condition,
           inspectionHours: inspectionHours || 24,
           description:     description || `${service} payment`,
-          clientRef,       // idempotency key — backend deduplicates on this
+          clientRef,       // idempotency key  backend deduplicates on this
           ...(photoUrls && photoUrls.length > 0 ? { photoUrls } : {}),
         }),
       });
@@ -252,7 +258,7 @@ export default function PaymentProcessingScreen({ navigation, route }) {
     }
   };
 
-  // ── Bundle payment — untouched ──────────────────────────────────────────
+  // ── Bundle payment ──────────────────────────────────────────
   const initiateBundlePayment = async () => {
     try {
       setStatusText('Connecting to LipaSafe...');

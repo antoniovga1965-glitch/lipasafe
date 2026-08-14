@@ -35,7 +35,7 @@ export const calcSellerReceives = (amount) => {
 
 // Safaricom B2C BusinessPayment tiers (KES).
 // MUST mirror b2cCost() in services/api-gateway/src/utils/feeCalculator.js exactly.
-// If Safaricom pricing changes, update BOTH files.
+
 const b2cCost = (amount) => {
   const a = Number(amount)
   if (a <= 100)   return 0
@@ -57,8 +57,8 @@ export const calcFeesFundi = (amount) => {
   const platformFee = Math.round(parsed * PLATFORM_RATE * 100) / 100
   const b2c = b2cCost(parsed)
   const rawTotal = parsed + platformFee + b2c
-  const buyerTotal = Math.ceil(rawTotal)             // whole KES for STK push
-  const adjustedPlatformFee = buyerTotal - parsed - b2c  // absorbs rounding fraction
+  const buyerTotal = Math.ceil(rawTotal)             
+  const adjustedPlatformFee = buyerTotal - parsed - b2c  
   return {
     platformFee: adjustedPlatformFee,
     b2cCost: b2c,
@@ -78,8 +78,8 @@ export const calcFeesGeneric = (amount) => {
   const platformFee = Math.round(parsed * PLATFORM_RATE * 100) / 100
   const b2c = b2cCost(parsed)
   const rawTotal = parsed + platformFee + b2c
-  const buyerTotal = Math.ceil(rawTotal)             // whole KES for STK push
-  const adjustedPlatformFee = buyerTotal - parsed - b2c  // absorbs rounding fraction
+  const buyerTotal = Math.ceil(rawTotal)             
+  const adjustedPlatformFee = buyerTotal - parsed - b2c  
   return {
     platformFee: adjustedPlatformFee,
     b2cCost: b2c,
@@ -98,8 +98,8 @@ export const calcFeesInstantSend = (amount) => {
   const platformFee = Math.round(parsed * PLATFORM_RATE * 100) / 100
   const b2c = b2cCost(parsed)
   const rawTotal = parsed + platformFee + b2c
-  const totalDeduct = Math.ceil(rawTotal)                   // whole KES, no decimals
-  const adjustedPlatformFee = totalDeduct - parsed - b2c   // absorbs rounding into platform
+  const totalDeduct = Math.ceil(rawTotal)                 
+  const adjustedPlatformFee = totalDeduct - parsed - b2c  
   return {
     platformFee: adjustedPlatformFee,
     b2cCharge: b2c,

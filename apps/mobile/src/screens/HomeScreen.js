@@ -224,7 +224,12 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 <View style={styles.txInfo}>
                   <Text style={styles.txTitle}>{tx.type || 'Payment'}</Text>
-                  <Text style={styles.txDate}>{tx.createdAt?.slice(0, 10) || 'Today'}</Text>
+                  <Text style={styles.txDate}>
+                    {tx.counterparty
+                      ? (tx.counterparty.fullName || tx.counterparty.phone || 'Unknown')
+                      : tx.createdAt?.slice(0, 10) || 'Today'}
+                  </Text>
+                  <Text style={styles.txSubDate}>{tx.createdAt?.slice(0, 10) || ''}</Text>
                 </View>
                 <View style={styles.txRight}>
                   <Text style={[styles.txAmount, { color: tx.direction === 'out' ? '#EF4444' : '#22C55E' }]}>
@@ -258,9 +263,9 @@ const makeStyles = (theme) => StyleSheet.create({
   eyeBtn:              { padding: 6 },
   balanceDivider:      { height: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 16 },
   balanceBottom:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  balanceStat:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  balanceStatText:     { color: 'rgba(255,255,255,0.75)', fontSize: 12 },
-  addMoneyBtn:         { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 4 },
+  balanceStat:         { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
+  balanceStatText:     { color: 'rgba(255,255,255,0.75)', fontSize: 12, flexShrink: 1 },
+  addMoneyBtn:         { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 4, flexShrink: 0 },
   addMoneyText:        { color: theme.primary, fontSize: 13, fontWeight: '700' },
   quickActions:        { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginVertical: 8, backgroundColor: theme.card, borderRadius: 16, padding: 16 },
   quickBtn:            { alignItems: 'center', gap: 8 },
@@ -288,6 +293,7 @@ const makeStyles = (theme) => StyleSheet.create({
   txInfo:              { flex: 1 },
   txTitle:             { fontSize: 14, fontWeight: '700', color: theme.text, textTransform: 'capitalize' },
   txDate:              { fontSize: 12, color: theme.subtext, marginTop: 3 },
+  txSubDate:           { fontSize: 11, color: theme.subtext, marginTop: 1, opacity: 0.7 },
   txRight:             { alignItems: 'flex-end', gap: 6 },
   txAmount:            { fontSize: 14, fontWeight: '800' },
   txBadge:             { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },

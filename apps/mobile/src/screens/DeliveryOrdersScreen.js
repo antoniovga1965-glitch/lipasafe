@@ -104,7 +104,7 @@ export default function DeliveryOrdersScreen({ navigation }) {
       deliveryPhone: order.deliveryGuyPhone,
       goods:         order.goods,
       amount:        order.amount,
-      photoUrl:      order.photos?.[0]?.cloudinaryUrl || order.photos?.[0]?.url || null,
+      photoUrls:     (order.photos || []).map(p => p.cloudinaryUrl || p.url).filter(Boolean),
       deadline:      order.setDeliveryTime || null,
       timerEnd:      order.setDeliveryTime || order.deadline || null,
       isHighRisk:    (order.disputeCount || 0) >= 5,

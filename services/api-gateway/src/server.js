@@ -107,7 +107,7 @@ process.on('uncaughtException', async (err) => {
       to:      [`+${process.env.ALERT_PHONE}`],
       message: `LipaSafe CRASH: ${err.message}`.slice(0, 160),
     }
-    if (!isSandbox) payload.from = 'LipaSafe'
+    if (!isSandbox && process.env.AT_SENDER_ID) payload.from = process.env.AT_SENDER_ID
     await at.SMS.send(payload)
   } catch (smsErr) {
     logger.error('Failed to send crash alert SMS', { smsErr: smsErr.message })

@@ -12,7 +12,7 @@ const { width } = Dimensions.get('window');
 const slides = [
   { key: '1', icon: 'shield-checkmark', bg: '#00C47A' },
   { key: '2', icon: 'lock-closed', bg: '#00A86B' },
-  { key: '3', icon: 'ribbon', bg: '#007A4D' },
+  { key: '3', icon: 'ribbon', bg: '#00A86B' },
 ];
 
 const COPY = {
@@ -104,14 +104,13 @@ export default function OnboardingScreen({ navigation }) {
             onPressIn={() => Animated.spring(btnScale, { toValue: 0.94, useNativeDriver: true }).start()}
             onPressOut={() => Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start()}
             activeOpacity={1}>
-            <Text style={styles.btnText}>{current === slides.length - 1 ? t.getStarted : 'Next  →'}</Text>
+            <Text style={styles.btnText}>{current === slides.length - 1 ? t.getStarted : 'Next '}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   skipBtn: { position: 'absolute', top: 52, right: 24, zIndex: 10, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 },

@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { calcFee, calcTotal, calcFeesInstantSend, PLATFORM_RATE } from '../utils/feeCalculator'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert
+  ActivityIndicator, Alert, ScrollView
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authFetch } from '../utils/api';
+import { genClientRef } from '../utils/idempotency';
 
 const PURPOSE_LABELS = {
   RENT: 'Rent',
@@ -30,6 +31,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
   const [recipientStatus, setRecipientStatus] = useState(null);
   const [checking, setChecking] = useState(true);
   const [sending, setSending] = useState(false);
+  const [clientRef] = useState(() => genClientRef());
 
   useEffect(() => {
     const checkRecipient = async () => {
@@ -74,7 +76,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
       } else {
         const res = await authFetch('/wallet/send', {
           method: 'POST',
-          body: JSON.stringify({ recipientPhone: phone, amount, pin }),
+          body: JSON.stringify({ recipientPhone: phone, amount, pin, clientRef }),
         });
         const data = await res.json();
         if (data.success && data.fallback === 'stk') {
@@ -108,7 +110,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
         <View style={{ width: 32 }} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
         <View style={styles.amountCard}>
           <Text style={styles.amountLabel}>{isProtected ? 'You are SafeSending' : 'You are sending'}</Text>
           <Text style={styles.amountValue}>KES {parseFloat(amount).toFixed(2)}</Text>
@@ -211,7 +213,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
         <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }

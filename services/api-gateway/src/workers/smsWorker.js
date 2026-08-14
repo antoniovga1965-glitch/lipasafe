@@ -30,7 +30,7 @@ const sendSMS = async (phone, message) => {
   const isSandbox = process.env.AT_ENVIRONMENT === 'sandbox'
 
   const payload = { to: [to], message }
-  if (!isSandbox) payload.from = 'LipaSafe' 
+  if (!isSandbox && process.env.AT_SENDER_ID) payload.from = process.env.AT_SENDER_ID 
 
   const result = await at.SMS.send(payload)
   logger.info('AT SMS sent', { to, result: result.SMSMessageData })

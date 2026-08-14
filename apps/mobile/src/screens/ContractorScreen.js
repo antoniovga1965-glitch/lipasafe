@@ -108,8 +108,8 @@ export default function ContractorScreen({ navigation }) {
       Alert.alert("Category Required", "Please select a job category");
       return;
     }
-    if (description.length < 50) {
-      Alert.alert("Description Too Short", "Describe the job in at least 50 characters");
+    if (description.length < 30) {
+      Alert.alert("Description Too Short", "Describe the job in at least 30 characters");
       return;
     }
     if (beforePhotos.length === 0) {
@@ -141,6 +141,25 @@ export default function ContractorScreen({ navigation }) {
         Alert.alert("Upload Failed", uploadData.message || "Could not upload photos");
         return;
       }
+      // Network retry — job already exists, resume straight to payment
+      if (uploadData.resumed) {
+        const j = uploadData;
+        navigation.navigate("ConfirmPayment", {
+          service:      "Fundi",
+          sellerPhone:  normalizePhone(j.fundiPhone || fundiPhone),
+          fundiPhone:   normalizePhone(j.fundiPhone || fundiPhone),
+          amount,
+          description:  j.description  || description,
+          durationHours: j.durationHours || durationHours,
+          beforePhotos: j.beforePhotos  || [],
+          isFundi:      true,
+          category:     j.category     || category,
+          deliverables: j.deliverables || cleanDeliverables,
+        });
+        return;
+      }
+      console.log('[CS] uploadData =', JSON.stringify(uploadData));
+      console.log('[CS] jobId being passed =', uploadData.job?.id);
       navigation.navigate("ConfirmPayment", {
         service: "Fundi",
         sellerPhone: normalizePhone(fundiPhone),
@@ -152,6 +171,7 @@ export default function ContractorScreen({ navigation }) {
         isFundi: true,
         category,
         deliverables: cleanDeliverables,
+        jobId: uploadData.job?.id,
       });
     } catch (err) {
       Alert.alert("Error", err.message || "Photo upload failed");

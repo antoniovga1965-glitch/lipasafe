@@ -46,7 +46,7 @@ const faqs = [
   },
 ]
 
-// Receives styles + colors as props so it works outside SupportScreen scope
+
 function FAQItem({ item, styles, colors }) {
   const [open, setOpen] = useState(false);
   return (

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, TextInput, Modal, ActivityIndicator,
-  Image, Alert, Dimensions,
+  Image, Alert, Dimensions, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -231,6 +231,10 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Edit Profile Modal */}
       <Modal visible={editModal} animationType="slide" transparent onRequestClose={() => setEditModal(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -262,6 +266,7 @@ export default function ProfileScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -298,7 +303,7 @@ const styles = StyleSheet.create({
   avatarModalClose:     { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: 6 },
 
   modalOverlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard:            { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalCard:            { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'android' ? 64 : 40 },
   modalHeader:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle:           { fontSize: 18, fontWeight: '700', color: colors.black },
   label:                { fontSize: 13, fontWeight: '600', color: colors.black, marginBottom: 6 },

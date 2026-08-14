@@ -34,11 +34,11 @@ const PURPOSE_CONTEXT = {
   OTHER: 'Protected until the recipient confirms receipt',
 };
 
-export default function QuickSendScreen({ navigation }) {
+export default function QuickSendScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [type, setType] = useState('INSTANT'); // INSTANT | PROTECTED
-  const [phone, setPhone] = useState('');
-  const [amount, setAmount] = useState('');
+  const [phone, setPhone] = useState(route?.params?.prefillPhone || '');
+  const [amount, setAmount] = useState(route?.params?.prefillAmount ? String(route.params.prefillAmount) : '');
   const [pin, setPin] = useState('');
   const [purpose, setPurpose] = useState('OTHER');
   const [note, setNote] = useState('');
@@ -88,8 +88,7 @@ export default function QuickSendScreen({ navigation }) {
   };
 
   // CTA inside the explainer ("Send with Confidence") -- closes the sheet
-  // AND switches the screen into SafeSend mode. This is separate from the
-  // X button (dismissExplainer), which just closes without changing the toggle.
+
   const confirmSafeSendFromExplainer = async () => {
     try { await AsyncStorage.setItem(EXPLAINER_KEY, 'true'); } catch {}
     setExplainerVisible(false);
@@ -124,20 +123,31 @@ export default function QuickSendScreen({ navigation }) {
     });
   };
 
+  const PURPOSE_ICONS = {
+    RENT: 'home-outline',
+    PURCHASE: 'bag-outline',
+    SALARY: 'cash-outline',
+    SCHOOL_FEES: 'school-outline',
+    LOAN: 'business-outline',
+    GIFT: 'gift-outline',
+    OTHER: 'ellipsis-horizontal-outline',
+  };
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={colors.black} />
+            <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Send Money</Text>
           <TouchableOpacity onPress={openExplainer} style={styles.infoBtn}>
-            <Ionicons name="information-circle-outline" size={24} color={colors.grayDark} />
+            <Ionicons name="information-circle-outline" size={22} color={colors.grayDark} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={[styles.toggleBtn, type === 'INSTANT' && styles.toggleBtnActive]}
@@ -155,48 +165,68 @@ export default function QuickSendScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.balanceBox}>
-            <View style={styles.balanceLabelRow}>
-              <Ionicons name="wallet-outline" size={14} color={colors.primary} />
-              <Text style={styles.balanceLabel}>Wallet balance</Text>
+          <View style={styles.heroCard}>
+            <View style={styles.heroIconCircle}>
+              <Ionicons name="wallet-outline" size={20} color={colors.primary} />
             </View>
+            <Text style={styles.heroLabel}>Wallet Balance</Text>
             {loadingBalance
-              ? <ActivityIndicator size="small" color={colors.primary} />
-              : <Text style={styles.balanceAmount}>KES {balance?.toFixed(2) ?? '0.00'}</Text>
+              ? <ActivityIndicator size="small" color={colors.white} style={{ marginVertical: 6 }} />
+              : <Text style={styles.heroAmount}>KES {balance?.toFixed(2) ?? '0.00'}</Text>
             }
-          </View>
-
-          <View style={styles.inputRow}>
-            <Ionicons name="call-outline" size={18} color={colors.grayDark} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              placeholder="Recipient phone (07XX...)"
-              placeholderTextColor="#999"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              maxLength={14}
+            <Text style={styles.heroSub}>{type === 'INSTANT' ? 'Available to send instantly' : 'Available to send'}</Text>
+            <Ionicons
+              name={type === 'INSTANT' ? 'paper-plane' : 'shield-checkmark'}
+              size={36}
+              color="rgba(255,255,255,0.35)"
+              style={styles.heroDecoration}
             />
           </View>
 
-        
-
-          <View style={[styles.inputRow, false && styles.inputRowError]}>
-            <Text style={styles.kesPrefix}>KES</Text>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="0.00"
-              placeholderTextColor="#999"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={v => { setAmount(v); setError(''); setPin(''); }}
-            />
+          <View style={styles.card}>
+            <View style={styles.iconBox}>
+              <Ionicons name="call-outline" size={17} color={colors.primary} />
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Recipient Phone</Text>
+              <TextInput
+                style={styles.cardInput}
+                placeholder="07XX XXX XXX"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                maxLength={14}
+              />
+            </View>
           </View>
 
-          {false && (
-            <View style={styles.errorRow}>
-              <Ionicons name="warning-outline" size={14} color={colors.error} />
-              <Text style={styles.errorText}>Insufficient balance</Text>
+          <View style={styles.card}>
+            <View style={styles.iconBox}>
+              <Text style={styles.kesIcon}>KES</Text>
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Amount</Text>
+              <TextInput
+                style={styles.cardInput}
+                placeholder="0.00"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={v => { setAmount(v); setError(''); setPin(''); }}
+              />
+            </View>
+          </View>
+
+          {type === 'INSTANT' && (
+            <View style={styles.infoBox}>
+              <View style={styles.infoIconCircle}>
+                <Ionicons name="flash" size={15} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoTitle}>Instant delivery</Text>
+                <Text style={styles.infoSub}>Money is sent directly to the recipient's mobile wallet.</Text>
+              </View>
             </View>
           )}
 
@@ -210,29 +240,48 @@ export default function QuickSendScreen({ navigation }) {
                     style={[styles.purposeChip, purpose === p.value && styles.purposeChipActive]}
                     onPress={() => setPurpose(p.value)}
                   >
+                    <Ionicons
+                      name={PURPOSE_ICONS[p.value]}
+                      size={13}
+                      color={purpose === p.value ? colors.white : '#4A5560'}
+                      style={{ marginRight: 5 }}
+                    />
                     <Text style={[styles.purposeChipText, purpose === p.value && styles.purposeChipTextActive]}>{p.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
               {!!purpose && (
-                <View style={styles.contextRow}>
-                  <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
-                  <Text style={styles.contextText}>{PURPOSE_CONTEXT[purpose]}</Text>
+                <View style={styles.protectedBox}>
+                  <View style={styles.infoIconCircle}>
+                    <Ionicons name="shield-checkmark" size={15} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.protectedTitle}>Protected until confirmation</Text>
+                    <Text style={styles.protectedSub}>{PURPOSE_CONTEXT[purpose]}</Text>
+                    <TouchableOpacity onPress={openExplainer}>
+                      <Text style={styles.learnMore}>Learn more ›</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
 
-              <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
-                <Ionicons name="document-text-outline" size={18} color={colors.grayDark} style={{ marginRight: 8, marginTop: 2 }} />
-                <TextInput
-                  style={[styles.input, { minHeight: 40 }]}
-                  placeholder="Note (optional) e.g. Samsung A55 black 128GB"
-                  placeholderTextColor="#999"
-                  value={note}
-                  onChangeText={setNote}
-                  multiline
-                  maxLength={120}
-                />
+              <View style={styles.card}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="document-text-outline" size={17} color={colors.primary} />
+                </View>
+                <View style={styles.cardFieldWrap}>
+                  <Text style={styles.cardLabel}>Note (optional)</Text>
+                  <TextInput
+                    style={[styles.cardInput, { minHeight: 36 }]}
+                    placeholder="e.g. Samsung A55 black 128GB"
+                    placeholderTextColor="#999"
+                    value={note}
+                    onChangeText={setNote}
+                    multiline
+                    maxLength={120}
+                  />
+                </View>
               </View>
             </>
           )}
@@ -247,7 +296,7 @@ export default function QuickSendScreen({ navigation }) {
                 <Text style={{ fontSize: 13, color: '#666' }}>Platform fee (2%)</Text>
                 <Text style={{ fontSize: 13, color: '#666' }}>KES {fee.toFixed(2)}</Text>
               </View>
-              {type === 'INSTANT' && b2cCharge > 0 && (
+              {b2cCharge > 0 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                   <Text style={{ fontSize: 13, color: '#666' }}>M-Pesa transfer charge</Text>
                   <Text style={{ fontSize: 13, color: '#666' }}>KES {b2cCharge.toFixed(2)}</Text>
@@ -293,6 +342,12 @@ export default function QuickSendScreen({ navigation }) {
             <Ionicons name={type === 'PROTECTED' ? 'shield-checkmark' : 'send'} size={16} color={colors.white} />
             <Text style={styles.sendBtnText}>{type === 'PROTECTED' ? 'Continue with SafeSend' : 'Send Money'}</Text>
           </TouchableOpacity>
+
+          <View style={styles.footerRow}>
+            <Ionicons name="lock-closed" size={12} color="#9ca3af" />
+            <Text style={styles.footerText}>Secured by LipaSafe Escrow</Text>
+          </View>
+
         </ScrollView>
       </View>
 
@@ -327,14 +382,41 @@ const styles = StyleSheet.create({
   inputRowError: { borderColor: colors.error },
   kesPrefix: { fontSize: 16, fontWeight: '700', color: colors.black, marginRight: 8 },
   input: { flex: 1, fontSize: 16, color: colors.black },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.grayDark, marginBottom: 8 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.grayDark, marginBottom: 8, marginTop: 4 },
   purposeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  purposeChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#B8C2CC', backgroundColor: colors.white },
+  purposeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#B8C2CC', backgroundColor: colors.white },
   purposeChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   purposeChipText: { fontSize: 12, fontWeight: '600', color: '#4A5560' },
   purposeChipTextActive: { color: colors.white },
   contextRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, marginTop: -4 },
   contextText: { fontSize: 12, color: colors.primary, fontWeight: '600', flex: 1 },
+
+  heroCard: { backgroundColor: colors.primary, borderRadius: 18, padding: 20, marginBottom: 16, overflow: 'hidden' },
+  heroIconCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginBottom: 4 },
+  heroAmount: { fontSize: 30, fontWeight: '900', color: colors.white },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4 },
+  heroDecoration: { position: 'absolute', top: 18, right: 16 },
+
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 14, padding: 14, marginBottom: 12, gap: 12 },
+  iconBox: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#F0FBF6', alignItems: 'center', justifyContent: 'center' },
+  kesIcon: { fontSize: 11, fontWeight: '800', color: colors.primary },
+  cardFieldWrap: { flex: 1 },
+  cardLabel: { fontSize: 11, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  cardInput: { fontSize: 16, fontWeight: '600', color: colors.black, padding: 0 },
+
+  infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#F0FBF6', borderRadius: 12, padding: 14, marginBottom: 14 },
+  infoIconCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  infoTitle: { fontSize: 13, fontWeight: '700', color: '#14532d' },
+  infoSub: { fontSize: 12, color: '#166534', marginTop: 2, lineHeight: 16 },
+
+  protectedBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#F0FBF6', borderRadius: 12, padding: 14, marginBottom: 14 },
+  protectedTitle: { fontSize: 13, fontWeight: '700', color: '#14532d' },
+  protectedSub: { fontSize: 12, color: '#166534', marginTop: 2, lineHeight: 16 },
+  learnMore: { fontSize: 12, color: colors.primary, fontWeight: '700', marginTop: 6 },
+
+  footerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 12 },
+  footerText: { fontSize: 11, color: '#9ca3af', fontWeight: '500' },
   pinWrapper: { marginBottom: 4 },
   pinHint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   pinHintText: { fontSize: 12, color: colors.grayDark },

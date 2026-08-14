@@ -171,8 +171,7 @@ export default function SplashScreen({ navigation }) {
     // Navigate after 3s
     const timer = setTimeout(async () => {
       try {
-        const onboarding = null; // DEV: always show onboarding
-        // const onboarding = await AsyncStorage.getItem('onboardingComplete');
+        const onboarding = null; 
         const user = await AsyncStorage.getItem('user');
         if (!onboarding) {
           navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });

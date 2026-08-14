@@ -74,7 +74,8 @@ export default function CustomEscrowPaymentScreen({ route, navigation }) {
 
   const amount      = Number(escrow.amount);
   const fee         = Number(escrow.platformFee);
-  const total       = amount + fee;
+  const b2cFee      = Number(escrow.b2cCost) || 0;
+  const total       = escrow.buyerTotal != null ? Number(escrow.buyerTotal) : (amount + fee + b2cFee);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -119,6 +120,12 @@ export default function CustomEscrowPaymentScreen({ route, navigation }) {
           <Text style={styles.bLabel}>LipaSafe fee (2%)</Text>
           <Text style={styles.bValue}>KES {fee.toLocaleString()}</Text>
         </View>
+        {b2cFee > 0 && (
+          <View style={styles.bRow}>
+            <Text style={styles.bLabel}>M-Pesa charge</Text>
+            <Text style={styles.bValue}>KES {b2cFee.toLocaleString()}</Text>
+          </View>
+        )}
         <View style={[styles.bRow, styles.bTotal]}>
           <Text style={styles.bTotalLabel}>Total you pay</Text>
           <Text style={styles.bTotalValue}>KES {total.toLocaleString()}</Text>

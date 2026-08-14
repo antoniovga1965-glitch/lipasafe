@@ -47,12 +47,13 @@ export default function TransactionDetailScreen({ navigation, route }) {
   useEffect(() => {
     if (!tx?.autoReleaseAt && !tx?.inspectionDeadline) return;
     let pollInterval;
+    let interval;
     const tick = () => {
       const diff = new Date(tx.inspectionDeadline || tx.autoReleaseAt) - new Date();
       if (diff <= 0) {
         setCountdown('Releasing funds...');
-        // Poll backend every 3s until state flips to released
-        pollInterval = setInterval(() => fetchLatest(), 3000);
+        if (interval) { clearInterval(interval); interval = null; }
+        if (!pollInterval) pollInterval = setInterval(() => fetchLatest(), 3000);
         return;
       }
       const h = Math.floor(diff / 3600000);
@@ -61,7 +62,7 @@ export default function TransactionDetailScreen({ navigation, route }) {
       setCountdown(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
     };
     tick();
-    const interval = setInterval(tick, 1000);
+    interval = setInterval(tick, 1000);
     return () => { clearInterval(interval); clearInterval(pollInterval); };
   }, [tx?.autoReleaseAt]);
 
@@ -220,6 +221,58 @@ export default function TransactionDetailScreen({ navigation, route }) {
           {tx?.description && <Text style={styles.desc}>{tx.description}</Text>}
         </View>
 
+        {/* Details */}
+        {isDirectSend && (
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsTitle}>Transaction Details</Text>
+            {tx?.counterparty && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>To</Text>
+                <Text style={styles.detailValue}>
+                  {tx.counterparty.fullName || tx.counterparty.phone || 'Unknown'}
+                </Text>
+              </View>
+            )}
+            {tx?.counterparty?.fullName && tx?.counterparty?.phone && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone</Text>
+                <Text style={styles.detailValue}>{tx.counterparty.phone}</Text>
+              </View>
+            )}
+            {tx?.createdAt && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Date</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(tx.createdAt).toLocaleString('en-KE', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </Text>
+              </View>
+            )}
+            {tx?.type && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Type</Text>
+                <Text style={styles.detailValue}>
+                  {tx.type.replace(/_/g, ' ').replace(/\w/g, c => c.toUpperCase())}
+                </Text>
+              </View>
+            )}
+            {tx?.fee && parseFloat(tx.fee) > 0 && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Fee</Text>
+                <Text style={styles.detailValue}>KES {parseFloat(tx.fee).toFixed(2)}</Text>
+              </View>
+            )}
+            {tx?.note && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Note</Text>
+                <Text style={styles.detailValue}>{tx.note}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Timeline */}
         <Text style={styles.section}>{t.timeline}</Text>
         <View style={styles.timeline}>
@@ -354,6 +407,11 @@ const styles = StyleSheet.create({
   recallSub:        { fontSize: 13, color: '#92400E', lineHeight: 18, marginBottom: 14 },
   recallBtn:        { backgroundColor: '#F97316', borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
   recallBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+  detailsCard:   { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  detailsTitle:  { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 14 },
+  detailRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  detailLabel:   { fontSize: 13, color: '#6b7280', fontWeight: '500', flex: 1 },
+  detailValue:   { fontSize: 13, color: '#111', fontWeight: '600', flex: 2, textAlign: 'right' },
   deleteHistoryBtn: { marginTop: 8, padding: 16, alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: '#6b7280' },
   deleteHistoryText: { color: '#6b7280', fontWeight: '600', fontSize: 14 },
 });

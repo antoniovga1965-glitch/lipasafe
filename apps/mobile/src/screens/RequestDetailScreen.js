@@ -46,7 +46,7 @@ export default function RequestDetailScreen({ route, navigation }) {
             const res  = await authFetch(`/request-money/${requestId}/pay`, { method: 'POST' });
             const data = await res.json();
             if (data.success) {
-              Alert.alert('✅ STK Push Sent', 'Check your M-Pesa prompt to complete payment.');
+              Alert.alert('STK Push Sent', 'Check your M-Pesa prompt to complete payment.');
               navigation.navigate('HomeTab', { screen: 'HomeMain' });
             } else setError(data.message || 'Payment failed');
           } catch { setError('Network error'); }
@@ -105,39 +105,62 @@ export default function RequestDetailScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={22} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Request</Text>
-        <View style={{ width: 36 }} />
+        <View style={styles.secureBadge}>
+          <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
+          <Text style={styles.secureBadgeText}>Secure</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
-          {requester.avatarUrl
-            ? <Image source={{ uri: requester.avatarUrl }} style={styles.avatar} />
-            : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitials}>{initials}</Text>
-              </View>
-            )
-          }
-          <View style={styles.profileVerifiedRow}>
-            <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
-            <Text style={styles.profileVerified}>Verified LipaSafe User</Text>
+          <View style={styles.profileAvatarWrap}>
+            {requester.avatarUrl
+              ? <Image source={{ uri: requester.avatarUrl }} style={styles.avatar} />
+              : (
+                <View style={styles.avatarFallback}>
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </View>
+              )
+            }
+            <View style={styles.avatarCheck}>
+              <Ionicons name="checkmark" size={11} color="#fff" />
+            </View>
           </View>
-          <Text style={styles.profileName}>{requester.fullName || 'Unknown'}</Text>
-          <Text style={styles.profilePhone}>{requester.phone}</Text>
+          <View style={styles.profileInfo}>
+            <View style={styles.profileVerifiedRow}>
+              <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
+              <Text style={styles.profileVerified}>Verified LipaSafe User</Text>
+            </View>
+            <Text style={styles.profileName}>{requester.fullName || 'Unknown'}</Text>
+            <Text style={styles.profilePhone}>{requester.phone}</Text>
+          </View>
         </View>
 
         {/* Amount Card */}
         <View style={styles.amountCard}>
           <Text style={styles.amountCardLabel}>Requesting from you</Text>
           <Text style={styles.amountCardValue}>KES {Number(request.amount).toLocaleString()}</Text>
+          <View style={styles.requestTag}>
+            <Ionicons name="cash-outline" size={12} color={colors.primary} />
+            <Text style={styles.requestTagText}>Payment request</Text>
+          </View>
           <View style={styles.amountDivider} />
           <View style={styles.amountRow}>
-            <Text style={styles.amountRowLabel}>Platform fee</Text>
-            <Text style={styles.amountRowValue}>KES {(Number(request.recipientPays) - Number(request.amount)).toLocaleString()}</Text>
+            <Text style={styles.amountRowLabel}>Requested amount</Text>
+            <Text style={styles.amountRowValue}>KES {Number(request.amount).toLocaleString()}</Text>
           </View>
-          <View style={[styles.amountRow, { marginTop: 4 }]}>
+          <View style={[styles.amountRow, { marginTop: 8 }]}>
+            <Text style={styles.amountRowLabel}>Platform fee</Text>
+            <Text style={styles.amountRowValue}>KES {Number(request.platformFee).toLocaleString()}</Text>
+          </View>
+          <View style={styles.amountRow}>
+            <Text style={styles.amountRowLabel}>M-Pesa charge</Text>
+            <Text style={styles.amountRowValue}>KES {Number(request.b2cCost || 0).toLocaleString()}</Text>
+          </View>
+          <View style={styles.amountTotalDivider} />
+          <View style={styles.amountRow}>
             <Text style={[styles.amountRowLabel, { fontWeight: '700', color: '#111' }]}>You pay total</Text>
             <Text style={[styles.amountRowValue, { fontWeight: '800', color: colors.primary, fontSize: 17 }]}>KES {Number(request.recipientPays).toLocaleString()}</Text>
           </View>
@@ -160,21 +183,29 @@ export default function RequestDetailScreen({ route, navigation }) {
                 <Ionicons name="document-text-outline" size={17} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.detailLabel}>Note</Text>
+                <Text style={styles.detailLabel}>Note from {requester.fullName ? requester.fullName.split(' ')[0] : 'sender'}</Text>
                 <Text style={styles.detailValue}>{request.note}</Text>
               </View>
             </View>
           ) : null}
-          <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-            <View style={styles.detailIcon}>
-              <Ionicons name="time-outline" size={17} color={timeLeft < 2 ? '#f44' : colors.primary} />
+          <View style={[styles.detailRow, { borderBottomWidth: 0, justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14, flex: 1 }}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="time-outline" size={17} color={timeLeft < 2 ? '#f44' : colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.detailLabel}>Expires in</Text>
+                <Text style={[styles.detailValue, timeLeft < 2 && { color: '#f44' }]}>
+                  {timeLeft}h · {expires.toLocaleDateString()} {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.detailLabel}>Expires in</Text>
-              <Text style={[styles.detailValue, timeLeft < 2 && { color: '#f44' }]}>
-                {timeLeft}h · {expires.toLocaleDateString()} {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
+            {request.state === 'PENDING' && (
+              <View style={styles.pendingPill}>
+                <Ionicons name="time-outline" size={11} color={colors.primary} />
+                <Text style={styles.pendingPillText}>Pending</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -229,14 +260,28 @@ const styles = StyleSheet.create({
   headerTitle:      { fontSize: 17, fontWeight: '700', color: '#111' },
   scroll:           { padding: 16, paddingBottom: 32 },
 
-  profileCard:      { backgroundColor: '#fff', borderRadius: 20, alignItems: 'center', padding: 28, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  avatar:           { width: 88, height: 88, borderRadius: 44, marginBottom: 12, borderWidth: 3, borderColor: colors.primary },
-  avatarFallback:   { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.primary + '22', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 3, borderColor: colors.primary },
-  avatarInitials:   { fontSize: 32, fontWeight: '800', color: colors.primary },
-  profileVerifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  profileVerified:  { fontSize: 12, color: colors.primary, fontWeight: '600' },
-  profileName:      { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 2 },
+  profileCard:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FBF6', borderRadius: 20, padding: 18, marginBottom: 14, gap: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  avatar:           { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.primary },
+  avatarFallback:   { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primary + '22', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.primary },
+  avatarInitials:   { fontSize: 24, fontWeight: '800', color: colors.primary },
+  profileVerifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fff', alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
+  profileVerified:  { fontSize: 11, color: colors.primary, fontWeight: '700' },
+  profileName:      { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 2 },
   profilePhone:     { fontSize: 14, color: '#888' },
+
+  secureBadge:      { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary + '15', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  secureBadgeText:  { fontSize: 12, fontWeight: '700', color: colors.primary },
+
+  profileAvatarWrap: { position: 'relative' },
+  avatarCheck:      { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#F0FBF6' },
+  profileInfo:      { flex: 1 },
+
+  requestTag:       { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary + '15', alignSelf: 'center', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 14 },
+  requestTagText:   { fontSize: 11, fontWeight: '700', color: colors.primary },
+  amountTotalDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 10 },
+
+  pendingPill:      { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.primary + '15', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
+  pendingPillText:  { fontSize: 11, fontWeight: '700', color: colors.primary },
 
   amountCard:       { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   amountCardLabel:  { fontSize: 13, color: '#888', marginBottom: 4, textAlign: 'center' },

@@ -5,18 +5,13 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { authFetch } from '../utils/api';
 
 const SERVICE_TYPES = [
   { label: 'House lead',    value: 'house' },
   { label: 'Rental lead',   value: 'rental' },
   { label: 'House viewing', value: 'viewing' },
-];
-
-const PROTECTION_OPTIONS = [
-  { label: '1 hr',  value: 1 },
-  { label: '3 hrs', value: 3 },
-  { label: '12 hrs', value: 12 },
 ];
 
 import { calcFeesGeneric } from '../utils/feeCalculator'
@@ -27,7 +22,39 @@ export default function HouseHuntingScreen({ navigation }) {
   const [description,      setDescription]      = useState('');
   const [area,             setArea]             = useState('');
   const [amount,           setAmount]           = useState('');
-  const [protectionHours,  setProtectionHours]  = useState(1);
+  const [acceptDeadline,   setAcceptDeadline]   = useState(new Date(Date.now() + 60 * 60 * 1000));
+  const [showDatePicker,   setShowDatePicker]   = useState(false);
+  const [showTimePicker,   setShowTimePicker]   = useState(false);
+  const [pickerMode,       setPickerMode]       = useState('date');
+
+  const onDeadlineChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+      setShowTimePicker(false);
+      return;
+    }
+    const current = selectedDate || acceptDeadline;
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+
+    if (pickerMode === 'date') {
+      const updated = new Date(acceptDeadline);
+      updated.setFullYear(current.getFullYear(), current.getMonth(), current.getDate());
+      setAcceptDeadline(updated);
+      setPickerMode('time');
+      setShowTimePicker(true);
+    } else {
+      const updated = new Date(acceptDeadline);
+      updated.setHours(current.getHours(), current.getMinutes());
+      setAcceptDeadline(updated);
+    }
+  };
+
+  const formatDeadline = (date) =>
+    date.toLocaleString('en-KE', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
   const [loading,          setLoading]          = useState(false);
 
   const parsed      = parseFloat(amount) || 0;
@@ -43,6 +70,9 @@ export default function HouseHuntingScreen({ navigation }) {
     if (!valid || loading) return;
     setLoading(true);
     try {
+      const rawHours = Math.ceil((acceptDeadline.getTime() - Date.now()) / (60 * 60 * 1000));
+      const protectionHours = Math.min(Math.max(rawHours, 1), 168);
+
       const res  = await authFetch('/house/create', {
         method: 'POST',
         body: JSON.stringify({
@@ -157,21 +187,30 @@ export default function HouseHuntingScreen({ navigation }) {
           )}
 
           <Text style={styles.label}>Protection Period</Text>
-          <View style={styles.optionRow}>
-            {PROTECTION_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[styles.optionBtn, protectionHours === opt.value && styles.optionActive]}
-                onPress={() => setProtectionHours(opt.value)}
-              >
-                <Text style={[styles.optionText, protectionHours === opt.value && styles.optionTextActive]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={styles.input}
+            activeOpacity={0.8}
+            onPress={() => {
+              setPickerMode('date');
+              setShowDatePicker(true);
+            }}
+          >
+            <Text style={{ fontSize: 15, color: colors.black }}>
+              {formatDeadline(acceptDeadline)}
+            </Text>
+          </TouchableOpacity>
+          {(showDatePicker || showTimePicker) && (
+            <DateTimePicker
+              value={acceptDeadline}
+              mode={pickerMode}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date(Date.now() + 60 * 60 * 1000)}
+              maximumDate={new Date(Date.now() + 168 * 60 * 60 * 1000)}
+              onChange={onDeadlineChange}
+            />
+          )}
           <Text style={styles.hint}>
-            If you don't confirm or dispute within this window, money auto-releases to seller.
+            If you don't confirm or dispute by this time, money auto-releases to seller. Max 7 days from now.
           </Text>
         </View>
 

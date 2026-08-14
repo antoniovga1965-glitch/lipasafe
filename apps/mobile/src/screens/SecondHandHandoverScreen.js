@@ -30,6 +30,7 @@ export default function SecondHandHandoverScreen({ navigation, route }) {
 
   const [order,       setOrder]       = useState(tx || null);
   const [timeLeft,    setTimeLeft]    = useState(0);
+  const [sellerWindowLeft, setSellerWindowLeft] = useState(0);
   const [releasing,   setReleasing]   = useState(false);
   const [refreshing,  setRefreshing]  = useState(false);
 
@@ -64,10 +65,13 @@ export default function SecondHandHandoverScreen({ navigation, route }) {
     if (tickRef.current) clearInterval(tickRef.current);
     if (!o.inspectionDeadline) return;
 
+    const SELLER_WINDOW_MS = 30 * 60 * 1000; // matches backend sellerHandover() check
     const tick = () => {
       const remaining = new Date(o.inspectionDeadline).getTime() - Date.now();
       setTimeLeft(Math.max(0, remaining));
-      if (remaining <= 0) clearInterval(tickRef.current);
+      const windowRemaining = (new Date(o.inspectionDeadline).getTime() + SELLER_WINDOW_MS) - Date.now();
+      setSellerWindowLeft(Math.max(0, windowRemaining));
+      if (remaining <= 0 && windowRemaining <= 0) clearInterval(tickRef.current);
     };
     tick();
     tickRef.current = setInterval(tick, 1000);
@@ -131,7 +135,7 @@ export default function SecondHandHandoverScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <LipaHeader title="Second Hand Order" navigation={navigation} />
+      <LipaHeader title={order?.description ? "Order Handover" : "Second Hand Order"} navigation={navigation} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* Status Banner */}
@@ -163,15 +167,19 @@ export default function SecondHandHandoverScreen({ navigation, route }) {
         {isHeld && order.inspectionDeadline && (
           <View style={styles.card}>
             <Text style={styles.countdownLabel}>
-              {expired ? 'Inspection window closed' : 'Inspection window closes in'}
+              {expired
+                ? (sellerWindowLeft > 0 ? 'Release before buyer is refunded in' : 'Handover window expired')
+                : 'Inspection window closes in'}
             </Text>
             <Text style={[styles.countdown, expired && styles.countdownExpired]}>
-              {formatCountdown(timeLeft)}
+              {expired ? formatCountdown(sellerWindowLeft) : formatCountdown(timeLeft)}
             </Text>
             <Text style={styles.countdownHint}>
               {expired
-                ? 'No dispute raised — you can release now.'
-                : 'Buyer can raise a dispute until this expires.'}
+                ? (sellerWindowLeft > 0
+                    ? 'No dispute raised — release now or buyer is auto-refunded when this hits zero.'
+                    : 'Too late — buyer has been auto-refunded.')
+                : 'Buyer can raise a dispute until this expires. Includes a 30-min payment confirmation grace period.'}
             </Text>
           </View>
         )}

@@ -112,7 +112,7 @@ export default function SelectServiceScreen({ navigation }) {
           <TouchableOpacity
             style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
             disabled={!canSend}
-            onPress={() => navigation.navigate('QuickSend', { prefillPhone: phone, prefillAmount: amount })}
+            onPress={() => navigation.navigate('HomeTab', { screen: 'QuickSend', params: { prefillPhone: phone, prefillAmount: amount } })}
           >
             <Ionicons name="send" size={16} color={colors.white} />
             <Text style={styles.sendBtnText}>Send Now</Text>

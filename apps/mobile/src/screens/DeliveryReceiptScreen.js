@@ -249,16 +249,18 @@ export default function DeliveryReceiptScreen({ navigation, route }) {
           </>
         )}
 
-        <TouchableOpacity
-          style={styles.disputeBtn}
-          onPress={() => navigation.navigate('Dispute', {
-            orderId,
-            type: 'delivery',
-            claimerType: 'BUYER',
-          })}
-        >
-          <Text style={styles.disputeBtnText}> Something Wrong? Open Dispute</Text>
-        </TouchableOpacity>
+        {!otpConfirmed && (
+          <TouchableOpacity
+            style={styles.disputeBtn}
+            onPress={() => navigation.navigate('Dispute', {
+              orderId,
+              type: 'delivery',
+              claimerType: 'BUYER',
+            })}
+          >
+            <Text style={styles.disputeBtnText}> Something Wrong? Open Dispute</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );

@@ -64,7 +64,7 @@ function TierCard({ tier, fee, perks, color, onPress, disabled, badge }) {
       </View>
       {!disabled && (
         <View style={[styles.tierBtn, { backgroundColor: color }]}>
-          <Text style={styles.tierBtnText}>Get {tier === 'verified' ? 'Verified' : 'Trusted'} →</Text>
+          <Text style={styles.tierBtnText}>Get {tier === 'verified' ? 'Verified' : 'Trusted'} &gt;</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -153,7 +153,7 @@ function TrustedProgress({ isTrusted, isVerified, eligibility, kycData, onClaim,
           {claiming
             ? <ActivityIndicator color={WHITE} />
             : <Text style={tp.claimBtnText}>
-                {allPassed ? '🏆 Claim Trusted Badge' : 'Requirements Not Met Yet'}
+                {allPassed ? ' Claim Trusted Badge' : 'Requirements Not Met Yet'}
               </Text>
           }
         </TouchableOpacity>
@@ -566,7 +566,7 @@ export default function SellerVerificationScreen({ navigation }) {
           >
             {submitting
               ? <ActivityIndicator color={WHITE} />
-              : <Text style={styles.submitBtnText}>Pay KES 150 & Submit →</Text>
+              : <Text style={styles.submitBtnText}>Pay KES 150 &amp; Submit &gt;</Text>
             }
           </TouchableOpacity>
         </ScrollView>
@@ -672,7 +672,7 @@ export default function SellerVerificationScreen({ navigation }) {
               disabled={isVerified || isTrusted}
               onPress={() => {
                 if (isVerified || isTrusted) return
-                setStep('uploading') // Fill form first, pay at the end
+                setStep('uploading') 
               }}
             />
 

@@ -1,5 +1,6 @@
 'use strict'
 require('dotenv').config()
+const path = require('path')
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
@@ -36,6 +37,7 @@ const requestMoneyRoutes      = require('./routes/requestMoney.routes')
 const requestMoneyMpesaRoutes = require('./routes/requestMoneyMpesa.routes')
 
 const app = express()
+app.use(express.static(path.join(__dirname, '../public')))
 app.set('trust proxy', 1)
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────
@@ -93,7 +95,6 @@ app.use('/house-link',       houseLinkRoutes)
 app.use('/upload',           uploadRoutes)
 app.use('/request-money',       requestMoneyRoutes)
 app.use('/request-money-mpesa', safaricomOnly, requestMoneyMpesaRoutes)
-const path = require('path')
 // Relaxed CSP for seller link page — allows inline scripts (no user data here)
 app.use('/order', helmet.contentSecurityPolicy({
   directives: {

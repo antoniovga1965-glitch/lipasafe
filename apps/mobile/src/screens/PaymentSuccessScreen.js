@@ -7,7 +7,8 @@ import { useLang } from '../context/LanguageContext';
 export default function PaymentSuccessScreen({ navigation, route }) {
   const { t } = useLang();
   const { tx } = route.params || {};
-  const isFundi = tx?.isFundi || tx?.status === 'waiting_acceptance';
+  const isFundi    = tx?.isFundi === true;
+  const isSafeSend = tx?.isSafeSend === true;
   const scale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -19,18 +20,23 @@ export default function PaymentSuccessScreen({ navigation, route }) {
       <Animated.View style={[styles.check, { transform: [{ scale }] }]}>
         <Text style={styles.checkText}>✓</Text>
       </Animated.View>
-      <Text style={styles.title}>{isFundi ? 'Payment Sent!' : t.success}</Text>
+      <Text style={styles.title}>{(isFundi || isSafeSend) ? 'Payment Sent!' : t.success}</Text>
       <Text style={styles.id}>{t.transactionId}: {tx?.id}</Text>
       <Text style={styles.amount}>KES {tx?.amount || tx?.total}</Text>
       {isFundi && (
-        <Text style={styles.fundiNote}>
-          ⏳ Waiting for fundi to accept via SMS. You will be notified once they confirm.
+        <Text style={styles.escrowNote}>
+           Waiting for fundi to accept via SMS. You will be notified once they confirm.
+        </Text>
+      )}
+      {isSafeSend && (
+        <Text style={styles.escrowNote}>
+          🔒 Funds are held securely. The recipient has been notified via SMS to claim them.
         </Text>
       )}
       <View style={styles.actions}>
         {tx?.jobStatus === 'AWAITING_BUYER_REVIEW' && (
           <LipaButton
-            title="📋 Review Job"
+            title=" Review Job"
             onPress={() => navigation.navigate('ProfileTab', {
               screen: 'FundiReview',
               params: { jobId: tx?.jobId || tx?.id },
@@ -52,5 +58,5 @@ const styles = StyleSheet.create({
   id: { fontSize: 14, color: colors.grayDark, marginTop: 8 },
   amount: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginTop: 12 },
   actions: { width: '100%', marginTop: 40 },
-  fundiNote: { fontSize: 14, color: colors.grayDark, marginTop: 16, textAlign: 'center', lineHeight: 22, paddingHorizontal: 20 },
+  escrowNote: { fontSize: 14, color: colors.grayDark, marginTop: 16, textAlign: 'center', lineHeight: 22, paddingHorizontal: 20 },
 });

@@ -102,6 +102,7 @@ export default function SafeTransferScreen({ navigation, route }) {
 
         {/* Sender Card */}
         <View style={styles.senderCard}>
+          <View style={styles.senderCardTop}>
           {sender.avatarUrl
             ? <Image source={{ uri: sender.avatarUrl }} style={styles.avatar} />
             : (
@@ -110,12 +111,15 @@ export default function SafeTransferScreen({ navigation, route }) {
               </View>
             )
           }
-          <View style={styles.verifiedRow}>
+          <View style={styles.senderInfo}>
+              <View style={styles.verifiedRow}>
             <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
             <Text style={styles.verifiedText}>Verified LipaSafe User</Text>
           </View>
           <Text style={styles.senderName}>{sender.fullName || 'Unknown'}</Text>
           <Text style={styles.senderPhone}>{sender.phone}</Text>
+            </View>
+          </View>
 
           {/* State pill */}
           <View style={[styles.statePill, { backgroundColor: state.bg }]}>
@@ -133,7 +137,7 @@ export default function SafeTransferScreen({ navigation, route }) {
               <View style={styles.amountDivider} />
               <View style={styles.amountRow}>
                 <Text style={styles.amountRowLabel}>You receive</Text>
-                <Text style={[styles.amountRowValue, { color: colors.primary, fontWeight: '800' }]}>
+                <Text style={[styles.amountRowValue, { color: '#fff', fontWeight: '800' }]}>
                   KES {(Number(transfer.amount) - Number(transfer.fee || 0)).toLocaleString()}
                 </Text>
               </View>
@@ -244,38 +248,40 @@ const styles = StyleSheet.create({
   headerTitle:     { fontSize: 17, fontWeight: '700', color: '#111' },
   scroll:          { padding: 16, paddingBottom: 32 },
 
-  senderCard:      { backgroundColor: '#fff', borderRadius: 20, alignItems: 'center', padding: 28, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  avatar:          { width: 88, height: 88, borderRadius: 44, marginBottom: 12, borderWidth: 3, borderColor: colors.primary },
-  avatarFallback:  { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.primary + '18', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 3, borderColor: colors.primary },
-  avatarInitials:  { fontSize: 32, fontWeight: '800', color: colors.primary },
+  senderCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3 },
+  senderCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  avatar: { width: 68, height: 68, borderRadius: 34, marginRight: 14, borderWidth: 2.5, borderColor: colors.primary },
+  avatarFallback: { width: 68, height: 68, borderRadius: 34, backgroundColor: colors.primary + '18', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 2.5, borderColor: colors.primary },
+  avatarInitials: { fontSize: 24, fontWeight: '800', color: colors.primary },
+  senderInfo: { flex: 1 },
   verifiedRow:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
   verifiedText:    { fontSize: 12, color: colors.primary, fontWeight: '600' },
-  senderName:      { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 2 },
-  senderPhone:     { fontSize: 14, color: '#888', marginBottom: 14 },
-  statePill:       { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  senderName: { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 2 },
+  senderPhone: { fontSize: 13, color: '#888' },
+  statePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, alignSelf: 'flex-start' },
   stateText:       { fontSize: 13, fontWeight: '700' },
 
-  amountCard:      { backgroundColor: '#fff', borderRadius: 20, padding: 24, marginBottom: 14, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  amountLabel:     { fontSize: 13, color: '#888', marginBottom: 4 },
-  amountValue:     { fontSize: 42, fontWeight: '900', color: '#111' },
-  amountDivider:   { height: 1, backgroundColor: '#f0f0f0', width: '100%', marginVertical: 14 },
-  amountRow:       { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  amountRowLabel:  { fontSize: 14, color: '#888' },
-  amountRowValue:  { fontSize: 15 },
+  amountCard: { backgroundColor: colors.primary, borderRadius: 20, padding: 26, marginBottom: 14, alignItems: 'center', shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  amountLabel: { fontSize: 13, color: '#fff', opacity: 0.85, marginBottom: 6, fontWeight: '600', letterSpacing: 0.3 },
+  amountValue: { fontSize: 44, fontWeight: '900', color: '#fff' },
+  amountDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.25)', width: '100%', marginVertical: 16 },
+  amountRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  amountRowLabel: { fontSize: 14, color: '#fff', opacity: 0.85 },
+  amountRowValue: { fontSize: 16 },
 
-  detailsCard:     { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  detailRow:       { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  detailIcon:      { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' },
-  detailLabel:     { fontSize: 12, color: '#aaa', marginBottom: 2 },
-  detailValue:     { fontSize: 15, fontWeight: '600', color: '#111' },
+  detailsCard: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 6, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  detailIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primary + '12', alignItems: 'center', justifyContent: 'center' },
+  detailLabel: { fontSize: 11, color: '#9CA3AF', marginBottom: 3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  detailValue: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
 
   settledBox:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 14, padding: 16 },
   settledText:     { fontSize: 15, fontWeight: '600' },
 
-  actions:         { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
-  declineBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderColor: '#EF4444', borderRadius: 14, paddingVertical: 16 },
-  declineBtnText:  { fontSize: 15, fontWeight: '700', color: '#EF4444' },
-  acceptBtn:       { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16 },
-  acceptBtnText:   { fontSize: 15, fontWeight: '700', color: '#fff' },
-  cancelBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#EF4444', borderRadius: 14, paddingVertical: 16, width: '100%' },
+  actions: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 14, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
+  declineBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: '#FEF2F2', borderRadius: 16, paddingVertical: 16 },
+  declineBtnText: { fontSize: 15, fontWeight: '700', color: '#EF4444' },
+  acceptBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  acceptBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  cancelBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: '#FEF2F2', borderRadius: 16, paddingVertical: 16, width: '100%' },
 });

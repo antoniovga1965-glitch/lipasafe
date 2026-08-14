@@ -138,11 +138,32 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
 
-    const secondHandTypes = ['payment_received', 'money_released', 'otp_handover', 'dispute_opened', 'dispute_resolved'];
-    if (secondHandTypes.includes(item.type) && item.transactionId) {
+    if ((item.type === 'FUNDI_JOB_CREATED' || item.type === 'FUNDI_OTP_ISSUED' || item.type === 'FUNDI_EXTENSION_REQUESTED' || item.type === 'FUNDI_EXTENSION_APPROVED') && item.fundiJobId) {
+      navigation.navigate('ProfileTab', { screen: 'FundiJob', params: { jobId: item.fundiJobId } });
+      return;
+    }
+
+    if (item.type === 'FUNDI_JOB_COMPLETED' && item.fundiJobId) {
+      navigation.navigate('ProfileTab', { screen: 'FundiReview', params: { jobId: item.fundiJobId } });
+      return;
+    }
+
+    if (item.type === 'payment_received' && item.houseEscrowId) {
+      navigation.navigate('HouseEscrowDetail', { escrowId: item.houseEscrowId });
+      return;
+    }
+    const sellerHandoverTypes = ['payment_received', 'dispute_opened'];
+    if (sellerHandoverTypes.includes(item.type) && item.transactionId && !item.houseEscrowId && !item.customEscrowId) {
+      navigation.navigate('ProfileTab', {
+        screen: 'SellerDashboard',
+      });
+      return;
+    }
+    const secondHandTypes = ['money_released', 'otp_handover', 'dispute_resolved'];
+    if (secondHandTypes.includes(item.type) && item.transactionId && !item.houseEscrowId && !item.customEscrowId) {
       navigation.navigate('ActivityTab', {
         screen: 'TransactionDetail',
-        params: { tx: { id: item.transactionId } },
+        params: { tx: { id: item.transactionId, category: 'second_hand' } },
       });
       return;
     }

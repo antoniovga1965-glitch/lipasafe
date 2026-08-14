@@ -47,6 +47,7 @@ const createAndSend = async ({
       requestId,
       deliveryOrderId: notif.deliveryOrderId || null,
       customEscrowId: notif.customEscrowId || null,
+      fundiJobId: notif.fundiJobId || null,
     })
 
     // 3. Expo push — works even when app is closed
@@ -58,8 +59,11 @@ const createAndSend = async ({
     if (user?.pushToken && Expo.isExpoPushToken(user.pushToken)) {
       try {
         const chunks = expo.chunkPushNotifications([{
-          to:    user.pushToken,
-          sound: 'default',
+          to:       user.pushToken,
+          sound:    'default',
+          priority: 'high',
+          channelId: 'default',
+          ttl:      604800,
           title: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
           body:  messageEn,
           data:  { 
@@ -89,6 +93,10 @@ const createAndSend = async ({
             if (ticket.status !== 'ok') {
               allOk = false
               lastErr = ticket.message || (ticket.details && ticket.details.error) || 'unknown Expo ticket error'
+              if (ticket.details?.error === 'DeviceNotRegistered') {
+                await prisma.user.update({ where: { id: userId }, data: { pushToken: null } }).catch(() => {})
+                logger.warn('Push token cleared — DeviceNotRegistered', { userId })
+              }
             }
           }
         }

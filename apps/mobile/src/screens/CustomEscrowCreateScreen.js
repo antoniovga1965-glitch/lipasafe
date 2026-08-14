@@ -6,16 +6,9 @@ import {
 import { colors } from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { authFetch } from '../utils/api';
 
-const DEADLINE_OPTIONS = [
-  { label: 'No deadline', value: null   },
-  { label: '1 day',       value: '24'   },
-  { label: '3 days',      value: '72'   },
-  { label: '7 days',      value: '168'  },
-  { label: '14 days',     value: '336'  },
-  { label: '30 days',     value: '720'  },
-];
 import { PLATFORM_RATE } from '../utils/feeCalculator'
 const FEE_RATE = PLATFORM_RATE;
 
@@ -26,7 +19,44 @@ export default function CustomEscrowCreateScreen({ navigation }) {
   const [counterpartyPhone, setCounterpartyPhone] = useState('');
   const [isRisky,           setIsRisky]           = useState(false);
   const [riskDescription,   setRiskDescription]   = useState('');
-  const [deadline,          setDeadline]          = useState(null);
+  const [noDeadline,       setNoDeadline]       = useState(true);
+  const [completionDate,   setCompletionDate]   = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [showDatePicker,   setShowDatePicker]   = useState(false);
+  const [showTimePicker,   setShowTimePicker]   = useState(false);
+  const [pickerMode,       setPickerMode]       = useState('date');
+
+  const onCompletionDateChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+      setShowTimePicker(false);
+      return;
+    }
+    const current = selectedDate || completionDate;
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+
+    if (pickerMode === 'date') {
+      const updated = new Date(completionDate);
+      updated.setFullYear(current.getFullYear(), current.getMonth(), current.getDate());
+      setCompletionDate(updated);
+      setPickerMode('time');
+      setShowTimePicker(true);
+    } else {
+      const updated = new Date(completionDate);
+      updated.setHours(current.getHours(), current.getMinutes());
+      setCompletionDate(updated);
+    }
+  };
+
+  const formatCompletionDate = (date) =>
+    date.toLocaleString('en-KE', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+
+  const deadline = noDeadline
+    ? null
+    : String(Math.min(Math.max(Math.ceil((completionDate.getTime() - Date.now()) / (60 * 60 * 1000)), 1), 720));
   const [loading,           setLoading]           = useState(false);
   const [photos,             setPhotos]             = useState([]);
   const [previewPhoto,       setPreviewPhoto]       = useState(null);
@@ -38,7 +68,7 @@ export default function CustomEscrowCreateScreen({ navigation }) {
 
   const valid =
     title.trim().length >= 3 &&
-    description.trim().length >= 50 &&
+    description.trim().length >= 30 &&
     counterpartyPhone.trim().length >= 9 &&
     parsed >= 1 &&
     photos.length >= 2 &&
@@ -162,14 +192,14 @@ export default function CustomEscrowCreateScreen({ navigation }) {
 
           <View style={styles.riskRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.label, { marginTop: 0 }]}>⚠️  High-risk deal?</Text>
+              <Text style={[styles.label, { marginTop: 0 }]}> High-risk deal?</Text>
               <Text style={styles.hint}>Enable if you're dealing with a stranger or large amount.</Text>
             </View>
             <Switch
               value={isRisky}
               onValueChange={setIsRisky}
-              trackColor={{ false: colors.border, true: '#FFD580' }}
-              thumbColor={isRisky ? '#FF9500' : colors.grayDark}
+              trackColor={{ false: colors.border, true: '#a78440' }}
+              thumbColor={isRisky ? '#ffee00' : colors.grayDark}
             />
           </View>
 
@@ -213,21 +243,38 @@ export default function CustomEscrowCreateScreen({ navigation }) {
           {photos.length < 2 && <Text style={styles.error}>At least 2 photos required</Text>}
 
           <Text style={styles.label}>Completion Deadline</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.optionRow}>
-              {DEADLINE_OPTIONS.map(opt => (
-                <TouchableOpacity
-                  key={String(opt.value)}
-                  style={[styles.optionBtn, deadline === opt.value && styles.optionActive]}
-                  onPress={() => setDeadline(opt.value)}
-                >
-                  <Text style={[styles.optionText, deadline === opt.value && styles.optionTextActive]}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          <View style={styles.optionRow}>
+            <TouchableOpacity
+              style={[styles.optionBtn, noDeadline && styles.optionActive]}
+              onPress={() => setNoDeadline(true)}
+            >
+              <Text style={[styles.optionText, noDeadline && styles.optionTextActive]}>
+                No deadline
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.optionBtn, !noDeadline && styles.optionActive]}
+              onPress={() => {
+                setNoDeadline(false);
+                setPickerMode('date');
+                setShowDatePicker(true);
+              }}
+            >
+              <Text style={[styles.optionText, !noDeadline && styles.optionTextActive]}>
+                {noDeadline ? 'Set a deadline' : formatCompletionDate(completionDate)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {(showDatePicker || showTimePicker) && (
+            <DateTimePicker
+              value={completionDate}
+              mode={pickerMode}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date(Date.now() + 60 * 60 * 1000)}
+              maximumDate={new Date(Date.now() + 720 * 60 * 60 * 1000)}
+              onChange={onCompletionDateChange}
+            />
+          )}
           <Text style={styles.hint}>Max 30 days. Deal auto-refunds initiator if not completed in time.</Text>
 
         </View>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LipaSafe — Lipa Salama. Daima.</title>
+<meta name="description" content="Kenya's secure escrow payment app. Pay safely for goods, services, rentals and more using M-Pesa.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--green:#00A86B;--green-light:#00C47A;--green-dark:#0a2e1a;--green-mint:#f0faf4;--white:#ffffff;--text:#1a1a1a;--muted:#6b7280}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--text);background:var(--white)}
+nav{position:sticky;top:0;background:var(--white);border-bottom:1px solid #e5e7eb;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;z-index:100}
+.logo{font-size:20px;font-weight:800;color:var(--green);letter-spacing:-0.5px}
+.nav-cta{background:var(--green);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.hero{background:var(--green-dark);color:white;padding:80px 24px 72px;text-align:center}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,168,107,0.2);border:1px solid rgba(0,168,107,0.4);color:#6ee7b7;padding:6px 16px;border-radius:100px;font-size:13px;font-weight:500;margin-bottom:32px}
+.hero-sub{font-size:12px;color:rgba(255,255,255,0.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:16px}
+.hero h1{font-size:clamp(48px,10vw,80px);font-weight:900;line-height:1.0;letter-spacing:-3px;margin-bottom:24px}
+.hero h1 span{color:var(--green-light)}
+.hero p{font-size:18px;color:rgba(255,255,255,0.7);max-width:460px;margin:0 auto 40px;line-height:1.6}
+.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{background:var(--green);color:white;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;display:inline-block}
+.btn-secondary{background:rgba(255,255,255,0.08);color:white;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,0.15);display:inline-block}
+.beta-note{margin-top:20px;font-size:13px;color:rgba(255,255,255,0.35)}
+.trust{background:var(--green-mint);padding:36px 24px}
+.trust-inner{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px}
+.trust-item{display:flex;align-items:center;gap:12px}
+.trust-icon{width:40px;height:40px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.trust-text strong{display:block;font-size:14px;font-weight:700;color:var(--green-dark)}
+.trust-text span{font-size:12px;color:var(--muted)}
+section{padding:64px 24px;max-width:720px;margin:0 auto}
+.section-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--green);margin-bottom:12px}
+.section-title{font-size:clamp(24px,4vw,36px);font-weight:800;line-height:1.2;letter-spacing:-0.5px;margin-bottom:12px;color:var(--green-dark)}
+.section-sub{font-size:16px;color:var(--muted);line-height:1.6;margin-bottom:40px}
+.steps{display:grid;gap:16px}
+.step{display:flex;gap:20px;align-items:flex-start;padding:24px;background:var(--green-mint);border-radius:16px}
+.step-num{width:40px;height:40px;background:var(--green-dark);color:white;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0}
+.step h3{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--green-dark)}
+.step p{font-size:14px;color:var(--muted);line-height:1.5}
+.verticals-wrap{background:var(--green-dark);padding:64px 24px}
+.verticals-inner{max-width:720px;margin:0 auto}
+.verticals-inner .section-title{color:white}
+.verticals-inner .section-sub{color:rgba(255,255,255,0.55);margin-bottom:32px}
+.verticals{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.vertical{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px}
+.vertical-icon{font-size:28px;margin-bottom:12px}
+.vertical h3{font-size:16px;font-weight:700;color:white;margin-bottom:6px}
+.vertical p{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
+.download-wrap{background:var(--green);padding:64px 24px;text-align:center}
+.download-wrap h2{font-size:clamp(28px,5vw,44px);font-weight:900;color:white;letter-spacing:-1px;margin-bottom:12px}
+.download-wrap p{font-size:16px;color:rgba(255,255,255,0.8);margin-bottom:32px}
+.apk-btn{display:inline-flex;align-items:center;gap:12px;background:var(--green-dark);color:white;padding:18px 36px;border-radius:14px;font-size:17px;font-weight:700;text-decoration:none}
+.apk-meta{margin-top:16px;font-size:13px;color:rgba(255,255,255,0.6)}
+footer{background:var(--green-dark);color:rgba(255,255,255,0.5);padding:40px 24px;text-align:center}
+.footer-logo{font-size:18px;font-weight:800;color:white;margin-bottom:16px}
+footer nav{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+footer nav a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px}
+footer p{font-size:12px}
+@media(max-width:480px){.btn-primary,.btn-secondary{width:100%;text-align:center}.hero-buttons{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">LipaSafe</div>
+  <a href="#download" class="nav-cta">Download Beta</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">🇰🇪 &nbsp; Beta — Open to early users</div>
+  <p class="hero-sub">Pay safely. Always.</p>
+  <h1>Lipa <span>Salama.</span><br>Daima.</h1>
+  <p>Kenya's escrow payment app. Your money only moves when you're satisfied — powered by M-Pesa.</p>
+  <div class="hero-buttons">
+    <a href="#download" class="btn-primary">⬇ Download APK</a>
+    <a href="#how" class="btn-secondary">How it works</a>
+  </div>
+  <p class="beta-note">Android · Free during beta · M-Pesa required</p>
+</div>
+
+<div class="trust">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <div class="trust-icon">🔒</div>
+      <div class="trust-text"><strong>Escrow Protected</strong><span>Funds held until delivery confirmed</span></div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">📱</div>
+      <div class="trust-text"><strong>M-Pesa Integrated</strong><span>Pay and receive via Safaricom</span></div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">🛡</div>
+      <div class="trust-text"><strong>Dispute Resolution</strong><span>Built-in protection if things go wrong</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="how">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">Simple as M-Pesa.<br>Safer than cash.</h2>
+  <p class="section-sub">Three steps. No trust required.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div><h3>Create a deal</h3><p>Buyer and seller agree on terms. LipaSafe holds the payment in escrow via M-Pesa.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div><h3>Deliver with confidence</h3><p>Seller delivers knowing payment is secured. Buyer knows they're protected if something goes wrong.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div><h3>Confirm and release</h3><p>Buyer confirms delivery. Funds released instantly to seller via M-Pesa.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="verticals-wrap">
+  <div class="verticals-inner">
+    <div class="section-label">What you can do</div>
+    <h2 class="section-title">One app. Every deal.</h2>
+    <p class="section-sub">LipaSafe covers the transactions Kenyans do every day.</p>
+    <div class="verticals">
+      <div class="vertical"><div class="vertical-icon">📦</div><h3>Bundles</h3><p>Buy and sell data bundles safely. Pay only when you receive.</p></div>
+      <div class="vertical"><div class="vertical-icon">🛒</div><h3>SecondHand</h3><p>Trade used goods without fear of being conned or ghosted.</p></div>
+      <div class="vertical"><div class="vertical-icon">🔧</div><h3>Fundi</h3><p>Hire a fundi and pay only when the job is done right.</p></div>
+      <div class="vertical"><div class="vertical-icon">🚚</div><h3>Delivery</h3><p>Send parcels with payment held until safe delivery confirmed.</p></div>
+      <div class="vertical"><div class="vertical-icon">🏠</div><h3>House</h3><p>Pay deposit and rent securely — protected from scam landlords.</p></div>
+      <div class="vertical"><div class="vertical-icon">⚙️</div><h3>Custom</h3><p>Any deal that needs escrow. Set your own terms and conditions.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="download-wrap" id="download">
+  <h2>Ready to pay safely?</h2>
+  <p>Join the LipaSafe beta — free for early users. Android only for now.</p>
+  <a href="https://github.com/antoniovga1965-glitch/lipasafe/releases/download/beta-v1.1/lipasafe-beta.apk" class="apk-btn">⬇ &nbsp; Download APK</a>
+  <p class="apk-meta">Beta v1.0 · Android 8.0+ · Not yet on Google Play</p>
+</div>
+
+<footer>
+  <div class="footer-logo">LipaSafe</div>
+  <nav>
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="mailto:support@lipasafe.co.ke">support@lipasafe.co.ke</a>
+  </nav>
+  <p>© 2026 Vezoro Enterprice · Nairobi, Kenya · Lipa Salama. Daima.</p>
+</footer>
+
+</body>
+</html>

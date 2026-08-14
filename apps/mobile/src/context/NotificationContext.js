@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { io } from 'socket.io-client';
 import * as Notifications from 'expo-notifications';
 import { getAccessToken } from '../utils/secureStorage';
@@ -11,7 +11,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
@@ -70,6 +70,61 @@ export function NotificationProvider({ children }) {
   }, []);
 
 
+  // Refresh push token whenever app comes back to foreground (handles token rot)
+  useEffect(() => {
+    const lastTokenRef = { current: null };
+    const sub = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active') return;
+      try {
+        const { data: freshToken } = await Notifications.getExpoPushTokenAsync();
+        if (freshToken && freshToken !== lastTokenRef.current) {
+          lastTokenRef.current = freshToken;
+          await authFetch('/user/push-token', {
+            method: 'POST',
+            body: JSON.stringify({ token: freshToken }),
+          });
+          console.log('[Push] token refreshed on foreground');
+        }
+      } catch (e) {
+        console.log('[Push] foreground refresh failed:', e.message);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Fetch notifications on mount — populates bell count from server state
+  useEffect(() => {
+    const fetchInitial = async () => {
+      try {
+        const res  = await authFetch('/user/notifications?limit=30&page=1');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.notifications)) {
+          setNotifications(json.notifications);
+          setUnreadCount(json.unreadCount ?? 0);
+          await Notifications.setBadgeCountAsync(json.unreadCount ?? 0);
+        }
+      } catch (e) {
+        console.log('[Notifications] initial fetch failed:', e.message);
+      }
+    };
+    fetchInitial();
+  }, []);
+
+  // Catch push notifications arriving when socket missed them (backgrounded, disconnected)
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(notification => {
+      const data = notification.request.content.data;
+      if (!data) return;
+      setNotifications(prev => {
+        const alreadyExists = prev.some(n => n.id && data.id && n.id === data.id);
+        if (alreadyExists) return prev;
+        incrementUnread();
+        return [data, ...prev];
+      });
+    });
+    return () => sub.remove();
+  }, [incrementUnread]);
+
   // Notification tap → navigate
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener(response => {
@@ -91,10 +146,47 @@ export function NotificationProvider({ children }) {
       const deliveryTypes = [
         'NEW_DELIVERY_ORDER', 'BEFORE_PHOTO_UPLOADED', 'BEFORE_PHOTO_REJECTED',
         'PICKUP_OTP_ISSUED', 'DELIVERY_STARTED', 'RECEIPT_OTP_ISSUED', 'PAYMENT_RELEASED',
+        'dispute_opened', 'dispute_resolved_refund', 'dispute_resolved_pay',
       ];
       if (deliveryTypes.includes(type)) {
+        nav.navigate('ProfileTab', { screen: 'DeliveryOrders' });
+      }
+      if (
+        (type === 'FUNDI_PAYMENT_HELD' || type === 'FUNDI_PAYOUT_RECEIVED' || type === 'FUNDI_REFUND_SENT') &&
+        data.fundiJobId
+      ) {
+        nav.navigate('ProfileTab', { screen: 'FundiJob', params: { jobId: data.fundiJobId } });
+      }
+      if (
+        (type === 'custom_escrow_completed' || type === 'custom_escrow_refunded') &&
+        data.customEscrowId
+      ) {
+        nav.navigate('HomeTab', { screen: 'CustomEscrowDetail', params: { escrowId: data.customEscrowId } });
+      }
+      if (type === 'payment_sent' || type === 'payment_received') {
+        nav.navigate('HomeTab', { screen: 'TransactionsList' });
+      }
+      if ((type === 'FUNDI_JOB_CREATED' || type === 'FUNDI_OTP_ISSUED') && data.fundiJobId) {
         nav.navigate('ProfileTab', {
-          screen: 'DeliveryOrders',
+          screen: 'FundiJob',
+          params: { jobId: data.fundiJobId },
+        });
+      }
+      if (type === 'FUNDI_JOB_COMPLETED' && data.fundiJobId) {
+        nav.navigate('ProfileTab', {
+          screen: 'FundiReview',
+          params: { jobId: data.fundiJobId },
+        });
+      }
+      const houseTypes = [
+        'house_payment_held', 'house_deal_accepted', 'house_deal_rejected',
+        'house_confirmed', 'house_disputed', 'house_auto_released',
+        'house_refunded', 'house_payout_sent', 'payment_received',
+      ];
+      if (houseTypes.includes(type) && data.houseEscrowId) {
+        nav.navigate('HomeTab', {
+          screen: 'HouseEscrowDetail',
+          params: { escrowId: data.houseEscrowId },
         });
       }
     });

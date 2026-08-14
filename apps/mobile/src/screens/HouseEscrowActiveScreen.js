@@ -204,6 +204,7 @@ export default function HouseEscrowActiveScreen({ navigation, route }) {
           {pad(hrs)}:{pad(mins)}:{pad(secs)}
         </Text>
         <Text style={styles.timerSub}>{inspectionHours}-hour window • auto-releases on expiry</Text>
+        <Text style={styles.timerSub}>Includes a 30-min payment confirmation grace period</Text>
       </View>
 
       {/* Property card */}

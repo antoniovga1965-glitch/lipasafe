@@ -32,7 +32,7 @@ export default function RequestMoneyScreen({ navigation }) {
   const [showPurposePicker, setShowPurposePicker] = useState(false);
 
   const parsedAmount = parseFloat(amount) || 0;
-  const { platformFee, buyerTotal } = parsedAmount > 0 ? calcFeesGeneric(parsedAmount) : { platformFee: 0, buyerTotal: 0 };
+  const { platformFee, b2cCost, buyerTotal } = parsedAmount > 0 ? calcFeesGeneric(parsedAmount) : { platformFee: 0, b2cCost: 0, buyerTotal: 0 };
   
   const totalDue = buyerTotal;
   const canRequest = phone.length >= 9 && parsedAmount >= 10 && purpose !== '';
@@ -91,53 +91,70 @@ export default function RequestMoneyScreen({ navigation }) {
 
           {/* Info Banner */}
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+            <View style={styles.infoIconCircle}>
+              <Ionicons name="information-circle" size={16} color={colors.primary} />
+            </View>
             <Text style={styles.infoText}>
               Enter their phone and amount. They'll get an SMS with a link to pay or reject within 24 hours.
             </Text>
           </View>
 
           {/* Recipient Phone */}
-          <View style={styles.inputRow}>
-            <Ionicons name="call-outline" size={18} color={colors.grayDark} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              placeholder="Recipient phone (07XX...)"
-              placeholderTextColor="#999"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={v => { setPhone(v); setError(''); }}
-              maxLength={12}
-            />
+          <View style={styles.card}>
+            <View style={styles.cardIconCircle}>
+              <Ionicons name="call" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Recipient Phone</Text>
+              <TextInput
+                style={styles.cardInput}
+                placeholder="07XX XXX XXX"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={v => { setPhone(v); setError(''); }}
+                maxLength={12}
+              />
+            </View>
           </View>
 
           {/* Amount */}
-          <View style={styles.inputRow}>
-            <Text style={styles.kesPrefix}>KES</Text>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="0.00"
-              placeholderTextColor="#999"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={v => { setAmount(v); setError(''); }}
-            />
+          <View style={styles.card}>
+            <View style={styles.cardIconCircle}>
+              <Text style={styles.kesIconText}>KES</Text>
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Amount</Text>
+              <TextInput
+                style={styles.cardInput}
+                placeholder="0.00"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={v => { setAmount(v); setError(''); }}
+              />
+            </View>
+            <View style={styles.kesBadge}>
+              <Text style={styles.kesBadgeText}>KES</Text>
+            </View>
           </View>
 
           {/* Purpose Dropdown */}
           <TouchableOpacity
-            style={styles.purposeRow}
+            style={styles.card}
             onPress={() => setShowPurposePicker(!showPurposePicker)}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View style={styles.cardIconCircle}>
               <Ionicons
                 name={PURPOSES.find(p => p.key === purpose)?.icon || 'list-outline'}
-                size={18}
-                color={colors.grayDark}
-                style={{ marginRight: 8 }}
+                size={16}
+                color={colors.primary}
               />
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Purpose</Text>
               <Text style={purpose ? styles.purposeTextSelected : styles.purposeTextPlaceholder}>
-                {purpose ? selectedPurposeLabel : 'Select purpose...'}
+                {purpose ? selectedPurposeLabel : 'Choose a purpose'}
               </Text>
             </View>
             <Ionicons
@@ -181,17 +198,23 @@ export default function RequestMoneyScreen({ navigation }) {
           )}
 
           {/* Optional Note */}
-          <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
-            <Ionicons name="document-text-outline" size={18} color={colors.grayDark} style={{ marginRight: 8, marginTop: 4 }} />
-            <TextInput
-              style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
-              placeholder="Add a note (optional) — e.g. Rent June"
-              placeholderTextColor="#999"
-              value={note}
-              onChangeText={setNote}
-              multiline
-              maxLength={100}
-            />
+          <View style={[styles.card, { alignItems: 'flex-start' }]}>
+            <View style={[styles.cardIconCircle, { marginTop: 2 }]}>
+              <Ionicons name="document-text" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.cardFieldWrap}>
+              <Text style={styles.cardLabel}>Note (optional)</Text>
+              <TextInput
+                style={[styles.cardInput, { height: 50, textAlignVertical: 'top' }]}
+                placeholder="e.g. Rent June"
+                placeholderTextColor="#999"
+                value={note}
+                onChangeText={setNote}
+                multiline
+                maxLength={100}
+              />
+              <Text style={styles.charCount}>{note.length} / 100</Text>
+            </View>
           </View>
 
           {/* Summary */}
@@ -204,6 +227,10 @@ export default function RequestMoneyScreen({ navigation }) {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Platform fee</Text>
                 <Text style={styles.summaryValue}>KES {platformFee.toFixed(2)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>M-Pesa charge</Text>
+                <Text style={styles.summaryValue}>KES {b2cCost.toFixed(2)}</Text>
               </View>
               <View style={[styles.summaryRow, { marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#e0e0e0' }]}>
                 <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>They pay</Text>
@@ -237,9 +264,15 @@ export default function RequestMoneyScreen({ navigation }) {
             }
           </TouchableOpacity>
 
-          <Text style={styles.disclaimer}>
-            The recipient will receive an SMS with a secure link to complete payment. Requests expire after 24 hours.
-          </Text>
+          <View style={styles.trustBox}>
+            <View style={styles.trustIconCircle}>
+              <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.trustTitle}>Secure. Fast. Reliable.</Text>
+              <Text style={styles.trustSub}>The recipient gets an SMS with a secure link. Requests expire after 24 hours.</Text>
+            </View>
+          </View>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -354,4 +387,21 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 18,
   },
+
+  infoIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 14, padding: 14, marginBottom: 12, gap: 12 },
+  cardIconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F0FBF6', alignItems: 'center', justifyContent: 'center' },
+  cardFieldWrap: { flex: 1 },
+  cardLabel: { fontSize: 11, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  cardInput: { fontSize: 16, fontWeight: '600', color: colors.black, padding: 0 },
+  kesIconText: { fontSize: 10, fontWeight: '800', color: colors.primary },
+  kesBadge: { backgroundColor: '#f3f4f6', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+  kesBadgeText: { fontSize: 11, fontWeight: '700', color: '#6b7280' },
+  charCount: { fontSize: 11, color: '#9ca3af', textAlign: 'right', marginTop: 2 },
+
+  trustBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#F0FBF6', borderRadius: 12, padding: 14, marginTop: 8, marginBottom: 12 },
+  trustIconCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  trustTitle: { fontSize: 13, fontWeight: '700', color: '#14532d' },
+  trustSub: { fontSize: 12, color: '#166534', marginTop: 2, lineHeight: 16 },
 });

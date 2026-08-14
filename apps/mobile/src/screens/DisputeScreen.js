@@ -87,7 +87,7 @@ export default function DisputeScreen({ navigation, route }) {
         res  = await authFetch('/disputes/open', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ orderId, claimerType, reason: `${reason}: ${description}` }),
+          body:    JSON.stringify({ orderId, claimerType, reason, description }),
         });
         data = await res.json();
         if (data.success) {
