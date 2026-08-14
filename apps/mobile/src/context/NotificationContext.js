@@ -189,6 +189,12 @@ export function NotificationProvider({ children }) {
           params: { escrowId: data.houseEscrowId },
         });
       }
+      if (type === 'deliver_now' && data.transactionId) {
+        nav.navigate('ProfileTab', { screen: 'SellerDashboard' });
+      }
+      if (type === 'money_sent' && data.transactionId) {
+        nav.navigate('HomeTab', { screen: 'BundleStatus', params: { transactionId: data.transactionId } });
+      }
     });
     return () => sub.remove();
   }, []);
