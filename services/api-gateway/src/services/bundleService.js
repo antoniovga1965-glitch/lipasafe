@@ -105,6 +105,17 @@ const processEscrowPayment = async (mpesaTx, amount, mpesaRef, bundleTx) => {
   // Schedule seller delivery deadline — 30 mins to mark delivered or buyer gets refunded
   await scheduleTimer(timerQueue, bundleTx.id, 'seller_delivery_deadline', SELLER_DELIVERY_DEADLINE)
   await scheduleTimer(timerQueue, bundleTx.id, 'delivery_reminder', DELIVERY_REMINDER_DELAY)
+  const { createAndSend: _pushBundle } = require('./notificationService')
+  // Notify buyer — payment held
+  await _pushBundle({ userId: bundleTx.buyerId, type: 'PAYMENT_HELD', transactionId: bundleTx.id,
+    messageEn: `Payment of KES ${bundleTx.amount} held in escrow. Waiting for seller to deliver.` }).catch(() => {})
+  // Notify seller if registered
+  if (notifyPhone) {
+    const _sv = notifyPhone.startsWith('254') ? ['0'+notifyPhone.slice(3), notifyPhone] : [notifyPhone, '254'+notifyPhone.slice(1)]
+    const _su = await prisma.user.findFirst({ where: { phone: { in: _sv } }, select: { id: true } })
+    if (_su) await _pushBundle({ userId: _su.id, type: 'NEW_ORDER', transactionId: bundleTx.id,
+      messageEn: `New order! KES ${bundleTx.amount} held in escrow. Ref: #${bundleTx.referenceNo}. Mark as dispatched in app.` }).catch(() => {})
+  }
   logger.info('Bundle payment held in escrow', { transactionId: bundleTx.id, mpesaRef })
 }
 
