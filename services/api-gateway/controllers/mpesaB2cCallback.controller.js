@@ -282,10 +282,11 @@ const b2cResult = async (req, res) => {
       const isAccept  = OriginatorConversationID.startsWith('PT-ACC-')
       const isDecline = OriginatorConversationID.startsWith('PT-DEC-')
       const isCancel  = OriginatorConversationID.startsWith('PT-CAN-')
+      const isExpire  = OriginatorConversationID.startsWith('PT-EXP-')
 
       if (resultCode === 0) {
         // B2C confirmed — advance RELEASING/REFUNDING to final state
-        const finalState = isAccept ? 'ACCEPTED' : isDecline ? 'DECLINED' : 'CANCELLED'
+        const finalState = isAccept ? 'ACCEPTED' : isDecline ? 'DECLINED' : isExpire ? 'EXPIRED' : 'CANCELLED'
 
         const transfer = await prisma.protectedTransfer.update({
           where:  { id: transferId },

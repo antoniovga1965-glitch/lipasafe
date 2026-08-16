@@ -35,6 +35,7 @@ const worker = new Worker(
         .toNumber() 
 
       const originatorId = `PT-EXP-${transferId.slice(0, 16)}`
+      await redis.set(`originator:${originatorId}`, `protected_transfer:${transferId}`, "EX", 3600)
 
       await initiateB2C({
         phone:         transfer.sender.phone,
