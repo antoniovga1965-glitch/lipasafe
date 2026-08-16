@@ -295,9 +295,19 @@ const listTransfers = async (req, res) => {
 
     const transfers = await prisma.protectedTransfer.findMany({
       where: {
-        OR: [
-          { senderId: callerId },
-          { recipientPhone: normalizedPhone }
+        AND: [
+          {
+            OR: [
+              { senderId: callerId },
+              { recipientPhone: normalizedPhone }
+            ]
+          },
+          {
+            OR: [
+              { senderId: callerId,        deletedBySender: false },
+              { recipientPhone: normalizedPhone, deletedByRecipient: false }
+            ]
+          }
         ]
       },
       include: { sender: { select: { fullName: true, phone: true, avatarUrl: true } } },
@@ -318,4 +328,41 @@ const listTransfers = async (req, res) => {
   }
 }
 
-module.exports = { accept, decline, cancel, getTransfer, listTransfers }
+// ── Delete (soft, per-party) ────────────────────────────────────────────
+const deleteTransfer = async (req, res) => {
+  const { id } = req.params
+  const callerId = req.user.userId
+  try {
+    const transfer = await prisma.protectedTransfer.findUnique({ where: { id } })
+    if (!transfer) {
+      // Already gone — treat as success so bulk-delete UX doesn't choke
+      return res.status(404).json({ success: false, message: 'Transfer not found' })
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { id: callerId },
+      select: { phone: true }
+    })
+    if (!caller) return res.status(404).json({ success: false, message: 'User not found' })
+
+    const isSender    = transfer.senderId === callerId
+    const isRecipient = normalizePhone(caller.phone) === normalizePhone(transfer.recipientPhone)
+
+    if (!isSender && !isRecipient) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this transfer' })
+    }
+
+    const data = {}
+    if (isSender)    data.deletedBySender = true
+    if (isRecipient) data.deletedByRecipient = true
+
+    await prisma.protectedTransfer.update({ where: { id }, data })
+
+    return res.json({ success: true, message: 'Transfer removed from your history' })
+  } catch (err) {
+    logger.error('transfer.deleteTransfer error', { id, err: err.message })
+    return res.status(500).json({ success: false, message: 'Failed to delete transfer' })
+  }
+}
+
+module.exports = { accept, decline, cancel, getTransfer, listTransfers, deleteTransfer }
