@@ -978,7 +978,7 @@ const getMpesaHealth = async (req, res) => {
     const b2cFailed  = (payoutG.find(r=>r.status==='failed')?._count?.status??0)   + (customG.find(r=>r.status==='failed')?._count?.status??0)
     const b2cTotal   = b2cSuccess + b2cFailed
     const b2cRate    = b2cTotal > 0 ? +((b2cSuccess / b2cTotal) * 100).toFixed(1) : null
-    const b2bSuccess = b2bG.find(r=>r.status==='sent')?._count?.status??0
+    const b2bSuccess = b2bG.find(r=>r.status==='confirmed')?._count?.status??0
     const b2bFailed  = b2bG.find(r=>r.status==='failed')?._count?.status??0
     const b2bTotal   = b2bSuccess + b2bFailed
     const b2bRate    = b2bTotal > 0 ? +((b2bSuccess / b2bTotal) * 100).toFixed(1) : null
