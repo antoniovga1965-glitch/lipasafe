@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "FundiJobStatus" ADD VALUE 'AWAITING_PAYOUT';

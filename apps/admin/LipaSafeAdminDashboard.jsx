@@ -670,6 +670,8 @@ const DisputeCenter = ({ token }) => {
             buyerPhone: d.escrow?.buyerPhone || '', sellerPhone: d.escrow?.sellerPhone || '',
             seller: '—', amount: d.escrow?.amount || 0,
             reason: d.reason, status: d.status, createdAt: d.createdAt, _raw: 'house',
+            buyerEvidence: { photos: d.buyerPhotos || d.evidencePhotos || [] },
+            sellerEvidence: { photos: d.sellerPhotos || d.counterPhotos || [] },
           }));
 
           const fundiList = (fundi?.success ? (fundi.data || fundi.disputes || []) : []).map(d => ({
@@ -681,8 +683,8 @@ const DisputeCenter = ({ token }) => {
             seller: d.job?.fundiPhone || '—', amount: d.job?.amount || 0,
             reason: d.reason, description: d.description, status: d.status, createdAt: d.createdAt, _raw: 'fundi',
            _jobId: d.jobId,
-            buyerEvidence: { photos: d.evidencePhotos || [] },
-            sellerEvidence: { photos: d.job?.afterPhotos || [] },
+            buyerEvidence: { photos: d.buyerPhotos || d.evidencePhotos || [] },
+            sellerEvidence: { photos: d.sellerPhotos || d.counterPhotos || d.job?.afterPhotos || [] },
           
           }));
           const deliveryList = (delivery?.success ? (delivery.data || delivery.disputes || []) : []).map(d => ({
@@ -691,6 +693,8 @@ const DisputeCenter = ({ token }) => {
             buyerPhone: d.order?.buyerId || '', sellerPhone: d.order?.deliveryGuyPhone || '',
             seller: d.order?.deliveryGuyPhone || '—', amount: d.order?.amount || 0,
             reason: d.reason, status: d.status, createdAt: d.createdAt, _raw: 'delivery',
+            buyerEvidence: { photos: d.buyerPhotos || d.evidencePhotos || [] },
+            sellerEvidence: { photos: d.sellerPhotos || d.counterPhotos || [] },
           }));
           const disputeMap = new Map();
           generalList.forEach(d => disputeMap.set(`${d._raw}:${d.id}`, d));

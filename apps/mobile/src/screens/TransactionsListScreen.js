@@ -380,6 +380,7 @@ const handleDeleteSelected = () => {
             setDeliveryOrders(prev => prev.filter(t => !deletedIds.has(t.id)));
             setHouseEscrows(prev => prev.filter(t => !deletedIds.has(t.id)));
             setCustomEscrows(prev => prev.filter(t => !deletedIds.has(t.id)));
+            setSafeSendTxs(prev => prev.filter(t => !deletedIds.has(t.id)));
             clearSelection();
 
             // NO refetch on success — you already know what was deleted
