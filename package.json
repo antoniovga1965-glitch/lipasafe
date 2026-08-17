@@ -13,7 +13,7 @@
   },
   "name": "lipasafe",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "directories": {
     "doc": "docs",
     "test": "tests"
