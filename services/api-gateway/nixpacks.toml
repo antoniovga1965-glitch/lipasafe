@@ -1,2 +1,8 @@
-[phases.setup]
-nixPkgs = ["nodejs_22"]
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = ["npx prisma generate --schema=prisma/schema.prisma"]
+
+[start]
+cmd = "npx prisma migrate deploy --schema=prisma/schema.prisma && node src/server.js"
