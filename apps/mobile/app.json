@@ -20,13 +20,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C170"
       },
-      "usesCleartextTraffic": true,
       "package": "com.antoniovga196.lipasafe"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      ["expo-build-properties", {"android": {"usesCleartextTraffic": true}}],
       "expo-secure-store",
       "@react-native-community/datetimepicker"
     ],
