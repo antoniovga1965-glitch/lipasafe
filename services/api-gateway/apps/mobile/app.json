@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "LipaSafe",
+    "slug": "lipasafe",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00C170"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#00C170"
+      },
+      "usesCleartextTraffic": true,
+      "package": "com.antoniovga196.lipasafe"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e1243d4a-de9e-4dbf-969e-a5591cbf324e"
+      }
+    },
+    "owner": "antoniovga196"
+  }
+}

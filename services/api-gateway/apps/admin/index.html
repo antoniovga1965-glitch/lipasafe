@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LipaSafe Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <script>
+    const { useState, useEffect, useMemo, useCallback, useRef } = React;
+    const _icon = () => ({size=16,className=''}={}) => React.createElement('span',{className,style:{display:'inline-flex',width:size,height:size}});
+    ['LayoutDashboard','Users','ShieldCheck','Wallet','FileText','AlertTriangle','CheckCircle','XCircle','Clock','Search','ChevronLeft','ChevronRight','Eye','Ban','RotateCcw','DollarSign','TrendingUp','TrendingDown','Activity','CreditCard','RefreshCw','Filter','Download','ChevronDown','X','Check','UserCheck','Package','Wrench','Home','Truck','Settings','LogOut','Bell','Menu','ArrowUpRight','ArrowDownRight','FileImage','MessageSquare','Send','Lock','Unlock','AlertCircle','Receipt','BarChart3','PieChart','Layers','Zap','Globe','ShoppingBag'].forEach(n=>window[n]=_icon());
+    window.ImageIcon = _icon();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react" src="./LipaSafeAdminDashboard.jsx"></script>
+  <script type="text/babel">
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
