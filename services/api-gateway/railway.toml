@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npx prisma generate"
+buildCommand = "cd services/api-gateway && npm install && npx prisma generate --schema=services/api-gateway/prisma/schema.prisma"
 
 [deploy]
-startCommand = "npx prisma migrate deploy && node src/server.js"
+startCommand = "cd services/api-gateway && npx prisma migrate deploy --schema=services/api-gateway/prisma/schema.prisma && node services/api-gateway/src/server.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 healthcheckPath = "/health"
