@@ -10,7 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
-      "node": "22"
+      "node": "22.0.0"
     },
     "production": {
       "autoIncrement": true
