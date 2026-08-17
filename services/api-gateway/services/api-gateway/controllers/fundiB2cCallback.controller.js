@@ -54,15 +54,15 @@ const fundiB2cResult = async (req, res) => {
         if (updated.count === 0) {
           logger.info('Fundi B2C callback: already completed, skipping duplicate side-effects', { jobId })
         } else {
-          await fundiQueue.add('send_raw_sms', { phone: job.fundiPhone, message: `LipaSafe: Umepokea KES ${job.fundiReceives} kwa kazi ${jobId.slice(0,8).toUpperCase()}. Mpesa: ${mpesaRef}` })
+          await fundiQueue.add('send_raw_sms', { phone: job.fundiPhone, message: `LipaSafe: Umepokea KES ${job.fundiReceives || job.amount} kwa kazi ${jobId.slice(0,8).toUpperCase()}. Mpesa: ${mpesaRef}` })
           await fundiQueue.add('send_raw_sms', { phone: job.buyerPhone, message: `LipaSafe: Kazi imekamilika. Fundi amelipwa. Ref: ${mpesaRef}` })
           const { createAndSend: _pushB2C } = require('../src/services/notificationService')
           await _pushB2C({ userId: job.buyerId, type: 'FUNDI_JOB_COMPLETED', fundiJobId: jobId,
-            messageEn: `Job done! Fundi has been paid KES ${job.fundiReceives}. Ref: ${mpesaRef}` }).catch(() => {})
+            messageEn: `Job done! Fundi has been paid KES ${job.fundiReceives || job.amount}. Ref: ${mpesaRef}` }).catch(() => {})
           const _fv = job.fundiPhone.startsWith('254') ? ['0'+job.fundiPhone.slice(3), job.fundiPhone] : [job.fundiPhone, '254'+job.fundiPhone.slice(1)]
           const _fu = await prisma.user.findFirst({ where: { phone: { in: _fv } }, select: { id: true } })
           if (_fu) await _pushB2C({ userId: _fu.id, type: 'FUNDI_PAYOUT_RECEIVED', fundiJobId: jobId,
-            messageEn: `Umepokea KES ${job.fundiReceives} kwa kazi ${jobId.slice(0,8).toUpperCase()}. Mpesa: ${mpesaRef}` }).catch(() => {})
+            messageEn: `Umepokea KES ${job.fundiReceives || job.amount} kwa kazi ${jobId.slice(0,8).toUpperCase()}. Mpesa: ${mpesaRef}` }).catch(() => {})
           logger.info('Fundi B2C payout confirmed + fee credited', { jobId, mpesaRef, fundiFee })
         }
       } else {
