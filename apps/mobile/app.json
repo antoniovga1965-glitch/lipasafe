@@ -26,15 +26,22 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      ["expo-build-properties", {"android": {"usesCleartextTraffic": true}}],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       "expo-secure-store",
       "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {
-        "projectId": "e1243d4a-de9e-4dbf-969e-a5591cbf324e"
+        "projectId": "017f866d-4cfa-4e6c-a395-6430e4e83602"
       }
     },
-    "owner": "antoniovga196"
+    "owner": "smartkidnyankore"
   }
 }

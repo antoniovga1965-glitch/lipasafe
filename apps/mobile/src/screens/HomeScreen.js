@@ -5,7 +5,7 @@ import {
   StyleSheet, StatusBar, RefreshControl, Image,
 } from 'react-native';
 import {
-  Send, Download, Shield, LayoutList,
+  Send, Download, Shield, HelpCircle,
   ArrowDownLeft, ArrowUpRight, Lock, CheckCircle2,
   Eye, EyeOff, Bell, Plus, Info, ChevronRight,
   ShoppingBag,
@@ -18,12 +18,12 @@ import { useNotifications } from '../context/NotificationContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const services = [
-  { name: 'bundles',    icon: 'phone-portrait-outline', color: '#007AFF', bg: '#EAF3FF', bgDark: '#1A2A3A' },
-  { name: 'secondhand', icon: 'basket-outline',         color: '#10B981', bg: '#E8FFF3', bgDark: '#1A2E25' },
-  { name: 'fundi',      icon: 'hammer-outline',         color: '#FF9500', bg: '#FFF4E5', bgDark: '#2E2310' },
-  { name: 'delivery',   icon: 'bicycle-outline',        color: '#FF6B35', bg: '#FFF0EA', bgDark: '#2E1E14' },
-  { name: 'house',      icon: 'home-outline',           color: '#00A86B', bg: '#E5F7F1', bgDark: '#0E2A20' },
-  { name: 'custom',     icon: 'create-outline',         color: '#9B59B6', bg: '#F5EEFB', bgDark: '#1E1228' },
+  { name: 'bundles',    icon: 'phone-portrait-outline', color: '#007AFF', bg: '#EAF3FF', bgDark: '#1A2A3A', subtitle: 'Buy bundles safely' },
+  { name: 'secondhand', icon: 'basket-outline',         color: '#10B981', bg: '#E8FFF3', bgDark: '#1A2E25', subtitle: 'Buy & sell safely' },
+  { name: 'fundi',      icon: 'hammer-outline',         color: '#FF9500', bg: '#FFF4E5', bgDark: '#2E2310', subtitle: 'Escrow-protected fundi pay' },
+  { name: 'delivery',   icon: 'bicycle-outline',        color: '#FF6B35', bg: '#FFF0EA', bgDark: '#2E1E14', subtitle: 'Pay after goods arrive' },
+  { name: 'house',      icon: 'home-outline',           color: '#00A86B', bg: '#E5F7F1', bgDark: '#0E2A20', subtitle: 'Deposits & viewing fees' },
+  { name: 'custom',     icon: 'create-outline',         color: '#9B59B6', bg: '#F5EEFB', bgDark: '#1E1228', subtitle: 'Any deal, we protect it' },
 ];
 
 const serviceRoutes = {
@@ -181,16 +181,18 @@ export default function HomeScreen({ navigation }) {
         {/* ─── Quick Actions ─── */}
         <View style={s.quickRow}>
           {[
-            { Icon: Send,        label: 'Pay',      action: () => navigation.navigate('QuickSend') },
-            { Icon: Download,    label: 'Request',  action: () => navigation.navigate('Receive') },
-            { Icon: Shield,      label: 'Escrow',   action: () => navigation.navigate('ActivityTab', { screen: 'EscrowTransactions' }) },
-            { Icon: LayoutList,  label: 'Activity', action: () => navigation.navigate('ActivityTab') },
-          ].map(({ Icon, label, action }, i) => (
+            { Icon: Send,        label: 'Pay',      sub: 'Instant send\nuntil accepted',  action: () => navigation.navigate('QuickSend') },
+            { Icon: Download,    label: 'Receive',  sub: 'Receive or\nrequest money',     action: () => navigation.navigate('Receive') },
+            { Icon: Shield,      label: 'Escrow',   sub: 'View escrow\ntransactions',     action: () => navigation.navigate('ActivityTab', { screen: 'EscrowTransactions' }) },
+            { Icon: HelpCircle, label: 'Support',  sub: 'Help &\ncontact us',           action: () => navigation.navigate('Support') },
+          ].map(({ Icon, label, sub, action }, i) => (
             <TouchableOpacity key={i} style={s.quickBtn} onPress={action}>
               <View style={s.quickIcon}>
                 <Icon size={22} color={theme.primary} strokeWidth={1.8} />
               </View>
               <Text style={s.quickLbl}>{label}</Text>
+              <Text style={s.quickSub}>{sub}</Text>
+
             </TouchableOpacity>
           ))}
         </View>
@@ -283,6 +285,9 @@ export default function HomeScreen({ navigation }) {
               </View>
               <Text style={s.gridTxt}>
                 {svc.name === 'secondhand' ? 'Second Hand' : t[svc.name]}
+              </Text>
+              <Text style={s.gridSubTxt} numberOfLines={1}>
+                {svc.subtitle}
               </Text>
             </TouchableOpacity>
           ))}
@@ -377,9 +382,11 @@ const makeStyles = (theme, isDark) => StyleSheet.create({
 
   // Quick Actions
   quickRow:     { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginVertical: 8, backgroundColor: theme.card, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 12 },
-  quickBtn:     { alignItems: 'center', gap: 8, flex: 1 },
-  quickIcon:    { width: 50, height: 50, borderRadius: 25, backgroundColor: theme.gray, alignItems: 'center', justifyContent: 'center' },
-  quickLbl:     { fontSize: 12, fontWeight: '600', color: theme.text },
+  quickBtn:     { alignItems: 'center', gap: 5, flex: 1 },
+  quickIcon:    { width: 54, height: 54, borderRadius: 27, backgroundColor: '#E6F4EE', alignItems: 'center', justifyContent: 'center' },
+  quickLbl:     { fontSize: 13, fontWeight: '700', color: theme.text, marginTop: 2 },
+  quickSub:     { fontSize: 10.5, color: '#888', textAlign: 'center', lineHeight: 15 },
+  quickChevron: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E6F4EE', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
 
   // Active Protection
   sectionRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 20, marginTop: 20, marginBottom: 10 },
@@ -407,10 +414,24 @@ const makeStyles = (theme, isDark) => StyleSheet.create({
   exploreTxt:   { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   // Services Grid
-  grid:         { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, backgroundColor: theme.card, marginHorizontal: 20, borderRadius: 16, paddingVertical: 8 },
-  gridItem:     { width: '33.33%', alignItems: 'center', paddingVertical: 16 },
+  grid:         { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginHorizontal: 20 },
+  gridItem:     {
+    width: '31%',
+    alignItems: 'center',
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.25 : 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   iconBox:      { width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   gridTxt:      { fontSize: 12, color: theme.text, fontWeight: '600', textAlign: 'center' },
+  gridSubTxt:   { fontSize: 10, color: theme.subtext, textAlign: 'center', marginTop: 2 },
 
   // Empty
   emptyBox:     { alignItems: 'center', padding: 32, backgroundColor: theme.card, marginHorizontal: 20, borderRadius: 16 },
