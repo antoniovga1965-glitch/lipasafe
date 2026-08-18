@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -252,16 +252,32 @@ export default function HouseEscrowDetailScreen({ navigation, route }) {
       {isBuyer && escrow.status === 'ACCEPTED' && (
         <TouchableOpacity
           style={styles.ctaBtn}
-          onPress={() => navigation.navigate('HouseEscrowPayment', {
-            escrowId:     escrow.id,
-            amount:       escrow.amount,
-            platformFee:  escrow.platformFee,
-            b2cFee:       escrow.b2cFee || 0,
-            total:        Number(escrow.amount) + Number(escrow.platformFee || 0),
-            sellerPhone:  escrow.sellerPhone,
-            description:  escrow.description,
-            protectionHours: escrow.inspectionHours,
-          })}
+          onPress={async () => {
+            let label = escrow.sellerPhone;
+            try {
+              const res = await authFetch(`/user/resolve-phone?phone=${escrow.sellerPhone}`)
+              const data = await res.json()
+              label = data.found ? `${data.name} (${escrow.sellerPhone})` : escrow.sellerPhone
+            } catch {}
+            Alert.alert(
+              'Confirm Recipient',
+              `Paying escrow to:\n\n${label}\n\nKES ${escrow.amount}`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Proceed', onPress: () => navigation.navigate('HouseEscrowPayment', {
+                    escrowId:     escrow.id,
+                    amount:       escrow.amount,
+                    platformFee:  escrow.platformFee,
+                    b2cFee:       escrow.b2cFee || 0,
+                    total:        Number(escrow.amount) + Number(escrow.platformFee || 0),
+                    sellerPhone:  escrow.sellerPhone,
+                    description:  escrow.description,
+                    protectionHours: escrow.inspectionHours,
+                  })
+                }
+              ]
+            )
+          }}
         >
           <Ionicons name="phone-portrait" size={20} color={colors.white} style={{ marginRight: 8 }} />
           <Text style={styles.ctaBtnText}>Pay via M-Pesa</Text>

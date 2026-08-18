@@ -86,6 +86,27 @@ export default function CustomEscrowCreateScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!valid || loading) return;
+
+    // ── Resolve recipient name before proceeding ──
+    let label = counterpartyPhone.trim();
+    try {
+      const r = await authFetch(`/user/resolve-phone?phone=${counterpartyPhone.trim()}`)
+      const d = await r.json()
+      label = d.found ? `${d.name} (${counterpartyPhone.trim()})` : counterpartyPhone.trim()
+    } catch {}
+
+    Alert.alert(
+      'Confirm Recipient',
+      `Creating deal with:\n\n${label}\n\nKES ${parsed}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Proceed', onPress: () => doSubmit() }
+      ]
+    )
+  };
+
+  const doSubmit = async () => {
+    if (!valid || loading) return;
     setLoading(true);
     setUploadMsg(`Uploading ${photos.length} photo${photos.length > 1 ? 's' : ''}...`);
     try {

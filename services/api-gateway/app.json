@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "e1243d4a-de9e-4dbf-969e-a5591cbf324e"
+      }
+    },
+    "android": {
+      "package": "com.antoniovga196.lipasafe"
+    },
+    "ios": {
+      "bundleIdentifier": "com.antoniovga196.lipasafe",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
