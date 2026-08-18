@@ -7,10 +7,12 @@
     "typescript": "~6.0.3"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "concurrently": "^9.2.1",
     "expo": "^56.0.8",
-    "lucide-react": "^1.18.0"
+    "lucide-react": "^1.18.0",
+    "pg": "^8.23.0"
   },
   "name": "lipasafe",
   "version": "1.0.0",
