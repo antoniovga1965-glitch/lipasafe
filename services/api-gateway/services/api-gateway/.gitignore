@@ -1,6 +1,0 @@
-node_modules/
-logs/
-*.log
-.env
-prisma/*.db
-public/lipasafe-beta.apk
