@@ -178,6 +178,19 @@ router.delete('/notifications/:id', async (req, res) => {
 })
 
 
+// ── Resolve phone to LipaSafe user name ──────────────────────────────────
+router.get(`/resolve-phone`, async (req, res) => {
+  try {
+    const { resolvePhone } = require(`../utils/resolvePhone`)
+    const { phone } = req.query
+    if (!phone) return res.status(400).json({ success: false, message: `phone query param required` })
+    const result = await resolvePhone(phone)
+    return res.json({ success: true, ...result })
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message })
+  }
+})
+
 // TEMP: socket smoke test — remove after testing
 router.get('/test-socket/:userId', (req, res) => {
   const { emitToUser } = require('../utils/socket')
