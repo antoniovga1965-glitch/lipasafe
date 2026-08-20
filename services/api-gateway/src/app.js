@@ -111,9 +111,39 @@ app.get('/order/:ref', (req, res) => res.sendFile(path.join(__dirname, 'public/o
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 
 // ─── LEGAL PAGES (required for Google Play Store submission) ──
-app.get('/privacy', (req, res) => res.json({
-  success: true,
-  content: `LipaSafe Privacy Policy
+app.get('/privacy', (req, res) => {
+  res.set('Content-Type', 'text/html')
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy - LipaSafe</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>Privacy Policy</h1>
+<pre>LipaSafe Privacy Policy
 
 Last updated: ${new Date().toISOString().slice(0, 10)}
 
@@ -148,12 +178,44 @@ The Service is not directed at children under 18. We do not knowingly collect pe
 We may update this Privacy Policy from time to time. Continued use of the Service after changes take effect constitutes acceptance of the updated policy.
 
 11. Contact Us
-If you have questions about this Privacy Policy or wish to exercise your data rights, contact us at support@lipasafe.co.ke.`
-}))
+If you have questions about this Privacy Policy or wish to exercise your data rights, contact us at support@lipasafe.co.ke.</pre>
+</body>
+</html>`)
+})
 
-app.get('/terms', (req, res) => res.json({
-  success: true,
-  content: `LipaSafe Terms of Service
+app.get('/terms', (req, res) => {
+  res.set('Content-Type', 'text/html')
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service - LipaSafe</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>Terms of Service</h1>
+<pre>LipaSafe Terms of Service
 
 Last updated: ${new Date().toISOString().slice(0, 10)}
 
@@ -188,8 +250,10 @@ These Terms are governed by the laws of the Republic of Kenya. Any disputes not 
 We may update these Terms from time to time. Continued use of the Service after changes take effect constitutes acceptance of the revised Terms.
 
 11. Contact Us
-For questions about these Terms, contact us at support@lipasafe.co.ke.`
-}))
+For questions about these Terms, contact us at support@lipasafe.co.ke.</pre>
+</body>
+</html>`)
+})
 
 // ─── 404 HANDLER ──────────────────────────────────
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }))
