@@ -105,6 +105,8 @@ app.use('/order', helmet.contentSecurityPolicy({
   },
 }), express.static(path.join(__dirname, 'public/order')))
 app.get('/order/:ref', (req, res) => res.sendFile(path.join(__dirname, 'public/order/index.html')))
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, '../public/privacy.html')))
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, '../public/terms.html')))
 
 
 // ─── HEALTH CHECK ─────────────────────────────────
