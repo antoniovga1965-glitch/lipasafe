@@ -160,6 +160,7 @@ const createCustomEscrow = async (req, res) => {
     const riskNote = isRisky ? "  Flagged as HIGH RISK by buyer." : "";
     try {
       await smsQueue.add("send-sms", {
+        type: "raw",
         to: counterpartyPhone,
         message: `LipaSafe: ${buyer.fullName || "Someone"} wants to do a custom deal with you. Title: "${title}". Amount: KES ${amount.toFixed(0)}.${riskNote} Open the app to accept or reject.`,
       });
@@ -238,6 +239,7 @@ const acceptDeal = async (req, res) => {
     });
     try {
       await smsQueue.add("send-sms", {
+        type: "raw",
         to: normalizePhone(buyer.phone),
         message: `LipaSafe: Counterparty accepted your custom deal "${escrow.title}". Open the app to fund the safepay deal.`,
       });
@@ -309,6 +311,7 @@ const rejectDeal = async (req, res) => {
     });
     try {
       await smsQueue.add("send-sms", {
+        type: "raw",
         to: normalizePhone(buyer.phone),
         message: `LipaSafe: Your custom deal "${escrow.title}" was rejected by the counterparty. ${reason ? "Reason: " + reason : ""}`,
       });
@@ -468,6 +471,7 @@ const buyerConfirmDeal = async (req, res) => {
     // Notify counterparty to confirm — escrow state already committed, don't fail request over SMS
     try {
       await smsQueue.add("send-sms", {
+        type: "raw",
         to: escrow.counterpartyPhone,
         message: `LipaSafe: Buyer has confirmed deal "${escrow.title}" is done. Open the app to confirm receipt and release your payment of KES ${Number(escrow.counterpartyReceives).toFixed(0)}.`,
       });
@@ -687,6 +691,7 @@ const openDispute = async (req, res) => {
     if (adminPhone) {
       try {
         await smsQueue.add("send-sms", {
+          type: "raw",
           to: adminPhone,
           message: `LIPASAFE: Custom deal dispute opened. Escrow: ${escrowId.slice(0, 8).toUpperCase()}. Reason: ${reason}. Role: ${isBuyer ? "buyer" : "counterparty"}.`,
         });
@@ -860,6 +865,7 @@ const sellerDisputeRespond = async (req, res) => {
     const adminPhone = process.env.ADMIN_PHONE;
     if (adminPhone) {
       await smsQueue.add("send-sms", {
+        type: "raw",
         to: adminPhone,
         message: `LIPASAFE: Seller responded to dispute. Escrow: ${escrowId.slice(0, 8).toUpperCase()}. Both sides submitted — ready to resolve.`,
       });
