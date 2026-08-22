@@ -111,6 +111,7 @@ app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, '../public/ter
 
 // ─── HEALTH CHECK ─────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
+app.get('/debug/version', (req, res) => res.json({ commit: process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown', deployedAt: new Date().toISOString() }))
 
 // ─── 404 HANDLER ──────────────────────────────────
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }))
