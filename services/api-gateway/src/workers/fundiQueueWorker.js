@@ -4,15 +4,11 @@ const { Worker, Queue } = require('bullmq')
 const prisma         = require('../utils/prisma')
 const logger         = require('../utils/logger')
 const { createAndSend } = require('../services/notificationService')
+const { sendSMS: sendSms, sendSMSSafe: sendSmsSafe } = require('../services/smsService')
 const { b2cPayout }  = require('../services/bundleService')
 const redis           = require('../utils/redis')
-const AfricasTalking = require('africastalking')
 
-const at = AfricasTalking({
-  apiKey:   process.env.SMS_API_KEY,
-  username: process.env.AT_USERNAME,
-})
-const sms = at.SMS
+
 
 // ── inline redis connection (same as b2cRetryWorker) ──────────────────────
 const Decimal = require('decimal.js')
@@ -31,32 +27,7 @@ const fundiQueue = new Queue('fundi', { connection })
 // const toCents   = (v) => Math.round(toAmount(v) * 100)
 // const fromCents = (c) => (c / 100).toFixed(2)
 
-const normalizePhone = (phone) => {
-  const p = phone.toString().replace(/\s+/g, '')
-  if (p.startsWith('+254')) return p.slice(1)
-  if (p.startsWith('0'))    return '254' + p.slice(1)
-  if (p.startsWith('254'))  return p
-  return p
-}
 
-// ── SMS helper ─────────────────────────────────────────────────────────────
-const sendSms = async (phone, message) => {
-  const to        = '+' + normalizePhone(phone)
-  const isSandbox = process.env.AT_ENVIRONMENT === 'sandbox'
-  const opts      = { to: [to], message, from: isSandbox ? undefined : process.env.AT_SENDER_ID }
-  const result    = await sms.send(opts)
-  logger.info('AT SMS sent', { to, result: result.SMSMessageData })
-  return result
-}
-
-// ── safe SMS wrapper (non-fatal for financial jobs) ──────────────────────────
-const sendSmsSafe = async (phone, message) => {
-  try {
-    await sendSms(phone, message)
-  } catch (err) {
-    logger.error('SMS failed (non-fatal)', { phone, error: err.message })
-  }
-}
 
 // ── worker ─────────────────────────────────────────────────────────────────
 const fundiQueueWorker = new Worker('fundi', async (job) => {
