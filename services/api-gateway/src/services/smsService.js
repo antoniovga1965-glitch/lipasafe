@@ -19,10 +19,11 @@ const validatePhone = (phone) => {
 
 // ── Providers ─────────────────────────────────────────────────────────────
 const sendViaPhone = async (to, message) => {
+  const credentials = Buffer.from(`${process.env.SMSGATE_USER}:${process.env.SMSGATE_PASS}`).toString("base64")
   const res = await fetch(process.env.PHONE_GATEWAY_URL, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ phone_number: `+${to}`, message }),
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${credentials}` },
+    body:    JSON.stringify({ textMessage: { text: message }, phoneNumbers: [`+${to}`] }),
   })
   if (!res.ok) throw new Error(`Phone gateway error: ${res.status}`)
   logger.info('Phone gateway SMS sent', { to })
