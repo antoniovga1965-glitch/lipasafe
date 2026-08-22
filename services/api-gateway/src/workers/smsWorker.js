@@ -42,6 +42,18 @@ const worker = new Worker('sms', async (job) => {
     ? `LipaSafe: KES ${job.data.amount} has been sent to your M-Pesa. Second-hand transaction complete.`
     : type === 'second_hand_released_buyer'
     ? `LipaSafe: Transaction complete. Funds have been released to the seller. Thank you for using LipaSafe.`
+    : type === 'second_hand_seller_notify'
+    ? `LipaSafe: ${job.data.buyerName || 'A buyer'} paid KES ${job.data.amount} for your item. Funds held in escrow — arrange handover to release payment.`
+    : type === 'second_hand_buyer_notify'
+    ? `LipaSafe: Payment of KES ${job.data.amount} to ${job.data.sellerName || 'the seller'} is held in escrow. Await handover to confirm.`
+    : type === 'second_hand_refunded'
+    ? `LipaSafe: Your refund of KES ${job.data.amount} has been processed. Ref: ${job.data.referenceNo}.`
+    : type === 'second_hand_handover_timeout_buyer'
+    ? `LipaSafe: Seller missed the handover window for your KES ${job.data.amount} order. Funds will auto-release soon if unresolved.`
+    : type === 'second_hand_handover_timeout_seller'
+    ? `LipaSafe: You missed the handover window. Please contact support if there was an issue.`
+    : type === 'payment_received'
+    ? `LipaSafe: ${job.data.senderName || 'Someone'} paid your request of KES ${job.data.amount}. Ref: ${job.data.referenceNo}.`
     : `You received KES ${amount} from ${senderPhone} on LipaSafe. Check your wallet now.`
 
   const finalMessage = type === 'raw' ? job.data.message
