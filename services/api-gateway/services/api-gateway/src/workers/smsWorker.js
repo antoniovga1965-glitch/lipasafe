@@ -34,6 +34,8 @@ const worker = new Worker('sms', async (job) => {
     ? `LipaSafe Reminder: You have a pending delivery. Ref: ${job.data.referenceNo} – KES ${job.data.amount}. Deliver now to avoid cancellation.`
     : type === 'ghost'
     ? `You received KES ${amount} on LipaSafe from ${senderPhone}. Download the app to claim your money before it expires. https://lipasafe.app`
+    : type === 'instant_send'
+    ? `You received KES ${amount} from ${senderPhone} on LipaSafe. Check your wallet now.`
     : type === 'second_hand_released_seller'
     ? `LipaSafe: KES ${job.data.amount} has been sent to your M-Pesa. Second-hand transaction complete.`
     : type === 'second_hand_released_buyer'
