@@ -10,6 +10,7 @@ const connection = {
 }
 
 const worker = new Worker('sms', async (job) => {
+  logger.info('SMS job received', { jobId: job.id, data: job.data })
   const { amount, isGhost, senderPhone, type } = job.data
   const phone = job.data.phone || job.data.to
 
