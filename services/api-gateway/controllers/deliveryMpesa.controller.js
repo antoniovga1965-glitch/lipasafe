@@ -203,6 +203,7 @@ const deliveryMpesaCallback = async (req, res) => {
     // SMS to delivery guy
     const smsQueue = require('../src/queues/smsQueue')
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: New delivery job! Goods: ${order.goods}. Amount: KES ${order.amount}. Open the app and upload a BEFORE photo to accept.`,
     })

@@ -124,10 +124,12 @@ const processOverdueOrders = async () => {
         );
         // notify both
         await smsQueue.add("send-sms", {
+          type: "raw",
           to: normalizePhone(buyer.phone),
           message: `LipaSafe: Delivery timeout for order ${order.id.slice(0, 8).toUpperCase()}. Your refund of KES ${order.escrow.amount} is being processed.`,
         });
         await smsQueue.add("send-sms", {
+          type: "raw",
           to: normalizePhone(order.deliveryGuyPhone),
           message: `LipaSafe: Order ${order.id.slice(0, 8).toUpperCase()} expired — you did not upload a delivery photo in time. Buyer has been refunded.`,
         });

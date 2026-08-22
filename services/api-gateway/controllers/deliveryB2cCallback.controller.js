@@ -81,10 +81,12 @@ const deliveryB2cResult = async (req, res) => {
         }
         const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
         await smsQueue.add('send-sms', {
+          type: "raw",
           to:      normalizePhone(order.deliveryGuyPhone),
           message: `LipaSafe: Umepokea KES ${order.amount} kwa delivery ${orderId.slice(0,8).toUpperCase()}. Mpesa: ${mpesaRef}`,
         })
         await smsQueue.add('send-sms', {
+          type: "raw",
           to:      normalizePhone(buyer.phone),
           message: `LipaSafe: Delivery complete. Delivery guy has been paid. Ref: ${mpesaRef}`,
         })
@@ -108,6 +110,7 @@ const deliveryB2cResult = async (req, res) => {
         }
         const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
         await smsQueue.add('send-sms', {
+          type: "raw",
           to:      normalizePhone(buyer.phone),
           message: `LipaSafe: Refund ya KES ${order.amount} imetumwa kwako. Mpesa: ${mpesaRef}`,
         })
@@ -143,6 +146,7 @@ const deliveryB2cResult = async (req, res) => {
         await redis.del(`delivery:b2c:retry:${type}:${orderId}`)
         if (ADMIN_PHONE) {
           await smsQueue.add('send-sms', {
+            type: "raw",
             to:      normalizePhone(ADMIN_PHONE),
             message: `LIPASAFE CRITICAL: Delivery B2C ${type} failed 3x. Order: ${orderId.slice(0,8).toUpperCase()}. Code: ${ResultCode}. Manual action required.`,
           })
@@ -171,6 +175,7 @@ const deliveryB2cTimeout = async (req, res) => {
     const { orderId, type } = match
     if (ADMIN_PHONE) {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      normalizePhone(ADMIN_PHONE),
         message: `LIPASAFE WARNING: Delivery B2C ${type} timeout. Order: ${orderId.slice(0,8).toUpperCase()}. Awaiting Safaricom reconciliation.`,
       })
