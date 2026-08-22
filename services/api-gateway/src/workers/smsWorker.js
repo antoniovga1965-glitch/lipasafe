@@ -32,6 +32,10 @@ const worker = new Worker('sms', async (job) => {
     ? `LipaSafe: Your OTP is ${job.data.otp}. Enter it in the app to confirm delivery. Ref: ${job.data.referenceNo}. Valid for 1 hour.`
     : type === 'delivery_reminder'
     ? `LipaSafe Reminder: You have a pending delivery. Ref: ${job.data.referenceNo} – KES ${job.data.amount}. Deliver now to avoid cancellation.`
+    : type === 'b2c_payout_success'
+    ? `LipaSafe: KES ${job.data.amount} has been sent to your M-Pesa. Ref: ${job.data.referenceNo}.`
+    : type === 'b2c_payout_notified_buyer'
+    ? `LipaSafe: Transaction complete. Ref: ${job.data.referenceNo}. Thank you for using LipaSafe.`
     : type === 'ghost'
     ? `You received KES ${amount} on LipaSafe from ${senderPhone}. Download the app to claim your money before it expires. https://lipasafe.app`
     : type === 'second_hand_released_seller'
