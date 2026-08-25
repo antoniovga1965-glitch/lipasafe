@@ -80,6 +80,13 @@ async function getDashboardStats(req, res) {
       }),
       prisma.order.aggregate({ where: { state: { in: ['RELEASED', 'AUTO_RELEASED'] } }, _sum: { platformFee: true } }),
       prisma.walletTransaction.aggregate({ where: { type: 'platform_fee', status: 'completed', createdAt: { gte: startOfMonth } }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { state: { notIn: ['initiated','cancelled'] } }, _sum: { amount: true } }),
+      prisma.fundiJob.aggregate({ where: { status: { notIn: ['PENDING_PAYMENT','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.deliveryOrder.aggregate({ where: { status: { notIn: ['PENDING_PHOTO_UPLOAD','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.houseEscrow.aggregate({ where: { status: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.customEscrow.aggregate({ where: { status: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.order.aggregate({ where: { state: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.walletTransaction.aggregate({ where: { type: 'send' }, _sum: { amount: true } }),
     ])
 
     const mergedRecent = [
@@ -143,7 +150,6 @@ async function getDashboardStats(req, res) {
         orderRevenue: Number(orderRevenueData?._sum?.platformFee || 0),
         totalRevenue: Number(revenueData?.wallet?.availableBalance || 0),
         revenueThisMonth: Number(revenueThisMonthData?._sum?.amount || 0),
-        totalProcessed,
         totalProcessed,
       },
       recentTxs: mergedRecent,
