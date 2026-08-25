@@ -82,10 +82,10 @@ async function getDashboardStats(req, res) {
       prisma.walletTransaction.aggregate({ where: { type: 'platform_fee', status: 'completed', createdAt: { gte: startOfMonth } }, _sum: { amount: true } }),
       prisma.transaction.aggregate({ where: { state: { notIn: ['initiated','cancelled'] } }, _sum: { amount: true } }),
       prisma.fundiJob.aggregate({ where: { status: { notIn: ['PENDING_PAYMENT','CANCELLED'] } }, _sum: { amount: true } }),
-      prisma.deliveryOrder.aggregate({ where: { status: { notIn: ['PENDING_PHOTO_UPLOAD','CANCELLED'] } }, _sum: { amount: true } }),
-      prisma.houseEscrow.aggregate({ where: { status: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
-      prisma.customEscrow.aggregate({ where: { status: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
-      prisma.order.aggregate({ where: { state: { notIn: ['PENDING','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.deliveryOrder.aggregate({ where: { status: { notIn: ['PENDING_PAYMENT','PAYMENT_FAILED'] } }, _sum: { amount: true } }),
+      prisma.houseEscrow.aggregate({ where: { status: { notIn: ['PENDING_ACCEPTANCE','PENDING_PAYMENT','PAYMENT_INITIATING','REJECTED','EXPIRED','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.customEscrow.aggregate({ where: { status: { notIn: ['PENDING_ACCEPTANCE','PENDING_PAYMENT','PAYMENT_INITIATING','REJECTED','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.order.aggregate({ _sum: { amount: true } }),
       prisma.walletTransaction.aggregate({ where: { type: 'send' }, _sum: { amount: true } }),
     ])
 
