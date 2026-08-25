@@ -4,25 +4,7 @@ const { logAudit } = require('../src/utils/auditLog')
 const { releaseToSeller, refundBuyer: secondHandRefund, partialRefund } = require('../src/services/secondHandService')
 const { releaseFunds: bundleRelease, refundBuyer: bundleRefund } = require('../src/services/bundleService')
 const logger = require('../src/middleware/layer1-gate/httpLogger')
-const stub = (req, res) => const totalProcessed =
-      Number(processedTx?._sum?.amount || 0) +
-      Number(processedFundi?._sum?.amount || 0) +
-      Number(processedDelivery?._sum?.amount || 0) +
-      Number(processedHouse?._sum?.amount || 0) +
-      Number(processedCustom?._sum?.amount || 0) +
-      Number(processedOrder?._sum?.amount || 0) +
-      Number(processedWallet?._sum?.amount || 0)
-
-    const totalProcessed =
-      Number(processedTx?._sum?.amount || 0) +
-      Number(processedFundi?._sum?.amount || 0) +
-      Number(processedDelivery?._sum?.amount || 0) +
-      Number(processedHouse?._sum?.amount || 0) +
-      Number(processedCustom?._sum?.amount || 0) +
-      Number(processedOrder?._sum?.amount || 0) +
-      Number(processedWallet?._sum?.amount || 0)
-
-    res.json({ success: true, data: [] });
+const stub = (req, res) => res.json({ success: true, data: [] });
 
 // ── DASHBOARD STATS ──────────────────────────────────────────────────────────
 async function getDashboardStats(req, res) {
@@ -138,6 +120,15 @@ async function getDashboardStats(req, res) {
 
     const heldEscrowCount = heldTxs._count + fundiHeld._count + deliveryHeld._count + houseHeld._count + customHeld._count + orderHeld._count + walletHeld._count + protectedTransferHeld._count
     const heldEscrowAmount = Number(heldTxs._sum.amount || 0) + Number(fundiHeld._sum.amount || 0) + Number(deliveryHeld._sum.amount || 0) + Number(houseHeld._sum.amount || 0) + Number(customHeld._sum.amount || 0) + Number(orderHeld._sum.amount || 0) + Number(walletHeld._sum.amount || 0) + Number(protectedTransferHeld._sum.amount || 0)
+
+    const totalProcessed =
+      Number(processedTx?._sum?.amount || 0) +
+      Number(processedFundi?._sum?.amount || 0) +
+      Number(processedDelivery?._sum?.amount || 0) +
+      Number(processedHouse?._sum?.amount || 0) +
+      Number(processedCustom?._sum?.amount || 0) +
+      Number(processedOrder?._sum?.amount || 0) +
+      Number(processedWallet?._sum?.amount || 0)
 
     res.json({
       success: true,
