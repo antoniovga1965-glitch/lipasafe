@@ -220,10 +220,12 @@ if (autoVerdict === 'PENDING_ADMIN' || confidence < 50) {
   const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
   if (disputeStatus !== 'AUTO_RESOLVED') {
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(buyer.phone),
       message: `LipaSafe: Dispute opened for order ${orderId.slice(0,8).toUpperCase()}. We are reviewing the evidence. You will be notified of the outcome.`,
     }, { jobId: `dispute-opened-buyer-${orderId}` })
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: A dispute has been raised for order ${orderId.slice(0,8).toUpperCase()}. We are reviewing photo evidence. You will be notified.`,
     }, { jobId: `dispute-opened-dg-${orderId}` })
@@ -347,10 +349,12 @@ async function resolveDispute({ disputeId, resolution, adminNotes, adminId }) {
     await updateRiskProfile(order.deliveryGuyPhone, 'REFUND')
 
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(buyer.phone),
       message: `LipaSafe: Dispute resolved in your favor. Refund of KES ${refundAmount} is being processed to your M-Pesa.`,
     })
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Refund issued to buyer. Your dispute count has been updated.`,
     })
@@ -401,10 +405,12 @@ async function resolveDispute({ disputeId, resolution, adminNotes, adminId }) {
     })
 
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved in your favor. Payment of KES ${escrow.amount} is being processed.`,
     })
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(buyer.phone),
       message: `LipaSafe: Dispute for order ${order.id.slice(0,8).toUpperCase()} resolved. Payment released to delivery guy.`,
     })

@@ -208,6 +208,7 @@ async function reconcileB2c({ escrowId, type, originatorConversationID }) {
   try {
     if (ADMIN_PHONE) {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      ADMIN_PHONE,
         message: `LipaSafe ALERT: B2C ${type} for escrow ${escrowId.slice(0,8).toUpperCase()} timed out. Callback lost. Verify on Safaricom dashboard before manual action. Do NOT resend blindly.`,
       })
@@ -349,6 +350,7 @@ async function autoRefund({ escrowId }) {
     const buyer = await prisma.user.findUnique({ where: { id: escrow.buyerId }, select: { phone: true } })
     if (buyer) {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      normalizePhone(buyer.phone),
         message: `LipaSafe: Deal "${escrow.title}" expired with no confirmation. Your KES ${Number(escrow.amount).toFixed(0)} refund is being processed.`,
       })
@@ -361,6 +363,7 @@ async function autoRefund({ escrowId }) {
   try {
     if (ADMIN_PHONE) {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      ADMIN_PHONE,
         message: `LipaSafe AUTO-REFUND: Escrow ${escrowId.slice(0,8).toUpperCase()} deadline expired. Refunding KES ${Number(escrow.amount).toFixed(0)} to buyer.`,
       })
@@ -390,6 +393,7 @@ const disputeSellerTimeout = async ({ escrowId }) => {
   try {
     if (adminPhone) {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      adminPhone,
         message: `LIPASAFE: Seller failed to respond to dispute on escrow ${escrowId.slice(0, 8).toUpperCase()} within 48hrs. Immediate review required.`,
       })

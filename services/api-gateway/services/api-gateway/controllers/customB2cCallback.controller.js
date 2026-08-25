@@ -75,13 +75,13 @@ const customB2cResult = async (req, res) => {
         try {
           const buyer = await prisma.user.findUnique({ where: { id: escrow.buyerId }, select: { phone: true } })
           await smsQueue.add('send-sms', {
-            type: "raw",
+        type: 'raw',
             to:      escrow.counterpartyPhone,
             message: `LipaSafe: KES ${Number(escrow.counterpartyReceives).toFixed(2)} sent to you for deal "${escrow.title}". M-Pesa: ${mpesaRef}`,
           })
           if (buyer) {
             await smsQueue.add('send-sms', {
-              type: "raw",
+        type: 'raw',
               to:      buyer.phone,
               message: `LipaSafe: Deal "${escrow.title}" completed. Payment released. Ref: ${mpesaRef}`,
             })
@@ -112,7 +112,7 @@ const customB2cResult = async (req, res) => {
         })
         const buyer = await prisma.user.findUnique({ where: { id: escrow.buyerId }, select: { phone: true } })
         await smsQueue.add('send-sms', {
-          type: "raw",
+        type: 'raw',
           to:      buyer.phone,
           message: `LipaSafe: Refund of KES ${Number(escrow.amount).toFixed(2)} sent for deal "${escrow.title}". M-Pesa: ${mpesaRef}`,
         })
@@ -158,7 +158,7 @@ const customB2cResult = async (req, res) => {
         try {
           if (ADMIN_PHONE) {
             await smsQueue.add('send-sms', {
-              type: "raw",
+        type: 'raw',
               to:      ADMIN_PHONE,
               message: `LIPASAFE CRITICAL: Custom B2C ${type} PERMANENT failure. Escrow: ${escrowId.slice(0,8).toUpperCase()}. Code: ${ResultCode}. Do NOT retry — manual fix required.`,
             })
@@ -193,7 +193,7 @@ const customB2cResult = async (req, res) => {
           try {
             if (ADMIN_PHONE) {
               await smsQueue.add('send-sms', {
-                type: "raw",
+        type: 'raw',
                 to:      ADMIN_PHONE,
                 message: `LIPASAFE CRITICAL: Custom B2C ${type} failed 3x. Escrow: ${escrowId.slice(0,8).toUpperCase()}. Code: ${ResultCode}. Manual action required.`,
               })
@@ -211,7 +211,7 @@ const customB2cResult = async (req, res) => {
         try {
           if (ADMIN_PHONE) {
             await smsQueue.add('send-sms', {
-              type: "raw",
+        type: 'raw',
               to:      ADMIN_PHONE,
               message: `LIPASAFE WARNING: Custom B2C ${type} unknown failure. Escrow: ${escrowId.slice(0,8).toUpperCase()}. Code: ${ResultCode}. Manual review required.`,
             })
@@ -240,7 +240,7 @@ const customB2cTimeout = async (req, res) => {
     const { escrowId, type } = match
     if (ADMIN_PHONE) {
       await smsQueue.add('send-sms', {
-        type: "raw",
+        type: 'raw',
         to:      ADMIN_PHONE,
         message: `LIPASAFE WARNING: Custom B2C ${type} timeout. Escrow: ${escrowId.slice(0,8).toUpperCase()}. Awaiting reconciliation.`,
       })

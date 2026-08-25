@@ -58,6 +58,7 @@ const runSlaCheck = async () => {
       // Notify admin
       if (ADMIN_PHONE) {
         await smsQueue.add('send-sms', {
+          type: "raw",
           to:      normalizePhone(ADMIN_PHONE),
           message: `LIPASAFE URGENT: Dispute ${dispute.id.slice(0,8).toUpperCase()} for "${dispute.order.goods}" has exceeded ${SLA_HOURS}hr SLA. KES ${dispute.order.amount}. Resolve immediately.`,
         }, { jobId: `sla-breach-${dispute.id}` })

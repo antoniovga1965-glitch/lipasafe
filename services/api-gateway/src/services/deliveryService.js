@@ -70,6 +70,7 @@ const createDeliveryOrder = async ({ buyerId, deliveryGuyPhone, amount, goods, p
 
   // SMS to delivery guy
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizedPhone,
     message: `LipaSafe: New delivery from buyer. Goods: ${goods}. Amount: KES ${amount}. Upload a BEFORE photo in the app to accept this job.`,
   })
@@ -145,6 +146,7 @@ const uploadBeforePhoto = async ({ orderId, deliveryGuyPhone, photos }) => {
   } else {
     try {
       await smsQueue.add('send-sms', {
+        type: "raw",
         to:      normalizePhone(buyer.phone),
         message: `LipaSafe: Your delivery guy has uploaded a BEFORE photo of your goods (${order.goods}). Open the app to confirm or reject it.`,
       })
@@ -184,6 +186,7 @@ const buyerConfirmsBeforePhoto = async ({ orderId, buyerId, confirmed }) => {
       await logTimeline(db, orderId, 'BEFORE_PHOTO_REJECTED', 'BUYER', {})
     })
     await smsQueue.add('send-sms', {
+      type: "raw",
       to:      normalizePhone(order.deliveryGuyPhone),
       message: `LipaSafe: Buyer rejected your BEFORE photo for order ${orderId}. Please upload a clearer photo in the app.`,
     })
@@ -222,6 +225,7 @@ const buyerConfirmsBeforePhoto = async ({ orderId, buyerId, confirmed }) => {
   })
 
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizePhone(order.deliveryGuyPhone),
     message: `LipaSafe: Buyer confirmed your photos! Your PICKUP OTP is: ${otp}. Enter it in the app to start delivery. Expires in 10 mins.`,
   })
@@ -289,10 +293,12 @@ const enterPickupOTP = async ({ orderId, deliveryGuyPhone, otp }) => {
   // Notify both sides
   const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizePhone(buyer.phone),
     message: `LipaSafe: Your delivery has started! Delivery guy is on the way with your ${order.goods}. Expected by ${timerEnd.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', hour12: true })}.`,
   })
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizePhone(order.deliveryGuyPhone),
     message: `LipaSafe: Timer started! Deliver ${order.goods} by ${timerEnd.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', hour12: true })}. Upload a DURING photo when you arrive.`,
   })
@@ -350,6 +356,7 @@ const uploadDuringPhoto = async ({ orderId, deliveryGuyPhone, photos }) => {
   // Send OTP to buyer only
   const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizePhone(buyer.phone),
     message: `LipaSafe: Your delivery has arrived! Your receipt OTP is: ${otp}. Enter it in the app to confirm receipt and release payment. Expires in 10 mins.`,
   })
@@ -569,6 +576,7 @@ const extendDeliveryTime = async ({ orderId, buyerId, extensionMinutes }) => {
 
   const buyer = await prisma.user.findUnique({ where: { id: order.buyerId }, select: { phone: true } })
   await smsQueue.add('send-sms', {
+    type: "raw",
     to:      normalizePhone(order.deliveryGuyPhone),
     message: `LipaSafe: Buyer extended your delivery time by ${extensionMinutes} mins. New deadline: ${newDeadline.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', hour12: true })}.`,
   })
