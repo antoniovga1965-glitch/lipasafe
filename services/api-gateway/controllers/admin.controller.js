@@ -4,7 +4,25 @@ const { logAudit } = require('../src/utils/auditLog')
 const { releaseToSeller, refundBuyer: secondHandRefund, partialRefund } = require('../src/services/secondHandService')
 const { releaseFunds: bundleRelease, refundBuyer: bundleRefund } = require('../src/services/bundleService')
 const logger = require('../src/middleware/layer1-gate/httpLogger')
-const stub = (req, res) => res.json({ success: true, data: [] });
+const stub = (req, res) => const totalProcessed =
+      Number(processedTx?._sum?.amount || 0) +
+      Number(processedFundi?._sum?.amount || 0) +
+      Number(processedDelivery?._sum?.amount || 0) +
+      Number(processedHouse?._sum?.amount || 0) +
+      Number(processedCustom?._sum?.amount || 0) +
+      Number(processedOrder?._sum?.amount || 0) +
+      Number(processedWallet?._sum?.amount || 0)
+
+    const totalProcessed =
+      Number(processedTx?._sum?.amount || 0) +
+      Number(processedFundi?._sum?.amount || 0) +
+      Number(processedDelivery?._sum?.amount || 0) +
+      Number(processedHouse?._sum?.amount || 0) +
+      Number(processedCustom?._sum?.amount || 0) +
+      Number(processedOrder?._sum?.amount || 0) +
+      Number(processedWallet?._sum?.amount || 0)
+
+    res.json({ success: true, data: [] });
 
 // ── DASHBOARD STATS ──────────────────────────────────────────────────────────
 async function getDashboardStats(req, res) {
@@ -26,6 +44,8 @@ async function getDashboardStats(req, res) {
       walletHeld, protectedTransferHeld,
       recentWalletTx, recentProtectedTransfer,
       orderRevenueData, revenueThisMonthData,
+      processedTx, processedFundi, processedDelivery,
+      processedHouse, processedCustom, processedOrder, processedWallet,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { accountStatus: 'active' } }),
@@ -132,6 +152,8 @@ async function getDashboardStats(req, res) {
         orderRevenue: Number(orderRevenueData?._sum?.platformFee || 0),
         totalRevenue: Number(revenueData?.wallet?.availableBalance || 0),
         revenueThisMonth: Number(revenueThisMonthData?._sum?.amount || 0),
+        totalProcessed,
+        totalProcessed,
       },
       recentTxs: mergedRecent,
     })
