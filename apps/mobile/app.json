@@ -20,10 +20,18 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C170"
       },
-      "package": "com.antoniovga196.lipasafe"
+      "package": "com.vezoro.lipasafe"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "LipaSafe",
+      "shortName": "LipaSafe",
+      "description": "Kenya secure escrow payment app. Lipa Salama. Daima.",
+      "backgroundColor": "#00C170",
+      "themeColor": "#00C170",
+      "display": "standalone",
+      "orientation": "portrait",
+      "lang": "en"
     },
     "plugins": [
       [
