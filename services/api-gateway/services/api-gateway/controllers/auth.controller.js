@@ -82,7 +82,7 @@ const register = async (req, res) => {
     const rateLimitKey = `ratelimit:register:${req.ip}`;
     const attempts = await redis.incr(rateLimitKey);
     if (attempts === 1) await redis.expire(rateLimitKey, 3600);
-    if (!IS_DEV && attempts > 3)
+    if (!IS_DEV && attempts > 20)
       return safeError(res, 429, "Too many attempts. Try again later.");
 
     const existing = await prisma.user.findFirst({
