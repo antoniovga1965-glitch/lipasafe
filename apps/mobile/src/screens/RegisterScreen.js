@@ -31,7 +31,7 @@ export default function RegisterScreen({ navigation }) {
       if (!res.ok) return setError(data.message);
       setStep(2);
     } catch (e) {
-      setError('Network error. Try again.');
+      setError(e.message || 'Network error. Try again.');
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function RegisterScreen({ navigation }) {
       storeData('user', { phone, name, email });
       navigation.navigate('SetPIN', { email });
     } catch (e) {
-      setError('Network error. Try again.');
+      setError(e.message || 'Network error. Try again.');
     } finally {
       setLoading(false);
     }

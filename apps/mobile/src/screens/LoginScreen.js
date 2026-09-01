@@ -58,7 +58,7 @@ export default function LoginScreen({ navigation }) {
       
       navigation.reset({ index: 0, routes: [{ name: dest }] });
     } catch (e) {
-      setError('Network error. Try again.');
+      setError(e.message || 'Network error. Try again.');
     } finally {
       setLoading(false);
     }

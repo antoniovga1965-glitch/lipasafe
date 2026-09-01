@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C170"
       },
-      "package": "com.vezoro.lipasafe"
+      "package": "com.vezoro.lipasafe",
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png",

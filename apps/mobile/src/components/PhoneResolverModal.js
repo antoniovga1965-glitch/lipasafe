@@ -1,5 +1,6 @@
 import React from 'react'
-import { Modal, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'
+import { Modal, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * PhoneResolverModal
@@ -15,10 +16,12 @@ import { Modal, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } fr
  *   onCancel    — fn
  */
 const PhoneResolverModal = ({ visible, loading, found, name, phone, amount, onConfirm, onCancel }) => {
+  const insets = useSafeAreaInsets()
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, maxHeight: '85%' }]}>
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
           {loading ? (
             <>
@@ -61,7 +64,7 @@ const PhoneResolverModal = ({ visible, loading, found, name, phone, amount, onCo
               </View>
             </>
           )}
-
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -70,7 +73,7 @@ const PhoneResolverModal = ({ visible, loading, found, name, phone, amount, onCo
 
 const styles = StyleSheet.create({
   overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  sheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   loadingText:  { textAlign: 'center', marginTop: 16, color: '#666', fontSize: 15 },
   title:        { fontSize: 18, fontWeight: '700', color: '#111', textAlign: 'center', marginBottom: 20 },
   recipientBox: { alignItems: 'center', marginBottom: 20 },
