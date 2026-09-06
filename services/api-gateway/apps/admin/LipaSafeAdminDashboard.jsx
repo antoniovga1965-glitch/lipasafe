@@ -509,7 +509,8 @@ const DashboardOverview = ({ token, setActiveScreen }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Revenue This Month" value={stats ? formatKES(stats.totalRevenue) : 'N/A'} change="" changeType="up" icon={BarChart3} color="bg-purple-500" />
+        <StatCard title="Revenue This Month" value={stats ? formatKES(stats.revenueThisMonth) : 'N/A'} change="" changeType="up" icon={BarChart3} color="bg-purple-500" />
+        <StatCard title="Total Processed" value={stats ? formatKES(stats.totalProcessed || 0) : 'N/A'} change="" changeType="up" icon={TrendingUp} color="bg-teal-500" />
         <StatCard title="Funds in Escrow" value={stats ? formatKES(stats.heldEscrowAmount) : 'N/A'} change="" changeType="up" icon={Wallet} color="bg-indigo-500" />
         <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
@@ -1841,7 +1842,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, isOpen, setIsOpen, setToken, s
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 
-const API_URL = 'https://lipasafe-production.up.railway.app';
+const API_URL = window.LIPASAFE_API_URL || 'https://lipasafe-production.up.railway.app';
 const apiFetch = async (path, token, opts = {}) => {
   const r = await fetch(`${API_URL}${path}`, {
     ...opts,

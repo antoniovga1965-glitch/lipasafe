@@ -66,6 +66,15 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import RequestSuccessScreen from '../screens/RequestSuccessScreen';
 import RequestDetailScreen  from '../screens/RequestDetailScreen';
 import SupportScreen from '../screens/SupportScreen';
+import DiasporaLandingScreen from '../screens/DiasporaLandingScreen';
+import DiasporaDealTypeScreen from '../screens/DiasporaDealTypeScreen';
+import DiasporaDealFormScreen from '../screens/DiasporaDealFormScreen';
+import DiasporaMilestoneBuilderScreen from '../screens/DiasporaMilestoneBuilderScreen';
+import DiasporaPaymentInstructionsScreen from '../screens/DiasporaPaymentInstructionsScreen';
+import DiasporaUploadEvidenceScreen from '../screens/DiasporaUploadEvidenceScreen';
+import DiasporaDealTrackingScreen from '../screens/DiasporaDealTrackingScreen';
+import DiasporaMilestoneDetailScreen from '../screens/DiasporaMilestoneDetailScreen';
+import DiasporaJobScreen from '../screens/DiasporaJobScreen';
 
 import { colors } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -132,6 +141,15 @@ function PayStack() {
       <PayStackNav.Screen name="DeliveryReceipt"         component={DeliveryReceiptScreen} />
       <PayStackNav.Screen name="DeliveryRating"          component={DeliveryRatingScreen} />
       <PayStackNav.Screen name="Dispute"                   component={DisputeScreen} />
+      <PayStackNav.Screen name="DiasporaLanding"              component={DiasporaLandingScreen} />
+      <PayStackNav.Screen name="DiasporaDealType"             component={DiasporaDealTypeScreen} />
+      <PayStackNav.Screen name="DiasporaDealForm"             component={DiasporaDealFormScreen} />
+      <PayStackNav.Screen name="DiasporaMilestoneBuilder"     component={DiasporaMilestoneBuilderScreen} />
+      <PayStackNav.Screen name="DiasporaPaymentInstructions"  component={DiasporaPaymentInstructionsScreen} />
+      <PayStackNav.Screen name="DiasporaUploadEvidence"       component={DiasporaUploadEvidenceScreen} />
+      <PayStackNav.Screen name="DiasporaDealTracking"         component={DiasporaDealTrackingScreen} />
+      <PayStackNav.Screen name="DiasporaMilestoneDetail"      component={DiasporaMilestoneDetailScreen} />
+      <PayStackNav.Screen name="DiasporaJob"                 component={DiasporaJobScreen} />
     </PayStackNav.Navigator>
   );
 }

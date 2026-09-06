@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { NotificationProvider } from './src/context/NotificationContext';
+import BankDetailsRequestModal from './src/components/BankDetailsRequestModal';
 import AppNavigator from './src/navigation/AppNavigator';
 import { setNavigator } from './src/utils/api';
 
@@ -18,6 +19,7 @@ export default function App() {
           <NotificationProvider>
             <StatusBar style="dark" backgroundColor="#fff" />
             <AppNavigator navRef={navRef} onReady={() => setNavigator(navRef.current)} />
+            <BankDetailsRequestModal />
           </NotificationProvider>
         </LanguageProvider>
         </ThemeProvider>

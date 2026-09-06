@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authFetch } from '../utils/api';
 import SafeSendExplainerModal from '../components/SafeSendExplainerModal';
+import PhoneResolverModal from '../components/PhoneResolverModal';
 
 const PIN_THRESHOLD = 500;
 const EXPLAINER_KEY = 'hasSeenSendExplainer';
@@ -38,6 +39,10 @@ export default function QuickSendScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [type, setType] = useState('INSTANT'); // INSTANT | PROTECTED
   const [phone, setPhone] = useState(route?.params?.prefillPhone || '');
+  const [resolverVisible, setResolverVisible] = useState(false);
+  const [resolverLoading, setResolverLoading] = useState(false);
+  const [resolvedName, setResolvedName]       = useState(null);
+  const [resolvedFound, setResolvedFound]     = useState(false);
   const [amount, setAmount] = useState(route?.params?.prefillAmount ? String(route.params.prefillAmount) : '');
   const [pin, setPin] = useState('');
   const [purpose, setPurpose] = useState('OTHER');
@@ -110,9 +115,28 @@ export default function QuickSendScreen({ navigation, route }) {
     ? phone.length >= 9 && parsedAmount > 0 && pinOk
     : phone.length >= 9 && parsedAmount > 0 && !!purpose;
 
-  const onSend = () => {
+  const onSend = async () => {
     setError('');
+    if (!phone || parsedAmount <= 0) return;
 
+    // ── Resolve recipient name before proceeding ──
+    setResolverLoading(true);
+    setResolverVisible(true);
+    try {
+      const res = await authFetch(`/user/resolve-phone?phone=${phone}`);
+      const data = await res.json();
+      setResolvedFound(data.found);
+      setResolvedName(data.name || null);
+    } catch (e) {
+      setResolvedFound(false);
+      setResolvedName(null);
+    } finally {
+      setResolverLoading(false);
+    }
+  };
+
+  const proceedAfterResolve = () => {
+    setResolverVisible(false);
     navigation.navigate('ConfirmSend', {
       type,
       phone,
@@ -357,6 +381,16 @@ export default function QuickSendScreen({ navigation, route }) {
         onConfirm={confirmSafeSendFromExplainer}
         showCloseButton={explainerDismissable}
         mode="send"
+      />
+      <PhoneResolverModal
+        visible={resolverVisible}
+        loading={resolverLoading}
+        found={resolvedFound}
+        name={resolvedName}
+        phone={phone}
+        amount={parsedAmount}
+        onConfirm={proceedAfterResolve}
+        onCancel={() => setResolverVisible(false)}
       />
     </KeyboardAvoidingView>
   );

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform, Alert } from 'react-native';
+import { authFetch } from '../utils/api';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import LipaHeader from '../components/LipaHeader';
@@ -31,16 +32,40 @@ export default function BundlePaymentScreen({ navigation }) {
     return true;
   };
 
-  const next = () => {
-    navigation.navigate('ConfirmPayment', {
-      service: 'Bundles',
-      method,
-      sellerPhone: method === 'pochi' ? seller : undefined,
-      sellerTill:  method === 'till'  ? seller : undefined,
-      notifyPhone: method === 'till'  ? notifyPhone : undefined,
-      amount,
-      description: `Airtime/Data Bundle via ${selected.label}`,
-    });
+  const next = async () => {
+    const phoneToCheck = method === 'pochi' ? seller : notifyPhone;
+    try {
+      const res  = await authFetch(`/user/resolve-phone?phone=${phoneToCheck}`)
+      const data = await res.json()
+      const label = data.found ? data.name : `${phoneToCheck} (Not on LipaSafe)`
+      Alert.alert(
+        'Confirm Recipient',
+        `You are paying:\n\n${label}\n\nKES ${amount}`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Proceed', onPress: () => navigation.navigate('ConfirmPayment', {
+              service: 'Bundles',
+              method,
+              sellerPhone: method === 'pochi' ? seller : undefined,
+              sellerTill:  method === 'till'  ? seller : undefined,
+              notifyPhone: method === 'till'  ? notifyPhone : undefined,
+              amount,
+              description: `Airtime/Data Bundle via ${selected.label}`,
+            })
+          }
+        ]
+      )
+    } catch {
+      navigation.navigate('ConfirmPayment', {
+        service: 'Bundles',
+        method,
+        sellerPhone: method === 'pochi' ? seller : undefined,
+        sellerTill:  method === 'till'  ? seller : undefined,
+        notifyPhone: method === 'till'  ? notifyPhone : undefined,
+        amount,
+        description: `Airtime/Data Bundle via ${selected.label}`,
+      })
+    }
   };
 
   return (

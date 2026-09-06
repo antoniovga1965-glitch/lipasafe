@@ -8,7 +8,7 @@ import {
   Send, Download, Shield, HelpCircle,
   ArrowDownLeft, ArrowUpRight, Lock, CheckCircle2,
   Eye, EyeOff, Bell, Plus, Info, ChevronRight,
-  ShoppingBag,
+  ShoppingBag, Globe,
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ const services = [
   { name: 'delivery',   icon: 'bicycle-outline',        color: '#FF6B35', bg: '#FFF0EA', bgDark: '#2E1E14', subtitle: 'Pay after goods arrive' },
   { name: 'house',      icon: 'home-outline',           color: '#00A86B', bg: '#E5F7F1', bgDark: '#0E2A20', subtitle: 'Deposits & viewing fees' },
   { name: 'custom',     icon: 'create-outline',         color: '#9B59B6', bg: '#F5EEFB', bgDark: '#1E1228', subtitle: 'Any deal, we protect it' },
+  { name: 'diaspora',   icon: 'earth-outline',          color: '#0EA5E9', bg: '#E0F4FF', bgDark: '#0C2233', subtitle: 'Safe deals from abroad' },
 ];
 
 const serviceRoutes = {
@@ -33,6 +34,7 @@ const serviceRoutes = {
   delivery:   'Delivery',
   house:      'HouseHunting',
   custom:     'CustomEscrowList',
+  diaspora:   'DiasporaLanding',
 };
 
 const getTxMeta = (tx) => {
@@ -253,7 +255,6 @@ export default function HomeScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={s.shopTitle}>Shop with protection</Text>
               <Text style={s.shopSub}>Browse KYC-verified sellers</Text>
-              <Text style={s.shopSub}>Protected payments · Trusted ratings</Text>
             </View>
             <TouchableOpacity
               style={s.exploreBtn}
@@ -264,6 +265,26 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+
+        {/* ─── Diaspora Banner ─── */}
+        <View style={s.diasporaBanner}>
+          <View style={s.diasporaBannerLeft}>
+            <Text style={s.diasporaBannerTag}>OVERSEAS FUNDER?</Text>
+            <Text style={s.diasporaBannerTitle}>{'Send Money Home.\nWithout the Risk.'}</Text>
+            <Text style={s.diasporaBannerSub}>{'We hold funds in escrow — released only when YOU approve each milestone.'}</Text>
+            <TouchableOpacity
+              style={s.diasporaExploreBtn}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('PayTab', { screen: 'DiasporaLanding' })}
+            >
+              <Text style={s.diasporaExploreTxt}>Explore</Text>
+              <ChevronRight size={14} color="#fff" strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+          <View style={s.diasporaBannerRight}>
+            <Globe size={68} color="#fff" strokeWidth={1.2} />
+          </View>
+        </View>
 
         {/* ─── Services ─── */}
         <View style={s.sectionRow}>
@@ -412,6 +433,16 @@ const makeStyles = (theme, isDark) => StyleSheet.create({
   shopSub:      { fontSize: 12, color: theme.subtext, marginTop: 2 },
   exploreBtn:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#00A86B', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, gap: 4, marginLeft: 'auto' },
   exploreTxt:   { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  // Diaspora Banner
+  diasporaBanner:      { marginHorizontal: 20, marginTop: 16, marginBottom: 16, backgroundColor: 'hsl(157, 63%, 41%)', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  diasporaBannerLeft:  { flex: 1, paddingRight: 12 },
+  diasporaBannerTag:   { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.75)', letterSpacing: 1.2, marginBottom: 4 },
+  diasporaBannerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', lineHeight: 26, marginBottom: 6 },
+  diasporaBannerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.82)', lineHeight: 18, marginBottom: 14 },
+  diasporaExploreBtn:  { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 4 },
+  diasporaExploreTxt:  { color: '#fff', fontSize: 13, fontWeight: '700' },
+  diasporaBannerRight: { alignItems: 'center', justifyContent: 'center', opacity: 0.9 },
 
   // Services Grid
   grid:         { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginHorizontal: 20 },

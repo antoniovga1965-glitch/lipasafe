@@ -387,10 +387,43 @@ export default function FundiJobScreen({ navigation, route }) {
       return null;
     }
 
-
-    // ── AWAITING_BUYER_REVIEW ─────────────────────────────────────────────
-    if (job?.status === 'AWAITING_BUYER_REVIEW' && isBuyer === true) {
-      return null;
+    // ── COMPLETED / REFUNDED ──────────────────────────────────────────────
+    if (job?.status === 'COMPLETED' || job?.status === 'REFUNDED') {
+      const isRefund = job.status === 'REFUNDED';
+      return (
+        <ScrollView style={styles.container}>
+          <LipaHeader title="Fundi Job" navigation={navigation} onBack={() => navigation.goBack()} />
+          <View style={styles.content}>
+            <View style={[styles.timerCard, { backgroundColor: isRefund ? '#EF4444' : '#16A34A' }]}>
+              <Text style={styles.timerLabel}>{isRefund ? 'Refunded' : 'Job Completed'}</Text>
+              <Text style={styles.timerSub}>
+                {isRefund ? 'Funds were returned to your wallet' : 'Fundi has been paid'}
+              </Text>
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Job Details</Text>
+              <Text style={styles.label}>Description</Text>
+              <Text style={styles.value}>{job?.description || '---'}</Text>
+              <Text style={styles.label}>Amount</Text>
+              <Text style={[styles.value, styles.amount]}>
+                KES {parseFloat(job?.totalCharged || job?.amount || 0).toFixed(2)}
+              </Text>
+              <Text style={styles.label}>Fundi</Text>
+              <Text style={styles.value}>{job?.fundiPhone || '---'}</Text>
+              <Text style={styles.label}>Status</Text>
+              <Text style={[styles.value, { color: isRefund ? '#EF4444' : '#16A34A' }]}>
+                {isRefund ? 'Refunded' : 'Completed'}
+              </Text>
+              {job?.mpesaRef && (
+                <>
+                  <Text style={styles.label}>M-Pesa Ref</Text>
+                  <Text style={styles.value}>{job.mpesaRef}</Text>
+                </>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      );
     }
 
     // ── ACTIVE / OVERDUE ──────────────────────────────────────────────────

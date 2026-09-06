@@ -23,10 +23,12 @@ const NotificationContext = createContext({
 export function NotificationProvider({ children }) {
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [notifications, setNotifications] = useState([]);
+  const [bankDetailsRequest, setBankDetailsRequest] = useState(null);
   const socketRef = useRef(null);
 
   const incrementUnread = useCallback(() => setUnreadCount(p => p + 1), []);
   const resetUnread     = useCallback(() => setUnreadCount(0), []);
+  const clearBankDetailsRequest = useCallback(() => setBankDetailsRequest(null), []);
 
   const prependNotif = useCallback((notif) => {
     setNotifications(prev => [notif, ...prev]);
@@ -51,6 +53,7 @@ export function NotificationProvider({ children }) {
             name: 'LipaSafe',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
+          sound: true,
           });
         }
         const { status } = await Notifications.requestPermissionsAsync();
@@ -178,6 +181,17 @@ export function NotificationProvider({ children }) {
           params: { jobId: data.fundiJobId },
         });
       }
+      const diasporaTypes = [
+        'DIASPORA_PAYMENT_SUBMITTED', 'DIASPORA_DEPOSIT_CONFIRMED',
+        'DIASPORA_DEPOSIT_REJECTED',  'DIASPORA_MILESTONE_RELEASED',
+        'DIASPORA_DEAL_EXPIRED',      'DIASPORA_WORK_SUBMITTED',
+      ];
+      if (diasporaTypes.includes(type) && data.diasporaDealId) {
+        nav.navigate('PayTab', {
+          screen: 'DiasporaDealTracking',
+          params: { dealId: data.diasporaDealId },
+        });
+      }
       const houseTypes = [
         'house_payment_held', 'house_deal_accepted', 'house_deal_rejected',
         'house_confirmed', 'house_disputed', 'house_auto_released',
@@ -220,6 +234,11 @@ export function NotificationProvider({ children }) {
         prependNotif(data);
       });
 
+      socket.on('refund_bank_details_requested', (data) => {
+        console.log('[Socket] refund_bank_details_requested:', data);
+        setBankDetailsRequest(data);
+      });
+
       socketRef.current = socket;
     };
 
@@ -228,7 +247,7 @@ export function NotificationProvider({ children }) {
   }, [prependNotif]);
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, notifications, incrementUnread, resetUnread, prependNotif }}>
+    <NotificationContext.Provider value={{ unreadCount, notifications, incrementUnread, resetUnread, prependNotif, bankDetailsRequest, clearBankDetailsRequest }}>
       {children}
     </NotificationContext.Provider>
   );

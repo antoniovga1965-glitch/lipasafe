@@ -31,3 +31,6 @@ dist/
 build/
 logs/
 *.apk
+
+# Local Netlify folder
+.netlify

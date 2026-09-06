@@ -62,7 +62,7 @@ export default function HomeScreen({ navigation }) {
       const [userRes, walletRes, txRes] = await Promise.all([
         authFetch('/user/me'),
         authFetch('/user/wallet'),
-        authFetch('/wallet/transactions?limit=3'),
+        authFetch('/transactions/bundle/my?limit=20'),
       ]);
       const userData   = await userRes.json();
       const walletData = await walletRes.json();
@@ -317,7 +317,7 @@ export default function HomeScreen({ navigation }) {
             const time  = tx.createdAt
               ? new Date(tx.createdAt).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
               : '';
-            const party = tx.counterparty?.fullName || tx.counterparty?.phone || '';
+            const party = tx.seller?.fullName || tx.seller?.phone || tx.buyer?.fullName || '';
             const dateStr = tx.createdAt
               ? (new Date(tx.createdAt).toDateString() === new Date().toDateString() ? 'Today' : 'Yesterday')
               : 'Today';
@@ -332,7 +332,7 @@ export default function HomeScreen({ navigation }) {
                   <Icon size={20} color={iconColor} strokeWidth={2} />
                 </View>
                 <View style={s.txInfo}>
-                  <Text style={s.txTitle}>{tx.type || 'Payment'}</Text>
+                  <Text style={s.txTitle}>{tx.description || 'Payment'}</Text>
                   <Text style={s.txSub}>
                     {party ? `${party} · ` : ''}{dateStr}{time ? `, ${time}` : ''}
                   </Text>

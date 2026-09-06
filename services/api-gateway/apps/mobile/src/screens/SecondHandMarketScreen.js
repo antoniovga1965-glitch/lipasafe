@@ -125,7 +125,7 @@ export default function SecondHandMarketScreen({ navigation }) {
     setPhotos(photos.filter((_, i) => i !== index));
 
   // ── Validation + navigation ────────────────────────────────────────────
-  const next = () => {
+  const next = async () => {
     // Double-tap guard
     if (submitting.current) return;
 
@@ -159,8 +159,19 @@ export default function SecondHandMarketScreen({ navigation }) {
     const fee = platformFee.toFixed(2);
     const b2cFee = b2cCost.toFixed(2);
     const total = buyerTotal.toFixed(2);
-    const target =
-      method === "pochi" ? sellerPhone.trim() : `Till ${sellerTill.trim()}`;
+    const phoneToCheck = method === "pochi" ? sellerPhone.trim() : null;
+    let resolvedName = null;
+    if (phoneToCheck) {
+      try {
+        const { authFetch } = require("../utils/api");
+        const r = await authFetch(`/user/resolve-phone?phone=${phoneToCheck}`);
+        const d = await r.json();
+        resolvedName = d.found ? d.name : null;
+      } catch {}
+    }
+    const target = method === "pochi"
+      ? (resolvedName ? `${resolvedName} (${sellerPhone.trim()})` : sellerPhone.trim())
+      : `Till ${sellerTill.trim()}`;
 
     Alert.alert(
       "Confirm Deal",

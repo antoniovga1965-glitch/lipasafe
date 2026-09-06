@@ -29,7 +29,12 @@ const TYPE_CONFIG = {
   house_disputed:          { icon: 'home',              color: '#EF4444' },
   house_auto_released:     { icon: 'home',              color: '#F59E0B' },
   house_refunded:          { icon: 'home',              color: '#3B82F6' },
-  house_payout_sent:       { icon: 'home',              color: '#22C55E' },
+  house_payout_sent:              { icon: 'home',              color: '#22C55E' },
+  DIASPORA_PAYMENT_SUBMITTED:      { icon: 'cloud-upload',      color: '#3B82F6' },
+  DIASPORA_DEPOSIT_CONFIRMED:      { icon: 'shield-checkmark',  color: '#22C55E' },
+  DIASPORA_DEPOSIT_REJECTED:       { icon: 'close-circle',      color: '#EF4444' },
+  DIASPORA_MILESTONE_RELEASED:     { icon: 'cash',              color: '#22C55E' },
+  DIASPORA_DEAL_EXPIRED:           { icon: 'time',              color: '#F59E0B' },
 };
 
 const HOUSE_TYPES = new Set([
@@ -61,7 +66,8 @@ export default function NotificationsScreen({ navigation }) {
       const params = new URLSearchParams({ page: nextPage, limit: 20 });
       const res  = await authFetch(`/user/notifications?${params}`);
       const data = await res.json();
-      if (!data.success) throw new Error(data.message || 'Failed to load');
+      
+      if (!data.notifications) throw new Error(data.message || 'Failed to load');
       setNotifs(prev => (reset || nextPage === 1) ? data.notifications : [...prev, ...data.notifications]);
       if (reset) setPage(1);
       setHasMore(data.pagination.page < data.pagination.pages);
@@ -148,6 +154,12 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
 
+    const diasporaJobTypes = ['DIASPORA_DEPOSIT_CONFIRMED'];
+    if (diasporaJobTypes.includes(item.type) && item.diasporaDealId) {
+      navigation.navigate('PayTab', { screen: 'DiasporaJob', params: { dealId: item.diasporaDealId } });
+      return;
+    }
+
     if (item.type === 'payment_received' && item.houseEscrowId) {
       navigation.navigate('HouseEscrowDetail', { escrowId: item.houseEscrowId });
       return;
@@ -210,9 +222,19 @@ export default function NotificationsScreen({ navigation }) {
       }
     }
     
-    // Handle house notifications
-    if (HOUSE_TYPES.has(item.type) && item.houseEscrowId) {
-      navigation.navigate('HouseEscrowDetail', { escrowId: item.houseEscrowId });
+
+    // Handle diaspora notifications
+    const diasporaTypes = [
+      'DIASPORA_PAYMENT_SUBMITTED', 'DIASPORA_DEPOSIT_CONFIRMED',
+      'DIASPORA_DEPOSIT_REJECTED',  'DIASPORA_MILESTONE_RELEASED',
+      'DIASPORA_DEAL_EXPIRED',      'DIASPORA_WORK_SUBMITTED',
+      'DIASPORA_BANK_DETAILS_REQUESTED',
+    ];
+    if (diasporaTypes.includes(item.type) && item.diasporaDealId) {
+      navigation.navigate('PayTab', {
+        screen: 'DiasporaDealTracking',
+        params: { dealId: item.diasporaDealId },
+      });
       return;
     }
   };

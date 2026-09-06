@@ -209,7 +209,7 @@ const setPin = async (req, res) => {
     }
     await redis.del(verifiedKey);
 
-    const payload = { userId: user.id, phone: user.phone, role: user.role };
+    const payload = { userId: user.id, phone: user.phone, role: user.role, fullName: user.fullName ?? "" };
     const { accessToken, refreshToken } = generateTokens(payload);
 
     return res.status(201).json({
@@ -266,7 +266,7 @@ const login = async (req, res) => {
       data: { lastLogin: new Date() },
     });
 
-    const payload = { userId: user.id, phone: user.phone, role: user.role };
+    const payload = { userId: user.id, phone: user.phone, role: user.role, fullName: user.fullName ?? "" };
     const { accessToken, refreshToken } = generateTokens(payload);
 
     return res.status(200).json({

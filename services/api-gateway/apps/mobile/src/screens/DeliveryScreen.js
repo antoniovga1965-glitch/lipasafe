@@ -10,7 +10,9 @@ import {
   TextInput,
   SafeAreaView,
   StatusBar,
+  Alert,
 } from "react-native";
+import { authFetch } from '../utils/api';
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Feather } from "@expo/vector-icons";
 import { useLang } from "../context/LanguageContext";
@@ -84,19 +86,34 @@ export default function DeliveryScreen({ navigation }) {
   const isValid =
     isValidPhone && goods.trim() && isValidAmount && address.trim();
 
-  const next = () => {
-    navigation.navigate("ConfirmPayment", {
-      service: "Delivery",
-      seller: deliveryPhone,
-      sellerPhone: deliveryPhone,
-      deliveryGuyPhone: deliveryPhone,
-      goods,
-      amount,
-      description: goods,
-      productDescription: description,
-      address,
-      deadline: deadline.toISOString(),
-    });
+  const next = async () => {
+    let label = deliveryPhone;
+    try {
+      const res = await authFetch(`/user/resolve-phone?phone=${deliveryPhone}`)
+      const data = await res.json()
+      label = data.found ? `${data.name} (${deliveryPhone})` : deliveryPhone
+    } catch {}
+
+    Alert.alert(
+      'Confirm Recipient',
+      `Delivery to:\n\n${label}\n\nKES ${amount}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Proceed', onPress: () => navigation.navigate("ConfirmPayment", {
+            service: "Delivery",
+            seller: deliveryPhone,
+            sellerPhone: deliveryPhone,
+            deliveryGuyPhone: deliveryPhone,
+            goods,
+            amount,
+            description: goods,
+            productDescription: description,
+            address,
+            deadline: deadline.toISOString(),
+          })
+        }
+      ]
+    )
   };
 
   return (

@@ -20,7 +20,8 @@ const REASONS = [
 const MAX_PHOTOS = 4;
 
 export default function CustomEscrowDisputeScreen({ route, navigation }) {
-  const { escrowId } = route.params;
+  const { escrowId, dealId, context, milestoneId } = route.params;
+  const resolvedId = escrowId || dealId;
   const [reason,      setReason]      = useState('');
   const [description, setDescription] = useState('');
   const [photos,      setPhotos]      = useState([]);
@@ -100,7 +101,7 @@ export default function CustomEscrowDisputeScreen({ route, navigation }) {
         });
       });
 
-      const res  = await authFetch(`/custom/${escrowId}/dispute`, {
+      const res  = await authFetch(`/${context === 'diaspora' ? `diaspora/${resolvedId}/milestones/${milestoneId}/dispute` : `custom/${resolvedId}/dispute`}`, {
         method:  'POST',
         headers: { 'Content-Type': 'multipart/form-data' },
         body:    formData,
@@ -111,7 +112,7 @@ export default function CustomEscrowDisputeScreen({ route, navigation }) {
       Alert.alert(
         'Dispute Opened',
         'Funds are frozen. Our team will review the evidence and resolve this within 24–48 hours.',
-        [{ text: 'OK', onPress: () => navigation.replace('CustomEscrowDetail', { escrowId }) }],
+        [{ text: 'OK', onPress: () => context === 'diaspora' ? navigation.replace('DiasporaDealTracking', { dealId: resolvedId }) : navigation.replace('CustomEscrowDetail', { escrowId: resolvedId }) }],
       );
     } catch (err) {
       Alert.alert('Error', err.message);

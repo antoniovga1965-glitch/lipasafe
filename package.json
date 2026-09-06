@@ -1,40 +1,12 @@
 {
-  "devDependencies": {
-    "@types/react": "~19.2.14",
-    "jest": "^30.4.2",
-    "nodemon": "^3.1.14",
-    "supertest": "^7.2.2",
-    "typescript": "~6.0.3"
-  },
-  "dependencies": {
-    "concurrently": "^9.2.1",
-    "expo": "~56.0.19",
-    "expo-router": "~56.2.18",
-    "lucide-react": "^1.18.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "react-native": "0.85.3"
-  },
   "name": "lipasafe",
   "version": "1.0.0",
-  "main": "expo-router/entry",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node src/server.js",
-    "api": "cd services/api-gateway && node src/server.js",
-    "mobile": "cd apps/mobile && npx expo start",
-    "generate": "cd services/api-gateway && npx prisma generate",
-    "start": "cd services/api-gateway && node src/server.js"
+    "dev": "concurrently --names \"API,SECRETARY\" --prefix-colors \"green,blue\" \"npm run dev:api\" \"npm run dev:secretary\"",
+    "dev:api": "cd services/api-gateway/services/api-gateway && fuser -k 3000/tcp 2>/dev/null; sleep 1 && npm run dev",
+    "dev:secretary": "cd apps/secretary && npm run dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "engines": {
-    "node": ">=22.0.0"
+  "devDependencies": {
+    "concurrently": "^8.2.0"
   }
 }

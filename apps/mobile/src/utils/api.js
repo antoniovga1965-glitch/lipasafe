@@ -48,6 +48,7 @@ export const authFetch = async (url, options = {}, retry = true) => {
     ...options.headers,
   };
 
+  console.log("[FETCH]", `${BASE_URL}${url}`, token?.slice(0,20));
   const res = await fetch(`${BASE_URL}${url}`, { ...options, headers });
 
   if (res.status === 401 && retry) {
