@@ -8,7 +8,7 @@ const { escrowCreateLimiter } = require('../middleware/layer1-gate/rateLimiter')
 const {
   createDeal, submitProof, confirmDeposit, rejectDeposit,
   releaseMilestone,
-  getFundiDeals, submitWorkProof, disputeMilestone,
+  getFundiDeals, submitWorkProof, disputeMilestone, signUpload,
   getMyDeals, getDeal, adminGetPendingDeals,
   adminGetDisputes, resolveDispute, dismissDispute,
   requestRefundBankDetails, submitRefundBankDetails,
@@ -28,7 +28,8 @@ router.post('/:id/milestones/:milestoneId/dispute',            auth, uploadDiasp
 
 // Fundi (recipient)
 router.get('/fundi/my-jobs',                                   auth, getFundiDeals)
-router.post('/:id/milestones/:milestoneId/submit-work',        auth, uploadDiasporaWorkProof.array('proof', 10), submitWorkProof)
+router.post('/:id/milestones/:milestoneId/sign-upload',         auth, signUpload)
+router.post('/:id/milestones/:milestoneId/submit-work',        auth, submitWorkProof)
 
 // Secretary
 router.get('/admin/pending',                                   adminAuth, adminGetPendingDeals)

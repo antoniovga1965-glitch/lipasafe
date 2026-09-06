@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { CheckCircle2, RefreshCw, Clock, AlertTriangle, Info } from 'lucide-react-native';
 import { authFetch } from '../utils/api';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { COLORS, SPACING } from './diasporaTheme';
 
 const STATUS_META = {
@@ -17,6 +18,22 @@ const STATUS_META = {
   RELEASED:       { Icon: CheckCircle2,  label: 'Released',       color: '#10B981', bg: '#ECFDF5' },
   DISPUTED:       { Icon: AlertTriangle, label: 'Disputed',       color: '#EF4444', bg: '#FEF2F2' },
 };
+
+function EvidenceVideoPlayer({ uri }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+  });
+
+  return (
+    <VideoView
+      style={styles.photoImage}
+      player={player}
+      allowsFullscreen
+      allowsPictureInPicture={false}
+      nativeControls
+    />
+  );
+}
 
 export default function DiasporaMilestoneDetailScreen({ navigation, route }) {
   const { dealId, milestoneId } = route.params || {};
@@ -93,7 +110,9 @@ export default function DiasporaMilestoneDetailScreen({ navigation, route }) {
   const meta           = STATUS_META[milestone.status] ?? STATUS_META.PENDING;
   const isWorkSubmitted = milestone.status === 'WORK_SUBMITTED';
   const isReleased      = milestone.status === 'RELEASED';
-  const photos          = milestone.workProofUrls || [];
+  const allProofUrls    = milestone.workProofUrls || [];
+  const photos           = allProofUrls.filter((u) => !u.includes('/video/upload/'));
+  const videos            = allProofUrls.filter((u) => u.includes('/video/upload/'));
 
   const autoRelease = milestone.autoReleaseAt ? new Date(milestone.autoReleaseAt) : null;
   const hoursLeft   = autoRelease
@@ -133,7 +152,7 @@ export default function DiasporaMilestoneDetailScreen({ navigation, route }) {
               </Text>
               {hoursLeft !== null && (
                 <Text style={styles.infoDeadline}>
-                  ⏰ Funds auto-release in {hoursLeft}h if no action is taken.
+                   Funds auto-release in {hoursLeft}h if no action is taken.
                 </Text>
               )}
             </View>
@@ -168,7 +187,25 @@ export default function DiasporaMilestoneDetailScreen({ navigation, route }) {
           </>
         )}
 
-        {isWorkSubmitted && photos.length === 0 && (
+        {/* ── Evidence video ── */}
+        {videos.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Evidence Video ({videos.length})</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.galleryScroll}
+            >
+              {videos.map((uri, index) => (
+                <View key={`video-${index}`} style={styles.photoCard}>
+                  <EvidenceVideoPlayer uri={uri} />
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {isWorkSubmitted && photos.length === 0 && videos.length === 0 && (
           <View style={styles.noPhotos}>
             <Text style={styles.noPhotosText}>No photos were attached to this submission.</Text>
           </View>

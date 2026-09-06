@@ -2,6 +2,7 @@
 const { Worker }          = require('bullmq')
 const Decimal             = require('decimal.js')
 const { releaseFunds, b2cPayout } = require('../services/bundleService')
+const { executeDiasporaRelease } = require('../services/diasporaReleaseService')
 const { deliveryB2cPayout } = require('../services/deliveryService')
 const { releaseToSeller, b2cPayout: secondHandB2cPayout } = require('../services/secondHandService')
 const { stkSendRefund } = require('../services/stkSendRefundService')
@@ -47,6 +48,25 @@ const b2cRetryWorker = new Worker('b2c-retry', async (job) => {
 
   } else if (type === 'stk_send_refund') {
     await stkSendRefund(reference)
+
+  } else if (type === 'diaspora') {
+    const { dealId, milestoneId } = job.data
+
+    const milestone = await prisma.diasporaMilestone.findUnique({
+      where:  { id: milestoneId },
+      select: { status: true }
+    })
+    if (!milestone) {
+      logger.warn('Diaspora B2C retry — milestone not found', { milestoneId })
+      return
+    }
+    if (milestone.status !== 'PAYOUT_FAILED') {
+      logger.info('Diaspora B2C retry skipped — not in PAYOUT_FAILED', { milestoneId, status: milestone.status })
+      return
+    }
+
+    const result = await executeDiasporaRelease({ dealId, milestoneId, releasedBy: 'system-retry' })
+    logger.info('Diaspora B2C retry attempted', { milestoneId, success: result.success, code: result.code })
 
   } else if (type === 'pt_b2c_retry') {
     const { transferId, action } = job.data

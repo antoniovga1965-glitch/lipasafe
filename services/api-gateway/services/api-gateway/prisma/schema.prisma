@@ -1184,9 +1184,10 @@ model DiasporaMilestone {
   status       MilestoneStatus @default(PENDING)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
-    workProofUrls   String[]
-  workSubmittedAt DateTime?
-  autoReleaseAt   DateTime?
+    workProofUrls     String[]
+  workSubmittedAt   DateTime?
+  autoReleaseAt     DateTime?
+  payoutInitiatedAt DateTime?
   disputes        DiasporaDispute[]
   deal         DiasporaDeal    @relation(fields: [dealId], references: [id])
 }
@@ -1655,6 +1656,8 @@ enum MilestoneStatus {
   RELEASED
   WORK_SUBMITTED
   DISPUTED
+  PAYOUT_PROCESSING
+  PAYOUT_FAILED
 }
 
 model DiasporaDispute {

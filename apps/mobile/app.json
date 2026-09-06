@@ -2,7 +2,7 @@
   "expo": {
     "name": "LipaSafe",
     "slug": "lipasafe",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -44,7 +44,8 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-video"
     ],
     "extra": {
       "eas": {
@@ -52,7 +53,7 @@
       }
     },
     "owner": "smartkidnyankore",
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.1",
     "updates": {
       "url": "https://u.expo.dev/017f866d-4cfa-4e6c-a395-6430e4e83602"
     }

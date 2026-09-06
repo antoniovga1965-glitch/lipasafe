@@ -55,12 +55,7 @@ export default function BankDetailsRequestModal() {
   if (!visible) return null;
 
   return (
-    // onRequestClose is a no-op deliberately: this blocks the Android hardware back
-    // button from dismissing the modal. A refund can't be processed without these
-    // details, so silently closing it would leave the user stuck with no visible
-    // path forward. If you want it dismissible later, add a "Remind me later"
-    // button that calls clearBankDetailsRequest() explicitly, rather than wiring
-    // the back button to skip validation.
+    
     <Modal visible={visible} transparent animationType="fade" onRequestClose={() => {}}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -154,6 +154,10 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
 
+    if (item.type === 'DIASPORA_BANK_DETAILS_REQUESTED' && item.diasporaDealId) {
+      navigation.navigate('PayTab', { screen: 'DiasporaJob', params: { dealId: item.diasporaDealId, showBankDetailsModal: true } });
+      return;
+    }
     const diasporaJobTypes = ['DIASPORA_DEPOSIT_CONFIRMED'];
     if (diasporaJobTypes.includes(item.type) && item.diasporaDealId) {
       navigation.navigate('PayTab', { screen: 'DiasporaJob', params: { dealId: item.diasporaDealId } });

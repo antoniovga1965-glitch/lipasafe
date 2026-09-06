@@ -11,6 +11,8 @@ import {
   Modal,
   SafeAreaView,
   StatusBar,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -90,7 +92,9 @@ function calculateTimeLeft(targetDate) {
 
 // ==================== MAIN SCREEN COMPONENT ====================
 
+import * as FileSystem from 'expo-file-system/legacy';
 import { BASE_URL } from '../utils/api';
+import { useNotifications } from '../context/NotificationContext';
 import { getAccessToken } from '../utils/secureStorage';
 
 const DiasporaJobScreen = ({ route, navigation }) => {
@@ -101,6 +105,11 @@ const DiasporaJobScreen = ({ route, navigation }) => {
   const [loadingDeal, setLoadingDeal] = useState(true);
   const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
   const [loadError, setLoadError] = useState(null);
+  const [bankDetailsModalVisible, setBankDetailsModalVisible] = useState(false);
+  const [bankName, setBankName]     = useState('');
+  const [accountNo, setAccountNo]   = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { bankDetailsRequest, clearBankDetailsRequest } = useNotifications();
 
   const fetchDeal = useCallback(async () => {
     setLoadingDeal(true);
@@ -137,96 +146,149 @@ const DiasporaJobScreen = ({ route, navigation }) => {
     fetchDeal();
   }, [fetchDeal]);
 
+  // Open modal when socket fires the event for this deal
+  useEffect(() => {
+    if (bankDetailsRequest && bankDetailsRequest.dealId === dealId) {
+      setBankDetailsModalVisible(true);
+    }
+  }, [bankDetailsRequest, dealId]);
+
+  // Open modal when tapped from notification screen
+  useEffect(() => {
+    if (route.params?.showBankDetailsModal) {
+      setBankDetailsModalVisible(true);
+    }
+  }, [route.params?.showBankDetailsModal]);
+
+  const submitBankDetails = async () => {
+    if (!bankName.trim() || !accountNo.trim()) {
+      Alert.alert('Required', 'Please enter both bank name and account number');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const dispute = deal?.disputes?.[0];
+      if (!dispute) throw new Error('No dispute found');
+      const token = await getAccessToken();
+      const res = await fetch(`${BASE_URL}/diaspora/disputes/${dispute.id}/submit-bank-details`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bankName: bankName.trim(), accountNo: accountNo.trim() }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Failed to submit');
+      setBankDetailsModalVisible(false);
+      clearBankDetailsRequest();
+      setBankName('');
+      setAccountNo('');
+      await fetchDeal();
+      Alert.alert('✓ Submitted', 'Your bank details have been sent to LipaSafe. We will process your refund shortly.');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to submit bank details');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleStartJob = useCallback(() => {
     setLocalJobStatus('ACTIVE');
   }, []);
 
   const handleSubmitEvidence = useCallback(async ({ photos: submittedPhotos, media }) => {
     const activeMilestone = deal?.milestones?.find((m) => m.status === 'PENDING');
-    if (!activeMilestone) {
-      throw new Error('No active milestone found for this job.');
-    }
+    if (!activeMilestone) throw new Error('No active milestone found for this job.');
 
     const token = await getAccessToken();
     setEvidenceUploadProgress(0);
 
-    // Compress a single photo
     const compressPhoto = async (uri) => {
       try {
         const result = await ImageManipulator.manipulateAsync(
-          uri,
-          [{ resize: { width: 900 } }],
+          uri, [{ resize: { width: 900 } }],
           { compress: 0.65, format: ImageManipulator.SaveFormat.JPEG }
         );
         return result.uri;
-      } catch {
-        return uri;
-      }
+      } catch { return uri; }
     };
 
-    const uploadAll = async (attempt = 1) => {
-      // Build one FormData with ALL files
-      const formData = new FormData();
+    const getSignedUrl = async (resourceType = 'image') => {
+      const res = await fetch(
+        `${BASE_URL}/diaspora/${deal.id}/milestones/${activeMilestone.id}/sign-upload`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resourceType }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) throw new Error('Failed to get upload signature');
+      return data;
+    };
 
-      for (let i = 0; i < submittedPhotos.length; i++) {
-        const compressedUri = await compressPhoto(submittedPhotos[i].uri);
-        formData.append('proof', {
-          uri: compressedUri,
-          name: `photo_${i}.jpg`,
-          type: 'image/jpeg',
+    const uploadToCloudinary = async (uri, mimeType, resourceType, attempt = 1) => {
+      try {
+        const sig = await getSignedUrl(resourceType);
+        const uploadRes = await FileSystem.uploadAsync(sig.uploadUrl, uri, {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          fieldName: 'file',
+          mimeType,
+          parameters: {
+            api_key:   sig.apiKey,
+            timestamp: String(sig.timestamp),
+            signature: sig.signature,
+            folder:    sig.folder,
+          },
         });
-      }
-
-      if (media) {
-        formData.append('proof', {
-          uri: media.uri,
-          name: media.name || 'evidence_media',
-          type: media.mimeType || 'application/octet-stream',
-        });
-      }
-
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${BASE_URL}/diaspora/${deal.id}/milestones/${activeMilestone.id}/submit-work`);
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        xhr.timeout = 180000;
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            setEvidenceUploadProgress(Math.round((event.loaded / event.total) * 95));
-          }
-        };
-
-        xhr.onload = () => {
-          try {
-            const parsed = JSON.parse(xhr.responseText);
-            if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
-            else reject(new Error(parsed.message || `Server error (${xhr.status})`));
-          } catch {
-            reject(new Error('Invalid server response'));
-          }
-        };
-        xhr.onerror = () => reject(new Error('Network error. Check your connection and try again.'));
-        xhr.ontimeout = () => reject(new Error('Upload timed out. Try again on a stronger connection.'));
-        xhr.send(formData);
-      }).catch(async (err) => {
-        if (attempt < 3) {
-          await new Promise(r => setTimeout(r, attempt * 2000));
-          return uploadAll(attempt + 1);
+        const parsed = JSON.parse(uploadRes.body);
+        if (!parsed.secure_url) throw new Error('Cloudinary upload failed');
+        return parsed.secure_url;
+      } catch (err) {
+        if (attempt < 4) {
+          await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, attempt), 16000)));
+          return uploadToCloudinary(uri, mimeType, resourceType, attempt + 1);
         }
         throw err;
-      });
+      }
     };
 
     try {
-      const data = await uploadAll();
+      const proofUrls = [];
+      const total = submittedPhotos.length + (media ? 1 : 0);
+      let done = 0;
+
+      for (let i = 0; i < submittedPhotos.length; i++) {
+        const compressedUri = await compressPhoto(submittedPhotos[i].uri);
+        const url = await uploadToCloudinary(compressedUri, 'image/jpeg', 'image');
+        proofUrls.push(url);
+        done++;
+        setEvidenceUploadProgress(Math.round((done / total) * 90));
+      }
+
+      if (media) {
+        const resourceType = 'video';
+        const url = await uploadToCloudinary(media.uri, media.mimeType || 'video/mp4', resourceType);
+        proofUrls.push(url);
+        done++;
+        setEvidenceUploadProgress(Math.round((done / total) * 90));
+      }
+
+      const submitRes = await fetch(
+        `${BASE_URL}/diaspora/${deal.id}/milestones/${activeMilestone.id}/submit-work`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ proofUrls }),
+        }
+      );
+      const data = await submitRes.json();
       if (!data.success) throw new Error(data.message || 'Submission failed');
       setEvidenceUploadProgress(100);
       setLocalJobStatus('EVIDENCE_SUBMITTED');
       await fetchDeal();
     } catch (err) {
       setEvidenceUploadProgress(-1);
-      throw err;
+      Alert.alert('Upload Failed', err.message || 'Please try again.');
     }
   }, [deal, fetchDeal]);
 
@@ -262,6 +324,14 @@ const DiasporaJobScreen = ({ route, navigation }) => {
       onStartJob={handleStartJob}
       onSubmitEvidence={handleSubmitEvidence}
       evidenceUploadProgress={evidenceUploadProgress}
+      bankDetailsModalVisible={bankDetailsModalVisible}
+      setBankDetailsModalVisible={setBankDetailsModalVisible}
+      bankName={bankName}
+      setBankName={setBankName}
+      accountNo={accountNo}
+      setAccountNo={setAccountNo}
+      submitting={submitting}
+      submitBankDetails={submitBankDetails}
     />
   );
 };
@@ -272,6 +342,14 @@ const DiasporaJobScreenInner = ({
   onStartJob,
   onSubmitEvidence,
   evidenceUploadProgress,
+  bankDetailsModalVisible,
+  setBankDetailsModalVisible,
+  bankName,
+  setBankName,
+  accountNo,
+  setAccountNo,
+  submitting,
+  submitBankDetails,
 }) => {
   const [photos, setPhotos] = useState([]);
   const [mediaFile, setMediaFile] = useState(null);
@@ -369,7 +447,7 @@ const DiasporaJobScreenInner = ({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (photos.length === 0) return;
+    if (photos.length === 0 && !mediaFile) return;
 
     setIsSubmitting(true);
     try {
@@ -400,7 +478,7 @@ const DiasporaJobScreenInner = ({
     return `KES ${Number(amount).toLocaleString('en-KE')}`;
   };
 
-  const canSubmit = photos.length > 0 && !isSubmitting;
+  const canSubmit = (photos.length > 0 || mediaFile !== null) && !isSubmitting;
 
   // ==================== RENDER HELPERS ====================
 
@@ -683,8 +761,8 @@ const DiasporaJobScreenInner = ({
           </Text>
           <Ionicons name="send" size={20} color="#fff" />
         </TouchableOpacity>
-        {photos.length === 0 && (
-          <Text style={styles.helperText}>Add at least 1 photo to submit</Text>
+        {photos.length === 0 && !mediaFile && (
+          <Text style={styles.helperText}>Add at least 1 photo or video to submit</Text>
         )}
       </View>
     </View>
@@ -762,6 +840,22 @@ const DiasporaJobScreenInner = ({
   return (
     <SafeAreaView style={styles.container} edges={["top","left","right"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      {(() => {
+        const dispute = deal?.disputes?.[0];
+        if (!dispute?.bankDetailsRequested) return null;
+        if (dispute?.refundBankName) return (
+          <View style={styles.bankBannerSubmitted}>
+            <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
+            <Text style={styles.bankBannerSubmittedText}>Bank details submitted — refund being processed</Text>
+          </View>
+        );
+        return (
+          <TouchableOpacity style={styles.bankBanner} onPress={() => setBankDetailsModalVisible(true)} activeOpacity={0.85}>
+            <Ionicons name="alert-circle" size={18} color="#fff" />
+            <Text style={styles.bankBannerText}>LipaSafe needs your bank details to refund you — Tap here</Text>
+          </TouchableOpacity>
+        );
+      })()}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -769,6 +863,46 @@ const DiasporaJobScreenInner = ({
       >
         {renderContent()}
       </ScrollView>
+      <Modal visible={bankDetailsModalVisible} transparent animationType="slide" onRequestClose={() => setBankDetailsModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.bankModal}>
+            <View style={styles.bankModalHeader}>
+              <Text style={styles.bankModalTitle}>Submit Bank Details</Text>
+              <TouchableOpacity onPress={() => setBankDetailsModalVisible(false)}>
+                <Ionicons name="close" size={22} color="#374151" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.bankModalSubtitle}>LipaSafe will transfer your refund to this account</Text>
+            <Text style={styles.bankInputLabel}>Bank Name</Text>
+            <TextInput
+              style={styles.bankInput}
+              placeholder="e.g. Equity Bank, KCB, Barclays"
+              placeholderTextColor="#9ca3af"
+              value={bankName}
+              onChangeText={setBankName}
+              autoCapitalize="words"
+            />
+            <Text style={styles.bankInputLabel}>Account Number / IBAN</Text>
+            <TextInput
+              style={styles.bankInput}
+              placeholder="e.g. 1234567890"
+              placeholderTextColor="#9ca3af"
+              value={accountNo}
+              onChangeText={setAccountNo}
+              keyboardType="default"
+            />
+            <TouchableOpacity
+              style={[styles.bankSubmitBtn, submitting && { opacity: 0.6 }]}
+              onPress={submitBankDetails}
+              disabled={submitting}
+            >
+              {submitting
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.bankSubmitText}>Submit Bank Details</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       {renderImagePreview()}
     </SafeAreaView>
   );
@@ -777,6 +911,19 @@ const DiasporaJobScreenInner = ({
 // ==================== STYLES ====================
 
 const styles = StyleSheet.create({
+  bankBanner: { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:'#dc2626', paddingHorizontal:16, paddingVertical:12 },
+  bankBannerText: { color:'#fff', fontSize:13, fontWeight:'600', flex:1 },
+  bankBannerSubmitted: { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:'#f0fdf4', borderBottomWidth:1, borderBottomColor:'#bbf7d0', paddingHorizontal:16, paddingVertical:10 },
+  bankBannerSubmittedText: { color:'#16a34a', fontSize:13, fontWeight:'500', flex:1 },
+  modalOverlay: { flex:1, backgroundColor:'rgba(0,0,0,0.5)', justifyContent:'flex-end' },
+  bankModal: { backgroundColor:'#fff', borderTopLeftRadius:20, borderTopRightRadius:20, padding:24, paddingBottom:40 },
+  bankModalHeader: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
+  bankModalTitle: { fontSize:18, fontWeight:'700', color:'#111827' },
+  bankModalSubtitle: { fontSize:13, color:'#6b7280', marginBottom:20 },
+  bankInputLabel: { fontSize:13, fontWeight:'600', color:'#374151', marginBottom:6 },
+  bankInput: { borderWidth:1, borderColor:'#d1d5db', borderRadius:10, paddingHorizontal:14, paddingVertical:12, fontSize:15, color:'#111827', marginBottom:16, backgroundColor:'#f9fafb' },
+  bankSubmitBtn: { backgroundColor:'#16a34a', borderRadius:12, paddingVertical:14, alignItems:'center', marginTop:4 },
+  bankSubmitText: { color:'#fff', fontSize:15, fontWeight:'700' },
   container: {
     flex: 1,
     backgroundColor: '#ffffff',

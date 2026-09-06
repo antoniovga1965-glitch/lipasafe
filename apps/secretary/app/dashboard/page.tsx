@@ -51,13 +51,12 @@ export default function OverviewPage() {
     { title: "Pending Confirmations", value: pendingConfirmations, icon: Inbox, color: "text-yellow-600", bg: "bg-yellow-50" },
     { title: "Active Deals", value: activeDeals, icon: Briefcase, color: "text-blue-600", bg: "bg-blue-50" },
     { title: "Open Disputes", value: openDisputes, icon: ShieldAlert, color: "text-red-600", bg: "bg-red-50" },
-    { title: "B2C Ready", value: b2cReady, icon: Send, color: "text-purple-600", bg: "bg-purple-50" },
     { title: "Completed This Month", value: completedThisMonth, icon: CheckCircle, color: "text-gray-600", bg: "bg-gray-50" },
   ];
 
   return (
     <div className="space-y-8 p-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (

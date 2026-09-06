@@ -209,6 +209,9 @@ export function NotificationProvider({ children }) {
       if (type === 'money_sent' && data.transactionId) {
         nav.navigate('HomeTab', { screen: 'BundleStatus', params: { transactionId: data.transactionId } });
       }
+      if (type === 'DIASPORA_BANK_DETAILS_REQUESTED' && data.diasporaDealId) {
+        nav.navigate('PayTab', { screen: 'DiasporaJob', params: { dealId: data.diasporaDealId, showBankDetailsModal: true } });
+      }
     });
     return () => sub.remove();
   }, []);

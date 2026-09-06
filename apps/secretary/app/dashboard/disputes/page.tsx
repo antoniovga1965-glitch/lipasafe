@@ -16,6 +16,13 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { fetchDisputesAPI, resolveDisputeAPI, dismissDisputeAPI, apiFetch } from "@/lib/api";
 
+function inferEvidenceType(url: string): 'image' | 'video' | 'audio' {
+  const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+  if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext)) return 'video';
+  if (['mp3', 'm4a', 'wav', 'aac', 'ogg'].includes(ext)) return 'audio';
+  return 'image';
+}
+
 function mapDispute(raw: any): DisputeCase {
   return {
     id:            raw.id,
@@ -31,7 +38,7 @@ function mapDispute(raw: any): DisputeCase {
     reason:        raw.reason        ?? raw.description      ?? '',
     amountAtStake: raw.amountAtStake ?? raw.milestone?.amount ?? raw.amount ?? 0,
     evidenceUrls:  raw.evidenceUrls  ?? raw.evidence?.map((e: any) => e.url)           ?? [],
-    evidenceTypes: raw.evidenceTypes ?? raw.evidence?.map((e: any) => e.type ?? 'image') ?? [],
+    evidenceTypes: raw.evidenceTypes ?? raw.evidence?.map((e: any) => e.type ?? 'image') ?? (raw.evidenceUrls ?? []).map((u: string) => inferEvidenceType(u)),
     messages: (raw.messages ?? []).map((m: any) => ({
       id:        m.id,
       sender:    m.sender    ?? m.senderType ?? 'funder',
@@ -74,6 +81,18 @@ export default function DisputesPage() {
   }, []);
 
   useEffect(() => { loadDisputes() }, [loadDisputes]);
+
+  // Re-fetch every 30s so bank details appear without a manual refresh
+  useEffect(() => {
+    const id = setInterval(loadDisputes, 30_000);
+    return () => clearInterval(id);
+  }, [loadDisputes]);
+
+  // Also re-fetch whenever the secretary tabs back into this window
+  useEffect(() => {
+    window.addEventListener('focus', loadDisputes);
+    return () => window.removeEventListener('focus', loadDisputes);
+  }, [loadDisputes]);
 
   const openCount        = disputes.filter((d) => d.status === 'OPEN').length;
   const underReviewCount = disputes.filter((d) => d.status === 'UNDER_REVIEW').length;
@@ -349,24 +368,6 @@ export default function DisputesPage() {
                             : <RotateCcw className="h-4 w-4 mr-2 rotate-180" />}
                           Dismiss Dispute
                         </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
-                          disabled={requestingBank === dispute.id || dispute.bankDetailsRequested}
-                          onClick={() => handleRequestBankDetails(dispute)}
-                        >
-                          {requestingBank === dispute.id
-                            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            : <MessageSquare className="h-4 w-4 mr-2" />}
-                          {dispute.bankDetailsRequested ? 'Bank Details Requested ✓' : 'Request Bank Details'}
-                        </Button>
-                        {dispute.refundBankName && (
-                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-purple-700 mb-1">Bank Details Received</p>
-                            <p className="text-sm font-mono text-purple-900">{dispute.refundBankName}</p>
-                            <p className="text-sm font-mono text-purple-900">{dispute.refundAccountNo}</p>
-                          </div>
-                        )}
                       </div>
                     )}
 

@@ -1,3 +1,4 @@
+const { v2: cloudinary } = require('cloudinary')
 "use strict";
 const { z } = require("zod");
 const prisma = require("../src/utils/prisma");
@@ -494,7 +495,7 @@ const resolveDispute = async (req, res) => {
     const { deal, milestone } = dispute
 
     const disputeUpdate = {
-      status:         'RESOLVED',
+      status:         outcome === 'REFUND_FUNDER' ? 'RESOLVED_REFUND' : 'RESOLVED_RELEASE',
       resolution,
       secretaryNotes: secretaryNotes ?? null,
       resolvedBy:     req.user.id,
@@ -570,7 +571,7 @@ const resolveDispute = async (req, res) => {
       await createAndSend({
         userId:         deal.funderId,
         type:           'DIASPORA_MILESTONE_RELEASED',
-        messageEn:      `Dispute for deal ${deal.reference} resolved. Milestone "${milestone.title}" has been released to the worker.`,
+        messageEn:      `Dispute for deal ${deal.reference} resolved. Milestone "${milestone.title}" payout to the worker is being processed.`,
         diasporaDealId: deal.id,
         channel:        'push'
       }).catch(() => {})
@@ -601,7 +602,12 @@ const getFundiDeals = async (req, res) => {
         orderBy: { createdAt: 'desc' },
         include: {
           milestones: { orderBy: { order: 'asc' } },
-          funder:     { select: { fullName: true, phone: true, avatarUrl: true } }
+          funder:     { select: { fullName: true, phone: true, avatarUrl: true } },
+            disputes:   {
+              select:  { id: true, bankDetailsRequested: true, refundBankName: true, refundAccountNo: true, status: true },
+              orderBy: { createdAt: 'desc' },
+              take:    1
+            }
         }
       }),
       prisma.diasporaDeal.count({ where })
@@ -611,6 +617,31 @@ const getFundiDeals = async (req, res) => {
   } catch (err) {
     logger.error(err, 'getFundiDeals error')
     return res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+}
+
+
+const signUpload = async (req, res) => {
+  try {
+    const { resourceType = 'image' } = req.body
+    const timestamp = Math.round(Date.now() / 1000)
+    const folder    = 'lipasafe/diaspora-work-proof'
+    const signature = cloudinary.utils.api_sign_request(
+      { folder, timestamp },
+      process.env.CLOUDINARY_API_SECRET
+    )
+    return res.json({
+      success:   true,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+      signature,
+      timestamp,
+      apiKey:    process.env.CLOUDINARY_API_KEY,
+      folder,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    })
+  } catch (err) {
+    logger.error(err, 'signUpload error')
+    return res.status(500).json({ success: false, message: 'Failed to sign upload' })
   }
 }
 
@@ -631,7 +662,14 @@ const submitWorkProof = async (req, res) => {
     if (!['PENDING', 'IN_PROGRESS'].includes(milestone.status))
       return res.status(400).json({ success: false, message: 'Milestone cannot accept work proof at this stage' })
 
-    const proofUrls = (req.files || []).map(f => f.path)
+    let proofUrls
+    if (req.body.proofUrls) {
+      proofUrls = Array.isArray(req.body.proofUrls)
+        ? req.body.proofUrls
+        : JSON.parse(req.body.proofUrls)
+    } else {
+      proofUrls = (req.files || []).map(f => f.path)
+    }
     if (!proofUrls.length)
       return res.status(400).json({ success: false, message: 'At least one proof file required' })
 
@@ -877,7 +915,7 @@ module.exports = {
   releaseMilestone,
   getMyDeals, getDeal, adminGetPendingDeals,
   adminGetDisputes, resolveDispute, dismissDispute,
-  getFundiDeals, submitWorkProof, disputeMilestone,
+  getFundiDeals, submitWorkProof, disputeMilestone, signUpload,
   requestRefundBankDetails, submitRefundBankDetails,
   getActivityLogs, adminGetAllDeals
 }

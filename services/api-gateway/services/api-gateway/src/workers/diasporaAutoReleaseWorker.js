@@ -41,16 +41,11 @@ const startDiasporaAutoReleaseWorker = () => {
       return
     }
 
-    // Notify the funder (boss) — executeDiasporaRelease already notifies the fundi
-    await createAndSend({
-      userId:         result.deal.funderId,
-      type:           'DIASPORA_AUTO_RELEASED',
-      messageEn:      `Milestone "${result.milestone.title}" auto-released after grace period. KES ${Number(result.milestone.amount).toLocaleString()} sent to ${result.deal.recipientName}.`,
-      diasporaDealId: dealId,
-      channel:        'push'
-    }).catch(() => {})
-
-    logger.info({ dealId, milestoneId }, 'Auto-release fired')
+    // NOTE: result.success here only means the B2C payout request was
+    // accepted by Safaricom — it does NOT mean the worker has been paid.
+    // The funder's "released" notification now happens in the B2C callback
+    // handler once payment is actually confirmed, not here.
+    logger.info({ dealId, milestoneId }, 'Auto-release payout request accepted — awaiting B2C confirmation')
   }, { connection, concurrency: 5 })
 
   worker.on('failed', (job, err) => logger.error({ jobId: job?.id, err: err.message }, 'Auto-release worker failed'))

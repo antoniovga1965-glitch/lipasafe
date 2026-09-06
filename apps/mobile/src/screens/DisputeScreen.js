@@ -187,6 +187,7 @@ export default function DisputeScreen({ navigation, route }) {
           value={description}
           onChangeText={setDescription}
           placeholder="Give as much detail as possible (min 10 characters)"
+          placeholderTextColor="#9ca3af"
           multiline
         />
 

@@ -68,7 +68,7 @@ exports.updateProfile = async (req, res) => {
     const { name, phone } = req.body
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { ...(name && { name }), ...(phone && { phone }) },
+      data: { ...(name && { fullName: name }), ...(phone && { phone }) },
     })
     res.json({ success: true, message: 'Profile updated' })
   } catch (err) {

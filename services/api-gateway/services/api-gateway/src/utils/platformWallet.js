@@ -53,4 +53,42 @@ const credit = async (db, amount, transactionId, note = 'Platform fee from escro
   })
 }
 
-module.exports = { getPlatformWalletId, credit }
+const debit = async (db, amount, transactionId, note = 'Platform fee reversal') => {
+  let walletId = await getPlatformWalletId()
+
+  const doUpdate = (id) => db.wallet.update({
+    where: { id },
+    data: {
+      availableBalance: { decrement: amount },
+      totalIn:          { decrement: amount },
+      lastUpdated:      new Date()
+    }
+  })
+
+  try {
+    await doUpdate(walletId)
+  } catch (err) {
+    if (err.code === 'P2025') {
+      cachedWalletId = null
+      walletId = await getPlatformWalletId()
+      await doUpdate(walletId)
+    } else {
+      throw err
+    }
+  }
+
+  await db.walletTransaction.upsert({
+    where:  { reference: transactionId },
+    update: { status: 'completed', amount },
+    create: {
+      fromWalletId: walletId,
+      type:         'refund',
+      amount,
+      reference:    transactionId,
+      note,
+      status:       'completed'
+    }
+  })
+}
+
+module.exports = { getPlatformWalletId, credit, debit }

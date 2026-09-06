@@ -38,7 +38,7 @@ export function logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
-  window.location.href = "/login"
+  window.location.href = "/auth/login"
   }
 }
 
@@ -74,13 +74,16 @@ export async function fetchDisputesAPI() {
 
 export async function resolveDisputeAPI(
   disputeId: string,
-  resolution: 'REFUND_FUNDER' | 'RELEASE_TO_WORKER',
-  adminNotes?: string
+  resolution: 'FAVOR_FUNDER' | 'FAVOR_CONTRACTOR',
+  secretaryNotes?: string
 ) {
-  const decision = resolution === 'FAVOR_FUNDER' ? 'refund' : 'release'
+  const outcome = resolution === 'FAVOR_FUNDER' ? 'REFUND_FUNDER' : 'RELEASE_TO_WORKER';
+  const resolutionText = secretaryNotes?.trim() && secretaryNotes.trim().length >= 5
+    ? secretaryNotes.trim()
+    : outcome === 'REFUND_FUNDER' ? 'Refund issued to funder' : 'Funds released to worker';
   return apiFetch(`/diaspora/admin/disputes/${disputeId}/resolve`, {
     method: 'POST',
-    body: JSON.stringify({ decision, resolution: resolution === 'FAVOR_FUNDER' ? 'REFUND_FUNDER' : 'RELEASE_TO_WORKER', adminNotes }),
+    body: JSON.stringify({ outcome, resolution: resolutionText, secretaryNotes }),
   })
 }
 
