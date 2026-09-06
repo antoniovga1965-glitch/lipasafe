@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently --names \"API,SECRETARY\" --prefix-colors \"green,blue\" \"npm run dev:api\" \"npm run dev:secretary\"",
-    "dev:api": "cd services/api-gateway/services/api-gateway && fuser -k 3000/tcp 2>/dev/null; sleep 1 && npm run dev",
+    "dev:api": "cd services/api-gateway/services/api-gateway/services/api-gateway && fuser -k 3000/tcp 2>/dev/null; sleep 1 && npm run dev",
     "dev:secretary": "cd apps/secretary && npm run dev"
   },
   "devDependencies": {
