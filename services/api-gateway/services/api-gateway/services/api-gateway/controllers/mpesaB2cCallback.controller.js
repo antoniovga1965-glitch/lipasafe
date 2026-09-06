@@ -187,6 +187,82 @@ const b2cResult = async (req, res) => {
       return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
     }
 
+    // ── DIASPORA PAYOUT fast-path ──
+    if (transactionId.startsWith('diaspora_payout:')) {
+      const milestoneId = transactionId.replace('diaspora_payout:', '')
+      const resultCode  = Number(ResultCode)
+      await redis.del(`originator:${OriginatorConversationID}`)
+
+      if (resultCode === 0) {
+        const milestone = await prisma.diasporaMilestone.findUnique({
+          where:   { id: milestoneId },
+          include: { deal: true }
+        })
+
+        if (!milestone) {
+          logger.warn('B2C diaspora_payout: milestone not found', { milestoneId })
+          return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
+        }
+
+        const deal = milestone.deal
+
+        // Atomic claim — same guard as handleDiasporaPayoutNotConfirmed.
+        // If the stuck-reconciler already confirmed this milestone via its
+        // own status query moments ago, count is 0 and we skip straight to
+        // returning — no duplicate notifications to funder/worker.
+        const claim = await prisma.diasporaMilestone.updateMany({
+          where: { id: milestoneId, status: 'PAYOUT_PROCESSING' },
+          data:  { status: 'RELEASED', releasedAt: new Date() }
+        })
+        if (claim.count === 0) {
+          logger.info('B2C diaspora_payout: lost race, already settled elsewhere', { milestoneId })
+          return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
+        }
+        await redis.del(`diaspora:retry:${milestoneId}`)
+
+        // Re-fetch fresh milestone state now that this release is confirmed,
+        // instead of relying on a pre-callback snapshot — avoids the stale
+        // "allReleased" race when multiple milestones release concurrently.
+        const freshMilestones = await prisma.diasporaMilestone.findMany({ where: { dealId: deal.id } })
+        const allReleased = freshMilestones.every(m => m.status === 'RELEASED')
+        await prisma.diasporaDeal.update({
+          where: { id: deal.id },
+          data:  { status: allReleased ? 'COMPLETED' : 'ACTIVE' }
+        })
+
+        logger.info('B2C diaspora_payout success', { milestoneId, mpesaRef })
+
+        try {
+          const fundiUser = await prisma.user.findFirst({ where: { phone: deal.recipientPhone }, select: { id: true } })
+          if (fundiUser) {
+            await createAndSend({
+              userId:         fundiUser.id,
+              type:           'DIASPORA_MILESTONE_RELEASED',
+              messageEn:      `KES ${new Decimal(milestone.amount).toFixed(2)} for "${milestone.title}" released. Ref: ${deal.reference}`,
+              diasporaDealId: deal.id,
+              channel:        'push'
+            })
+          }
+        } catch (notifErr) {
+          logger.error('Diaspora release push notification failed', { milestoneId, err: notifErr.message })
+        }
+
+        try {
+          const { sendSMSSafe } = require('../src/services/smsService')
+          await sendSMSSafe(deal.recipientPhone,
+            `LipaSafe: KES ${new Decimal(milestone.amount).toFixed(2)} for "${milestone.title}" released to your M-Pesa. Ref: ${deal.reference}`)
+        } catch (smsErr) {
+          logger.error('Diaspora release SMS failed', { milestoneId, err: smsErr.message })
+        }
+      } else {
+        logger.warn('B2C diaspora_payout failed — handing off to handleDiasporaPayoutNotConfirmed', { milestoneId, ResultCode, ResultDesc })
+        const { handleDiasporaPayoutNotConfirmed } = require('./diasporaPayoutTransitions')
+        await handleDiasporaPayoutNotConfirmed(milestoneId, { reason: 'callback_failure', resultCode: ResultCode, resultDesc: ResultDesc })
+      }
+
+      return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
+    }
+
     // ── REQUEST MONEY fast-path ──
     if (transactionId.startsWith('request_money:')) {
       const requestId  = transactionId.replace('request_money:', '')

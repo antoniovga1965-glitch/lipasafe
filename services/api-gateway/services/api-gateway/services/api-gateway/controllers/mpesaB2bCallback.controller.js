@@ -1,11 +1,7 @@
 'use strict'
-const prisma        = require('../src/utils/prisma')
-const logger        = require('../src/utils/logger')
-const redis         = require('../src/utils/redis')
-const smsQueue      = require('../src/queues/smsQueue')
-const b2bRetryQueue = require('../src/queues/b2cRetryQueue')
-const pw            = require('../src/utils/platformWallet')
-const { createAndSend: b2bNotify } = require('../src/services/notificationService')
+const prisma   = require('../src/utils/prisma')
+const logger   = require('../src/utils/logger')
+const smsQueue = require('../src/queues/smsQueue')
 const { fromDecimal } = require('../src/utils/helpers')
 
 const b2bResult = async (req, res) => {
@@ -21,8 +17,18 @@ const b2bResult = async (req, res) => {
       fullBody: JSON.stringify(req.body) 
     })
 
+    const redis = require('../src/utils/redis')
+    
+    // ── DEBUG: dump all b2b keys and their values ──
+    const allKeys = await redis.keys('b2b:*')
+    for (const key of allKeys) {
+      const val = await redis.get(key)
+      logger.warn('B2B redis dump', { key, value: val })
+    }
+    console.log('=== B2B CALLBACK DEBUG ===', JSON.stringify({ allKeys, OriginatorConversationID }, null, 2))
+    logger.warn('B2B redis keys at callback time', { allKeys, OriginatorConversationID })
+
     let transactionId = null
-    let allKeys = null
 
     // 1. Primary: lookup by transaction.b2bOriginatorId
     const txRecord = await prisma.transaction.findFirst({
@@ -62,9 +68,8 @@ const b2bResult = async (req, res) => {
       }
     }
 
-    // 4. Fallback: scan forward keys (lazy — only if all prior lookups missed)
+    // 4. Fallback: scan forward keys
     if (!transactionId) {
-      allKeys = await redis.keys('b2b:*')
       for (const key of allKeys) {
         if (key.startsWith('b2b:reverse:') || key.startsWith('b2b:retry:')) continue
         const val = await redis.get(key)
@@ -89,8 +94,8 @@ const b2bResult = async (req, res) => {
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
-        buyer:  { select: { id: true, phone: true } },
-        seller: { select: { id: true, phone: true } }
+        buyer:  { select: { phone: true } },
+        seller: { select: { phone: true } }
       }
     })
     if (!transaction) {
@@ -100,17 +105,28 @@ const b2bResult = async (req, res) => {
 
     // ── SUCCESS ──
     if (ResultCode === 0) {
+      // Fetch full transaction for platform fee and reputation
+      const txFull = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: {
+          buyer:  { select: { id: true, phone: true } },
+          seller: { select: { id: true, phone: true } }
+        }
+      })
+
       // ── IDEMPOTENCY GUARD: Safaricom retries callbacks on non-200/timeout ──
-      if (transaction.state === 'released') {
+      if (txFull.state === 'released') {
         logger.info('B2B result: duplicate callback, already released — skipping side effects', { transactionId, mpesaRef })
         return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
       }
+
+      const pw = require('../src/utils/platformWallet')
       await prisma.$transaction(async (db) => {
         await db.transaction.update({
           where: { id: transactionId },
           data: { state: 'released', completedAt: new Date(), mpesaReceipt: mpesaRef }
         })
-        await pw.credit(db, fromDecimal(transaction.platformFee).toNumber(), transactionId)
+        await pw.credit(db, fromDecimal(txFull.platformFee).toNumber(), transactionId)
         await db.auditLog.create({
           data: {
             actorType: 'system',
@@ -126,7 +142,7 @@ const b2bResult = async (req, res) => {
       // Reputation bump (outside transaction, fire-and-forget)
       await Promise.allSettled([
         prisma.user.update({ 
-          where: { id: transaction.buyerId }, 
+          where: { id: txFull.buyerId }, 
           data: { 
             reputationScore: { increment: 0.5 }, 
             totalTransactions: { increment: 1 }, 
@@ -134,7 +150,7 @@ const b2bResult = async (req, res) => {
           } 
         }),
         prisma.user.update({ 
-          where: { id: transaction.sellerId }, 
+          where: { id: txFull.sellerId }, 
           data: { 
             reputationScore: { increment: 0.5 }, 
             totalTransactions: { increment: 1 }, 
@@ -143,37 +159,39 @@ const b2bResult = async (req, res) => {
         })
       ])
 
-      const notifyPhone = transaction.notifyPhone || transaction.seller.phone
-      const isTill = transaction.sellerTill != null
-      if (transaction.category === 'second_hand') {
+      const notifyPhone = txFull.notifyPhone || txFull.seller.phone
+      const isTill = txFull.sellerTill != null
+      const { createAndSend: b2bNotify } = require('../src/services/notificationService')
+
+      if (txFull.category === 'second_hand') {
         // Push notifications — Safaricom confirmed, safe to tell users
-        await b2bNotify({ userId: transaction.sellerId, type: 'money_released', transactionId,
-          messageEn: `KES ${transaction.sellerReceives} released to your account. Ref: ${transaction.referenceNo}` }).catch(() => {})
-        await b2bNotify({ userId: transaction.buyerId, type: 'money_released', transactionId,
-          messageEn: `Transaction complete. Funds sent to seller. Ref: ${transaction.referenceNo}` }).catch(() => {})
+        await b2bNotify({ userId: txFull.sellerId, type: 'money_released', transactionId,
+          messageEn: `KES ${txFull.sellerReceives} released to your account. Ref: ${txFull.referenceNo}` }).catch(() => {})
+        await b2bNotify({ userId: txFull.buyerId, type: 'money_released', transactionId,
+          messageEn: `Transaction complete. Funds sent to seller. Ref: ${txFull.referenceNo}` }).catch(() => {})
         await smsQueue.add('second_hand_released_seller', {
           type:          'second_hand_released_seller',
           phone:         notifyPhone,
-          amount:        transaction.sellerReceives.toString(),
+          amount:        txFull.sellerReceives.toString(),
           transactionId,
         })
         await smsQueue.add('second_hand_released_buyer', {
           type:          'second_hand_released_buyer',
-          phone:         transaction.buyer.phone,
+          phone:         txFull.buyer.phone,
           transactionId,
         })
       } else {
         await smsQueue.add('bundle_released_seller', {
           type: isTill ? 'bundle_released_seller_till' : 'bundle_released_seller',
           phone: notifyPhone,
-          amount: transaction.sellerReceives.toString(),
-          sellerTill: transaction.sellerTill || null,
-          referenceNo: transaction.referenceNo
+          amount: txFull.sellerReceives.toString(),
+          sellerTill: txFull.sellerTill || null,
+          referenceNo: txFull.referenceNo
         })
         await smsQueue.add('bundle_released_buyer', {
           type: 'bundle_released_buyer',
-          phone: transaction.buyer.phone,
-          referenceNo: transaction.referenceNo
+          phone: txFull.buyer.phone,
+          referenceNo: txFull.referenceNo
         })
       }
 
@@ -190,23 +208,12 @@ const b2bResult = async (req, res) => {
       
       await redis.del(`b2b:${transactionId}`)
       await redis.del(`b2b:reverse:${OriginatorConversationID}`)
-      if (ConversationID) await redis.del(`b2b:reverse:${ConversationID}`)
       await redis.del(`b2b:retry:${transactionId}`)
       
       logger.info('B2B payout confirmed', { transactionId, mpesaRef })
 
     // ── FAILURE ──
     } else {
-      // ── IDEMPOTENCY GUARD: duplicate failure callbacks must not double-refund ──
-      const currentTx = await prisma.transaction.findUnique({
-        where: { id: transactionId },
-        select: { state: true }
-      })
-      if (currentTx?.state === 'confirmed') {
-        logger.warn('B2B failure: duplicate callback, already refunded — skipping', { transactionId, ResultCode })
-        return res.json({ ResultCode: 0, ResultDesc: 'Accepted' })
-      }
-
       const retryKey = `b2b:retry:${transactionId}`
       const retryCount = parseInt(await redis.get(retryKey) || '0', 10)
       const nextAttempt = retryCount + 1
@@ -256,7 +263,8 @@ const b2bResult = async (req, res) => {
         
         await redis.set(retryKey, nextAttempt, 'EX', 86400)
         
-        await b2bRetryQueue.add('retry_release', { transactionId }, { delay: delayMs })
+        const b2cRetryQueue = require('../src/queues/b2cRetryQueue')
+        await b2cRetryQueue.add('retry_release', { transactionId }, { delay: delayMs })
         
         logger.warn('B2B payout failed — retry queued', {
           transactionId, 

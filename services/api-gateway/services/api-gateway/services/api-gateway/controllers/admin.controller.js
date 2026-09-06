@@ -26,6 +26,8 @@ async function getDashboardStats(req, res) {
       walletHeld, protectedTransferHeld,
       recentWalletTx, recentProtectedTransfer,
       orderRevenueData, revenueThisMonthData,
+      processedTx, processedFundi, processedDelivery,
+      processedHouse, processedCustom, processedOrder, processedWallet,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { accountStatus: 'active' } }),
@@ -78,6 +80,13 @@ async function getDashboardStats(req, res) {
       }),
       prisma.order.aggregate({ where: { state: { in: ['RELEASED', 'AUTO_RELEASED'] } }, _sum: { platformFee: true } }),
       prisma.walletTransaction.aggregate({ where: { type: 'platform_fee', status: 'completed', createdAt: { gte: startOfMonth } }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { state: { notIn: ['initiated','cancelled'] } }, _sum: { amount: true } }),
+      prisma.fundiJob.aggregate({ where: { status: { notIn: ['PENDING_PAYMENT','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.deliveryOrder.aggregate({ where: { status: { notIn: ['PENDING_PAYMENT','PAYMENT_FAILED'] } }, _sum: { amount: true } }),
+      prisma.houseEscrow.aggregate({ where: { status: { notIn: ['PENDING_ACCEPTANCE','PENDING_PAYMENT','PAYMENT_INITIATING','REJECTED','EXPIRED','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.customEscrow.aggregate({ where: { status: { notIn: ['PENDING_ACCEPTANCE','PENDING_PAYMENT','PAYMENT_INITIATING','REJECTED','CANCELLED'] } }, _sum: { amount: true } }),
+      prisma.order.aggregate({ _sum: { amount: true } }),
+      prisma.walletTransaction.aggregate({ where: { type: 'send' }, _sum: { amount: true } }),
     ])
 
     const mergedRecent = [
@@ -119,6 +128,15 @@ async function getDashboardStats(req, res) {
     const heldEscrowCount = heldTxs._count + fundiHeld._count + deliveryHeld._count + houseHeld._count + customHeld._count + orderHeld._count + walletHeld._count + protectedTransferHeld._count
     const heldEscrowAmount = Number(heldTxs._sum.amount || 0) + Number(fundiHeld._sum.amount || 0) + Number(deliveryHeld._sum.amount || 0) + Number(houseHeld._sum.amount || 0) + Number(customHeld._sum.amount || 0) + Number(orderHeld._sum.amount || 0) + Number(walletHeld._sum.amount || 0) + Number(protectedTransferHeld._sum.amount || 0)
 
+    const totalProcessed =
+      Number(processedTx?._sum?.amount || 0) +
+      Number(processedFundi?._sum?.amount || 0) +
+      Number(processedDelivery?._sum?.amount || 0) +
+      Number(processedHouse?._sum?.amount || 0) +
+      Number(processedCustom?._sum?.amount || 0) +
+      Number(processedOrder?._sum?.amount || 0) +
+      Number(processedWallet?._sum?.amount || 0)
+
     res.json({
       success: true,
       stats: {
@@ -132,6 +150,7 @@ async function getDashboardStats(req, res) {
         orderRevenue: Number(orderRevenueData?._sum?.platformFee || 0),
         totalRevenue: Number(revenueData?.wallet?.availableBalance || 0),
         revenueThisMonth: Number(revenueThisMonthData?._sum?.amount || 0),
+        totalProcessed,
       },
       recentTxs: mergedRecent,
     })

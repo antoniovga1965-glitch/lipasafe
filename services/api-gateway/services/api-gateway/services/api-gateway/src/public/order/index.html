@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LipaSafe Order</title>
+<style>
+  :root{
+    --ink:#0E1B14; --paper:#F7F5F0; --green:#1F7A4D; --green-deep:#143F28;
+    --amber:#B5781E; --red:#8C2F2F; --line:#D8D2C4; --gray:#6B6B63;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--paper); color:var(--ink); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:24px 16px 60px;
+  }
+  .wrap{width:100%; max-width:420px;}
+  .brand{font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--gray); margin-bottom:6px;}
+  .ref{font-size:22px; font-weight:700; margin-bottom:20px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:14px;}
+  .row{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:15px;}
+  .row:last-child{border-bottom:none;}
+  .row .label{color:var(--gray);}
+  .row .val{font-weight:600;}
+  .amount{font-size:34px; font-weight:800; color:var(--green-deep); margin:4px 0 2px;}
+  .amount-label{font-size:13px; color:var(--gray); margin-bottom:14px;}
+  .state-pill{display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin-bottom:14px;}
+  .state-held{background:#E8F3EC; color:var(--green);}
+  .state-disputed{background:#FBEAEA; color:var(--red);}
+  .state-closed{background:#EEECE4; color:var(--gray);}
+  textarea, input[type=file]{width:100%; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:15px; margin-top:6px; font-family:inherit;}
+  label.field{display:block; font-size:13px; font-weight:600; margin-top:14px; color:var(--ink);}
+  button{width:100%; padding:15px; border:none; border-radius:12px; font-size:16px; font-weight:700; margin-top:16px; cursor:pointer;}
+  .btn-primary{background:var(--green); color:#fff;}
+  .btn-primary:disabled{background:#A9C9B6; cursor:not-allowed;}
+  .note{font-size:13px; color:var(--gray); margin-top:10px; line-height:1.5;}
+  .footer{font-size:12px; color:var(--gray); margin-top:24px; text-align:center;}
+  .timer{font-size:13px; color:var(--amber); margin-bottom:4px; font-weight:600;}
+  .closed-banner{background:var(--green-deep); color:#fff; padding:14px; border-radius:12px; text-align:center; font-weight:700; margin-bottom:14px; font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">LipaSafe Escrow</div>
+  <div class="ref" id="refLabel">Order —</div>
+  <div id="closedBanner" style="display:none" class="closed-banner"></div>
+  <div class="card" id="orderCard">
+    <span class="state-pill" id="statePill">Loading</span>
+    <div class="amount" id="amountVal">KES —</div>
+    <div class="amount-label">Held in escrow</div>
+    <div class="row"><span class="label">Service</span><span class="val" id="serviceVal">—</span></div>
+    <div class="row"><span class="label">Area</span><span class="val" id="areaVal">—</span></div>
+    <div class="row"><span class="label">Buyer</span><span class="val" id="buyerVal">—</span></div>
+    <div class="timer" id="timerVal"></div>
+  </div>
+  <div class="card" id="evidenceCard" style="display:none">
+    <strong>Dispute raised — submit your evidence</strong>
+    <p class="note">The buyer disputed this order. Upload proof of delivery and explain what happened. This will be reviewed by LipaSafe support.</p>
+    <label class="field">Photo evidence</label>
+    <input type="file" id="evidenceFile" accept="image/*">
+    <label class="field">Your note</label>
+    <textarea id="evidenceNote" rows="4" placeholder="Explain what happened..."></textarea>
+    <button class="btn-primary" id="submitEvidenceBtn">Submit evidence</button>
+    <p class="note" id="evidenceStatus"></p>
+  </div>
+  <div class="footer">Need help? Contact LipaSafe support · This page is bound to your phone number</div>
+</div>
+<script>
+  const ref = window.location.pathname.split('/').filter(Boolean).pop();
+  const API_BASE = '';
+
+  const els = {
+    refLabel: document.getElementById('refLabel'),
+    statePill: document.getElementById('statePill'),
+    amountVal: document.getElementById('amountVal'),
+    serviceVal: document.getElementById('serviceVal'),
+    areaVal: document.getElementById('areaVal'),
+    buyerVal: document.getElementById('buyerVal'),
+    timerVal: document.getElementById('timerVal'),
+    evidenceCard: document.getElementById('evidenceCard'),
+    closedBanner: document.getElementById('closedBanner'),
+  };
+
+  const STATE_PILL = {
+    HELD:           {cls:'state-held',     label:'Awaiting action'},
+    DISPUTED:       {cls:'state-disputed', label:'Disputed'},
+    RELEASED:       {cls:'state-closed',   label:'Released'},
+    RESOLVED_BUYER: {cls:'state-closed',   label:'Resolved · Buyer'},
+    RESOLVED_SELLER:{cls:'state-closed',   label:'Resolved · Seller'},
+    AUTO_RELEASED:  {cls:'state-closed',   label:'Auto-released'},
+  };
+
+  async function loadOrder() {
+    try {
+      const res = await fetch(`${API_BASE}/link/${ref}`);
+      const order = await res.json();
+      render(order);
+    } catch (e) {
+      els.statePill.textContent = 'Error loading order';
+    }
+  }
+
+  function render(order) {
+    els.refLabel.textContent = `Order ${order.reference}`;
+    els.amountVal.textContent = `KES ${Number(order.amount).toLocaleString()}`;
+    els.serviceVal.textContent = order.service || '—';
+    els.areaVal.textContent = order.area || '—';
+    els.buyerVal.textContent = order.buyerMasked || 'Buyer';
+
+    const pill = STATE_PILL[order.state] || {cls:'state-closed', label: order.state};
+    els.statePill.className = `state-pill ${pill.cls}`;
+    els.statePill.textContent = pill.label;
+
+    if (order.state === 'HELD' && order.expiresAt) {
+      els.timerVal.textContent = `Auto-release at ${new Date(order.expiresAt).toLocaleString()}`;
+    }
+
+    const isClosed = ['RELEASED','RESOLVED_BUYER','RESOLVED_SELLER','AUTO_RELEASED'].includes(order.state);
+    if (isClosed) {
+      els.closedBanner.style.display = 'block';
+      els.closedBanner.textContent = `This order is closed — ${pill.label}`;
+      els.evidenceCard.style.display = 'none';
+    } else if (order.state === 'DISPUTED') {
+      els.evidenceCard.style.display = 'block';
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('submitEvidenceBtn').addEventListener('click', async () => {
+    const note = document.getElementById('evidenceNote').value.trim();
+    const file = document.getElementById('evidenceFile').files[0];
+    const statusEl = document.getElementById('evidenceStatus');
+
+    if (!note || note.length < 5) { statusEl.textContent = 'Please add a note describing what happened (min 5 characters).'; return; }
+
+    statusEl.textContent = 'Submitting...';
+    try {
+      const payload = { sellerNote: note };
+      if (file) payload.photo = await fileToBase64(file);
+
+      const res = await fetch(`${API_BASE}/link/${ref}/evidence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Submit failed');
+      statusEl.textContent = 'Evidence submitted. Admin will review and notify you by SMS.';
+      document.getElementById('submitEvidenceBtn').disabled = true;
+    } catch (e) {
+      statusEl.textContent = e.message || 'Could not submit. Check your connection and try again.';
+    }
+  });
+
+  loadOrder();
+</script>
+</body>
+</html>
