@@ -4,8 +4,5 @@ nixPkgs = ["nodejs_22"]
 [phases.install]
 cmds = ["npm install --no-audit"]
 
-[phases.build]
-cmds = ["npx prisma generate"]
-
 [start]
 cmd = "node src/server.js"
