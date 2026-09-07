@@ -5,7 +5,7 @@ const logger                     = require('../utils/logger')
 const { createAndSend }          = require('../services/notificationService')
 const { executeDiasporaRelease } = require('../services/diasporaReleaseService')
 
-const connection = { host: process.env.REDIS_HOST || '127.0.0.1', port: Number(process.env.REDIS_PORT) || 6379 }
+const connection = { host: process.env.REDIS_HOST || '127.0.0.1', port: Number(process.env.REDIS_PORT) || 6379, password: process.env.REDIS_PASSWORD }
 
 const diasporaReleaseQueue = new Queue('diaspora-auto-release', { connection })
 
