@@ -154,7 +154,7 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
 
-    if (item.type === 'DIASPORA_BANK_DETAILS_REQUESTED' && item.diasporaDealId) {
+    if ((item.type === 'DIASPORA_BANK_DETAILS_REQUESTED' || item.type === 'DIASPORA_DEAL_EXPIRED') && item.diasporaDealId) {
       navigation.navigate('PayTab', { screen: 'DiasporaJob', params: { dealId: item.diasporaDealId, showBankDetailsModal: true } });
       return;
     }
