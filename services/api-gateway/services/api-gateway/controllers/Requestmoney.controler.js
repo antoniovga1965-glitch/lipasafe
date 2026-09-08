@@ -61,7 +61,7 @@ const createRequest = async (req, res) => {
         message: 'recipientPhone, amount, and purpose are required',
       })
     }
-    if (Number(amount) < 10) {
+    if (!amount || isNaN(Number(amount)) || Number(amount) < 10) {
       return res.status(400).json({ success: false, message: 'Minimum request amount is KES 10' })
     }
     if (!VALID_PURPOSES.includes(purpose)) {
@@ -111,7 +111,7 @@ const createRequest = async (req, res) => {
     // ── Build message strings ─────────────────────────────────────────────────
     const purposeLabel = PURPOSE_LABELS[purpose]
     const noteStr      = note?.trim() ? ` — ${note.trim()}` : ''
-    const requestLink  = `${process.env.APP_BASE_URL || 'https://lipasafe.com'}/request/${request.id}`
+    const requestLink  = `${process.env.APP_BASE_URL || 'https://lipasafe.co.ke'}/request/${request.id}`
 
     const recipientMsg =
       `${requester.fullName} is requesting KES ${fees.recipientPays.toNumber()} from you` +

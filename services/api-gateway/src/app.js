@@ -35,13 +35,15 @@ const houseLinkRoutes      = require('./routes/house-link.routes')
 const uploadRoutes         = require('./routes/upload.routes')
 const requestMoneyRoutes      = require('./routes/requestMoney.routes')
 const requestMoneyMpesaRoutes = require('./routes/requestMoneyMpesa.routes')
+const diasporaRoutes   = require('./routes/diaspora.routes')
+const secretaryRoutes = require('./routes/secretary.routes')
 
 const app = express()
 app.use(express.static(path.join(__dirname, '../public')))
 app.set('trust proxy', 1)
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────
-app.use(helmet())
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',')
 if (!allowedOrigins && process.env.NODE_ENV === 'production') {
@@ -95,6 +97,8 @@ app.use('/house-link',       houseLinkRoutes)
 app.use('/upload',           uploadRoutes)
 app.use('/request-money',       requestMoneyRoutes)
 app.use('/request-money-mpesa', safaricomOnly, requestMoneyMpesaRoutes)
+app.use('/diaspora',   diasporaRoutes)
+app.use('/secretary', secretaryRoutes)
 // Relaxed CSP for seller link page — allows inline scripts (no user data here)
 app.use('/order', helmet.contentSecurityPolicy({
   directives: {

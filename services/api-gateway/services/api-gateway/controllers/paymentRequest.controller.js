@@ -223,10 +223,8 @@ const payRequest = async (req, res) => {
 
     try {
       await smsQueue.add('payment-request-paid', {
-        phone: request.requester.phone,
-        senderName: sender.fullName || sender.phone,
-        amount: amount.toFixed(2),
-        referenceNo: txReference,
+        phone: sender.phone,
+        senderPhone: sender.phone,
         type: 'payment_received'
       })
     } catch (e) {}

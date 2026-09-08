@@ -691,7 +691,7 @@ const openDispute = async (req, res) => {
     if (adminPhone) {
       try {
         await smsQueue.add("send-sms", {
-          type: "raw",
+        type: "raw",
           to: adminPhone,
           message: `LIPASAFE: Custom deal dispute opened. Escrow: ${escrowId.slice(0, 8).toUpperCase()}. Reason: ${reason}. Role: ${isBuyer ? "buyer" : "counterparty"}.`,
         });
@@ -737,6 +737,7 @@ const openDispute = async (req, res) => {
             // Not registered — fall back to SMS
             smsQueue
               .add("send-sms", {
+                type: "raw",
                 to: escrow.counterpartyPhone,
                 message: `LipaSafe: A dispute has been opened on your deal "${escrow.title}". Log in or register at lipasafe.com to respond within 48 hours or funds may be returned to the buyer.`,
               })

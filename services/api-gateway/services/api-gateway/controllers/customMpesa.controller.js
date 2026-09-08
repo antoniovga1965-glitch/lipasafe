@@ -215,6 +215,7 @@ const customMpesaCallback = async (req, res) => {
         const smsQ = require('../src/queues/smsQueue')
         try {
           await smsQ.add('send-sms', {
+        type: 'raw',
             to: adminPhone,
             message: `LIPASAFE CRITICAL: Custom escrow payment mismatch. Escrow: ${mpesaTx.escrowId.slice(0, 8).toUpperCase()}. Expected KES ${expectedAmount.toFixed(2)}, got KES ${callbackAmount.toFixed(2)}. Manual review required NOW.`,
           })
@@ -250,10 +251,12 @@ const customMpesaCallback = async (req, res) => {
     const smsQ = require('../src/queues/smsQueue')
     try {
       await smsQ.add('send-sms', {
+        type: 'raw',
         to:      normalizePhone(buyer.phone),
         message: `LipaSafe: KES ${Number(escrow.amount).toFixed(0)} held in escrow for "${escrow.title}". Ref: ${mpesaRef}. Complete the deal and confirm when done.`,
       })
       await smsQ.add('send-sms', {
+        type: 'raw',
         to:      escrow.counterpartyPhone,
         message: `LipaSafe: KES ${Number(escrow.counterpartyReceives).toFixed(0)} is held in escrow for "${escrow.title}". Complete your side of the deal.`,
       })

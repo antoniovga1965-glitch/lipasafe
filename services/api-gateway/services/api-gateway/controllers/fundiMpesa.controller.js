@@ -86,10 +86,10 @@ const initiateFundiPayment = async (req, res) => {
       TransactionDesc:   'Fundi Job Payment',
     }
 
-    const response = await withRetry(() => axios.post(`${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`, payload, {
+    const response = await axios.post(`${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`, payload, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 30000,
-      }))
+      })
 
     const data = response.data
     if (data.ResponseCode !== '0') {
@@ -176,7 +176,7 @@ const fundiMpesaCallback = async (req, res) => {
     if (!job) return
 
     // Generate OTP
-    const otp        = Math.floor(1000 + Math.random() * 9000).toString()
+    const otp        = crypto.randomInt(1000, 10000).toString()
     const otpHash    = require('crypto').createHash('sha256').update(otp).digest('hex')
     const otpExpiry  = new Date(Date.now() + 30 * 60 * 1000) 
 
