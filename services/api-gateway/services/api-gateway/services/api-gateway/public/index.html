@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LipaSafe — Lipa Salama. Daima.</title>
+  <meta name="description" content="Kenya's secure escrow payment app. Your money only moves when you're satisfied — powered by M-Pesa.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #F8F9FB;
+      --dark: #080E1A;
+      --green: #00A86B;
+      --green-light: #00C47A;
+      --green-dark: #006644;
+      --green-mint: #EEF9F4;
+      --text: #1A2332;
+      --muted: #6B7A8D;
+      --border: #E2E8F0;
+      --white: #FFFFFF;
+      --danger: #DC2626;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Scroll animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .d1 { transition-delay: 0.1s; }
+    .d2 { transition-delay: 0.2s; }
+    .d3 { transition-delay: 0.3s; }
+    .d4 { transition-delay: 0.4s; }
+    .d5 { transition-delay: 0.5s; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(248,249,251,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 20px; font-weight: 900; color: var(--dark);
+      letter-spacing: -0.5px; text-decoration: none;
+    }
+    .nav-logo span { color: var(--green); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-nav {
+      background: var(--green); color: white;
+      padding: 10px 22px; border-radius: 10px;
+      font-size: 14px; font-weight: 700; text-decoration: none;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-nav:hover {
+      background: var(--green-light);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(0,168,107,0.3);
+      color: white;
+    }
+
+    /* HERO */
+    .hero {
+      background: var(--dark);
+      padding: 112px 40px 96px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -30%; left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 900px;
+      background: radial-gradient(circle, rgba(0,168,107,0.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,168,107,0.15);
+      border: 1px solid rgba(0,168,107,0.3);
+      color: #6ee7b7; padding: 6px 18px;
+      border-radius: 100px; font-size: 13px; font-weight: 600;
+      margin-bottom: 48px; letter-spacing: 0.3px;
+    }
+    .hero-swahili {
+      font-size: clamp(52px, 9vw, 96px);
+      font-weight: 900; line-height: 1.0;
+      letter-spacing: -4px; color: white;
+      margin-bottom: 6px;
+    }
+    .hero-translation {
+      font-size: clamp(15px, 2vw, 20px);
+      color: rgba(255,255,255,0.32);
+      font-weight: 600; letter-spacing: -0.3px;
+      margin-bottom: 56px;
+    }
+    .hero-body {
+      font-size: clamp(16px, 2vw, 19px);
+      color: rgba(255,255,255,0.6);
+      max-width: 480px; margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+    .hero-body strong { color: #6ee7b7; font-weight: 700; }
+    .hero-btns {
+      display: flex; gap: 12px;
+      justify-content: center; flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--green); color: white;
+      padding: 18px 36px; border-radius: 14px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+    }
+    .btn-primary:hover {
+      background: var(--green-light);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(0,168,107,0.35);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: transparent; color: white;
+      padding: 18px 36px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; text-decoration: none;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.35);
+    }
+    .hero-meta {
+      font-size: 13px; color: rgba(255,255,255,0.28);
+      display: flex; gap: 6px; justify-content: center;
+      flex-wrap: wrap; align-items: center;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+    .hero-meta span + span::before { content: '·'; color: rgba(255,255,255,0.15); }
+
+    /* TRUST BAR */
+    .trustbar {
+      background: var(--green-mint);
+      border-bottom: 1px solid #d1fae5;
+      padding: 22px 40px;
+    }
+    .trustbar-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; gap: 40px;
+      justify-content: center; align-items: center; flex-wrap: wrap;
+    }
+    .t-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; font-weight: 600; color: var(--green-dark);
+    }
+    .t-dot {
+      width: 7px; height: 7px;
+      background: var(--green); border-radius: 50%; flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* PROBLEM */
+    .problem-wrap {
+      background: var(--white);
+      padding: 96px 40px;
+    }
+    .inner { max-width: 960px; margin: 0 auto; }
+
+    .eyebrow {
+      font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 4px;
+      color: var(--green); margin-bottom: 16px;
+    }
+    .h2 {
+      font-size: clamp(28px, 4vw, 46px);
+      font-weight: 900; line-height: 1.1;
+      letter-spacing: -1.5px; color: var(--dark);
+      margin-bottom: 16px;
+    }
+    .lead {
+      font-size: 17px; color: var(--muted);
+      line-height: 1.7; max-width: 540px;
+      margin-bottom: 48px;
+    }
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+      gap: 16px;
+    }
+    .p-card {
+      background: #FFF5F5;
+      border: 1px solid #FECACA;
+      border-radius: 16px; padding: 28px;
+    }
+    .p-card-ico { font-size: 26px; margin-bottom: 14px; }
+    .p-card h3 {
+      font-size: 15px; font-weight: 800;
+      color: #B91C1C; margin-bottom: 8px; letter-spacing: -0.3px;
+    }
+    .p-card p { font-size: 14px; color: #78350F; line-height: 1.6; }
+
+    /* HOW IT WORKS */
+    .how-wrap { padding: 96px 40px; }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px; margin-top: 48px;
+    }
+    .s-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px 26px;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .s-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.08);
+    }
+    .s-num {
+      font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 3px;
+      color: var(--green); margin-bottom: 20px;
+    }
+    .s-card h3 {
+      font-size: 17px; font-weight: 800;
+      color: var(--dark); margin-bottom: 10px; letter-spacing: -0.4px;
+    }
+    .s-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* VERTICALS */
+    .verticals-wrap {
+      background: var(--dark);
+      padding: 96px 40px;
+    }
+    .verticals-wrap .h2 { color: white; }
+    .verticals-wrap .lead { color: rgba(255,255,255,0.45); margin-bottom: 40px; }
+    .verticals-wrap .eyebrow { color: #6ee7b7; }
+    .v-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
+      gap: 16px;
+    }
+    .v-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 28px;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .v-card:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(0,168,107,0.4);
+      transform: translateY(-2px);
+    }
+    .v-ico { font-size: 28px; margin-bottom: 16px; display: block; }
+    .v-card h3 {
+      font-size: 16px; font-weight: 800;
+      color: white; margin-bottom: 8px; letter-spacing: -0.3px;
+    }
+    .v-card p { font-size: 13px; color: rgba(255,255,255,0.42); line-height: 1.6; }
+    .v-tag {
+      display: inline-block;
+      background: rgba(0,168,107,0.18);
+      color: #6ee7b7; font-size: 10px; font-weight: 800;
+      padding: 3px 10px; border-radius: 100px;
+      margin-top: 16px; letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* SECURITY */
+    .security-wrap {
+      background: var(--white);
+      padding: 96px 40px;
+    }
+    .sec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px; margin-top: 48px;
+    }
+    .sec-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .sec-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.07);
+    }
+    .sec-ico {
+      width: 44px; height: 44px;
+      background: var(--green-mint);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 18px;
+    }
+    .sec-card h3 {
+      font-size: 15px; font-weight: 800;
+      color: var(--dark); margin-bottom: 8px; letter-spacing: -0.3px;
+    }
+    .sec-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* POLICY */
+    .policy-wrap {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 96px 40px;
+    }
+    .policy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px; margin-top: 48px;
+    }
+    .pol-group h3 {
+      font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 4px;
+      color: var(--green); margin-bottom: 22px;
+    }
+    .pol-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .pol-list li {
+      display: flex; gap: 12px;
+      font-size: 14px; color: var(--text); line-height: 1.55;
+    }
+    .pol-list li::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      margin-top: 7px; flex-shrink: 0;
+    }
+    .pol-list.red li::before { background: var(--danger); }
+
+    /* CTA */
+    .cta-wrap {
+      background: linear-gradient(135deg, #00793F 0%, #00A86B 55%, #00C47A 100%);
+      padding: 108px 40px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-wrap::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M0 0h40v40H0zm40 40h40v40H40z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    .cta-wrap h2 {
+      font-size: clamp(32px, 5vw, 60px);
+      font-weight: 900; color: white;
+      letter-spacing: -2px; margin-bottom: 16px;
+      position: relative;
+    }
+    .cta-wrap > p {
+      font-size: 18px; color: rgba(255,255,255,0.78);
+      margin-bottom: 44px; position: relative;
+    }
+    .cta-btns {
+      display: flex; gap: 12px;
+      justify-content: center; flex-wrap: wrap;
+      position: relative; margin-bottom: 24px;
+    }
+    .btn-cta-dark {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--dark); color: white;
+      padding: 18px 36px; border-radius: 14px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-cta-dark:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(8,14,26,0.35);
+    }
+    .btn-cta-ghost {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: transparent; color: white;
+      padding: 18px 36px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; text-decoration: none;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      transition: all 0.2s;
+    }
+    .btn-cta-ghost:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .cta-meta {
+      font-size: 13px; color: rgba(255,255,255,0.45);
+      position: relative;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--dark);
+      padding: 64px 40px 40px;
+    }
+    .footer-top {
+      max-width: 960px; margin: 0 auto;
+      display: flex; justify-content: space-between;
+      align-items: flex-start; flex-wrap: wrap;
+      gap: 40px; margin-bottom: 48px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .footer-brand h2 {
+      font-size: 22px; font-weight: 900; color: white;
+      letter-spacing: -0.5px; margin-bottom: 8px;
+    }
+    .footer-brand h2 span { color: var(--green); }
+    .footer-brand p { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.7; }
+    .footer-cols { display: flex; gap: 56px; flex-wrap: wrap; }
+    .footer-col h4 {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 3.5px;
+      color: rgba(255,255,255,0.25); margin-bottom: 18px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .footer-col ul a {
+      font-size: 14px; color: rgba(255,255,255,0.5);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .footer-col ul a:hover { color: white; }
+    .footer-bottom {
+      max-width: 960px; margin: 0 auto;
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .footer-bottom p { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    /* DIVIDER */
+    hr { border: none; border-top: 1px solid var(--border); }
+
+    /* RESPONSIVE */
+    @media (max-width: 720px) {
+      nav { padding: 0 20px; }
+      .nav-links a:not(.btn-nav) { display: none; }
+      .hero, .problem-wrap, .how-wrap, .verticals-wrap,
+      .security-wrap, .policy-wrap, .cta-wrap, footer { padding-left: 20px; padding-right: 20px; }
+      .hero { padding-top: 80px; padding-bottom: 72px; }
+      .policy-grid { grid-template-columns: 1fr; gap: 40px; }
+      .footer-top { flex-direction: column; }
+      .trustbar { padding: 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">Lipa<span>Safe</span></a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#security">Security</a>
+    <a href="#policy">Policy</a>
+    <a href="https://expo.dev/accounts/smartkidnyankore/projects/lipasafe/builds/05ac5feb-8715-489d-9357-8c80a1441a8a" class="btn-nav">⬇ Download Beta</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge reveal">🇰🇪 &nbsp; Open Beta · Free for early users</div>
+  <p class="hero-swahili reveal d1">Ulilipa.<br>Hukupokea.</p>
+  <p class="hero-translation reveal d2">Pesa yako imetoweka? LipaSafe got you.?</p>
+  <p class="hero-body reveal d3">
+    LipaSafe holds your M-Pesa payment in <strong>secure escrow</strong>.<br>
+    Your money only moves when <strong>you confirm delivery</strong>. Never before.
+  </p>
+  <div class="hero-btns reveal d4">
+    <a href="https://expo.dev/accounts/smartkidnyankore/projects/lipasafe/builds/05ac5feb-8715-489d-9357-8c80a1441a8a" class="btn-primary">⬇ &nbsp;Download APK</a>
+    <a href="#how" class="btn-ghost">How it works</a>
+  </div>
+  <div class="hero-meta reveal d5">
+    <span>Android</span>
+    <span>M-Pesa required</span>
+    <span>Free during beta</span>
+    <span>Kenya only</span>
+  </div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trustbar">
+  <div class="trustbar-inner">
+    <div class="t-item reveal"><div class="t-dot"></div>Escrow-protected payments</div>
+    <div class="t-item reveal d1"><div class="t-dot"></div>Powered by Safaricom M-Pesa</div>
+    <div class="t-item reveal d2"><div class="t-dot"></div>AI-assisted dispute resolution</div>
+    <div class="t-item reveal d3"><div class="t-dot"></div>Registered Kenyan business · BN-VZSE95E3</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<div class="problem-wrap">
+  <div class="inner">
+    <div class="eyebrow reveal">The problem</div>
+    <h2 class="h2 reveal">Kenyans lose money to online fraud every day.</h2>
+        <p class="lead reveal">Facebook Marketplace. OLX. WhatsApp groups. Pochi la Biashara. Every day, Kenyans lose money to people they trusted. LipaSafe ends that.</p>
+    <div class="problem-grid">
+
+      <div class="p-card reveal">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div>
+        <h3>Secondhand goods arrive faulty or stolen.</h3>
+        <p>You buy a phone on Facebook or OLX. It arrives cracked, fake, or never arrives. Seller blocks you. Money gone. LipaSafe holds payment until you confirm the item is exactly what was described.</p>
+      </div>
+
+      <div class="p-card reveal d1">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <h3>Bundle seller takes your money via till and vanishes.</h3>
+        <p>You send KES 500 to a bundle seller's till or Pochi. They confirm. Then silence. No bundle, no refund, no recourse. LipaSafe holds the funds — bundle seller only gets paid after you receive and confirm.</p>
+      </div>
+
+      <div class="p-card reveal d2">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg></div>
+        <h3>Delivery paid. Parcel arrives damaged or wrong.</h3>
+        <p>You pay for a delivery. The rider brings the wrong item, something broken, or nothing at all. No way to get your money back. LipaSafe only releases payment after you confirm the parcel arrived correctly.</p>
+      </div>
+
+      <div class="p-card reveal d1">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+        <h3>Fundi paid upfront. Job abandoned halfway.</h3>
+        <p>Plumber, electrician, painter — you pay upfront. They do half the work or disappear after deposit. LipaSafe holds payment and only releases it in milestones as work is completed to your satisfaction.</p>
+      </div>
+
+      <div class="p-card reveal d2">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <h3>House deposit paid. Landlord was fake.</h3>
+        <p>Rental scams are rampant. You pay a deposit for a house that doesn't exist or is already occupied. Fake landlords, fake listings, real money lost. LipaSafe holds your deposit until you physically confirm the house.</p>
+      </div>
+
+      <div class="p-card reveal d3">
+        <div class="p-card-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <h3>Wrong number. Money gone. Fuliza cuts what you receive.</h3>
+        <p>One wrong digit and your M-Pesa is gone to a stranger. SafeSend holds the money until the recipient accepts — wrong number means automatic refund. And when someone sends you money, Fuliza no longer intercepts it before you even see it.</p>
+      </div>
+
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="how-wrap" id="how">
+  <div class="inner">
+    <div class="eyebrow reveal">How it works</div>
+    <h2 class="h2 reveal">Simple as M-Pesa.<br>Safer than cash.</h2>
+    <p class="lead reveal">LipaSafe sits between buyer and seller — holding funds securely until both sides are satisfied. No blind trust required.</p>
+    <div class="steps-grid">
+      <div class="s-card reveal">
+        <div class="s-num">Step 01</div>
+        <h3>Create a deal</h3>
+        <p>Buyer and seller agree on terms inside the app. LipaSafe generates a secure deal reference for both parties.</p>
+      </div>
+      <div class="s-card reveal d1">
+        <div class="s-num">Step 02</div>
+        <h3>Pay into escrow</h3>
+        <p>Buyer pays via M-Pesa STK Push. Funds are held securely — not yet released to the seller.</p>
+      </div>
+      <div class="s-card reveal d2">
+        <div class="s-num">Step 03</div>
+        <h3>Deliver and confirm</h3>
+        <p>Seller delivers. Buyer confirms receipt in the app. Funds are instantly released to seller via M-Pesa.</p>
+      </div>
+      <div class="s-card reveal d3">
+        <div class="s-num">If disputed</div>
+        <h3>Raise a dispute</h3>
+        <p>If something goes wrong, either party can raise a dispute with evidence. Our AI engine reviews and admins resolve fairly.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- VERTICALS -->
+<div class="verticals-wrap">
+  <div class="inner">
+    <div class="eyebrow reveal">What you can protect</div>
+    <h2 class="h2 reveal">One app. Every deal.</h2>
+    <p class="lead reveal">LipaSafe covers the transactions Kenyans make every day — now with a safety net.</p>
+    <div class="v-grid">
+      <div class="v-card reveal">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>
+        <h3>Bundles & Airtime</h3>
+        <p>Buy and sell data bundles or airtime safely. Pay only when you receive what was promised.</p>
+        <span class="v-tag">Live</span>
+      </div>
+      <div class="v-card reveal d1">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>
+        <h3>Second-Hand Goods</h3>
+        <p>Trade phones, electronics, and more without fear of being conned or ghosted after payment.</p>
+        <span class="v-tag">Live</span>
+      </div>
+      <div class="v-card reveal d2">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+        <h3>Fundi & Services</h3>
+        <p>Hire plumbers, electricians, painters. Payment held until the job is complete to your satisfaction.</p>
+        <span class="v-tag">Live</span>
+      </div>
+      <div class="v-card reveal d3">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg></span>
+        <h3>Delivery</h3>
+        <p>Send parcels with payment locked until the recipient confirms safe delivery at their end.</p>
+        <span class="v-tag">Live</span>
+      </div>
+      <div class="v-card reveal d4">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+        <h3>House & Rentals</h3>
+        <p>Pay deposits and rent securely. Protected against fake listings and scam landlords.</p>
+        <span class="v-tag">Live</span>
+      </div>
+      <div class="v-card reveal d5">
+        <span class="v-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <h3>Custom Deals</h3>
+        <p>Any agreement between two parties. Set your own terms, timelines, and release conditions.</p>
+        <span class="v-tag">Live</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECURITY -->
+<div class="security-wrap" id="security">
+  <div class="inner">
+    <div class="eyebrow reveal">Security & Trust</div>
+    <h2 class="h2 reveal">Your money is protected<br>at every step.</h2>
+    <p class="lead reveal">LipaSafe is built with financial-grade safety. Funds never move unless you authorize it — with full audit trails throughout.</p>
+    <div class="sec-grid">
+      <div class="sec-card reveal">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>Escrow Ledger</h3>
+        <p>Funds are held in a secure internal ledger — never sent to the seller until the buyer explicitly confirms delivery.</p>
+      </div>
+      <div class="sec-card reveal d1">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h3a3 3 0 0 1 3 3v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a3 3 0 0 1 3-3h3V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9 17h6"/></svg></div>
+        <h3>AI Dispute Engine</h3>
+        <p>Photo and video evidence is analyzed by a multi-model AI system before human admins review any dispute.</p>
+      </div>
+      <div class="sec-card reveal d2">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
+        <h3>Automatic Retries</h3>
+        <p>If a payout fails, the system retries automatically up to 3 times with admin escalation if unresolved.</p>
+      </div>
+      <div class="sec-card reveal d3">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
+        <h3>Full Audit Trail</h3>
+        <p>Every action — payment, release, dispute, refund — is logged with timestamp and actor for full transparency.</p>
+      </div>
+      <div class="sec-card reveal d4">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+        <h3>M-Pesa Native</h3>
+        <p>Built directly on Safaricom's Daraja API — STK Push, B2C, and C2B. The same infrastructure behind every Kenyan mobile payment.</p>
+      </div>
+      <div class="sec-card reveal d5">
+        <div class="sec-ico"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>OTP Confirmation</h3>
+        <p>Critical actions like fund release require OTP verification. No funds move on accidents or unauthorized requests.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POLICY -->
+<div class="policy-wrap" id="policy">
+  <div class="inner">
+    <div class="eyebrow reveal">Usage Policy</div>
+    <h2 class="h2 reveal">Who it's for.<br>What it's not for.</h2>
+    <p class="lead reveal">LipaSafe is built for legitimate commerce between Kenyan M-Pesa users. Some uses are restricted to protect all parties on the platform.</p>
+    <div class="policy-grid">
+      <div class="pol-group reveal">
+        <h3>Requirements</h3>
+        <ul class="pol-list">
+          <li>Active Safaricom M-Pesa account</li>
+          <li>Kenyan phone number (+254)</li>
+          <li>Android device running Android 8.0 or higher</li>
+          <li>Both buyer and seller must be registered LipaSafe users</li>
+          <li>Minimum transaction amount: KES 10</li>
+          <li>Deal terms must be agreed upon before payment is initiated</li>
+          <li>Delivery confirmation must happen within the agreed timeframe</li>
+        </ul>
+      </div>
+      <div class="pol-group reveal d1">
+        <h3>Restrictions</h3>
+        <ul class="pol-list red">
+          <li>No illegal goods, controlled substances, or counterfeit products</li>
+          <li>No financial instruments, loans, or pyramid scheme transactions</li>
+          <li>No transactions involving minors</li>
+          <li>Fraudulent dispute claims result in permanent account suspension</li>
+          <li>Funds are not held beyond the agreed deal period without extension</li>
+          <li>Platform fees are non-refundable once a transaction is initiated</li>
+          <li>Currently available in Kenya only</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap" id="download">
+  <h2 class="reveal">Pay safely. Every time.</h2>
+  <p class="reveal d1">Join the LipaSafe beta — free for early users. Download now and never get conned again.</p>
+  <div class="cta-btns reveal d2">
+    <a href="https://expo.dev/accounts/smartkidnyankore/projects/lipasafe/builds/05ac5feb-8715-489d-9357-8c80a1441a8a" class="btn-cta-dark">⬇ &nbsp;Download APK · Android</a>
+    <a href="mailto:support@lipasafe.co.ke" class="btn-cta-ghost">Contact Support</a>
+  </div>
+  <p class="cta-meta reveal d3">Beta v1.1 · Android 8.0+ · Not yet on Google Play · M-Pesa required</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <h2>Lipa<span>Safe</span></h2>
+      <p>Kenya's escrow payment platform.<br>Lipa Salama. Daima.<br><br>A product of Vezoro Enterprice · BN-VZSE95E3</p>
+    </div>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#security">Security</a></li>
+          <li><a href="#policy">Usage Policy</a></li>
+          <li><a href="#download">Download Beta</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="mailto:support@lipasafe.co.ke">support@lipasafe.co.ke</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Vezoro Enterprice · Kehancha, Migori County, Kenya</p>
+    <p>BN-VZSE95E3 · Mobile payments and escrow services</p>
+  </div>
+</footer>
+
+<script>
+  // Hero elements — animate in on load
+  document.querySelectorAll('.hero .reveal').forEach((el, i) => {
+    setTimeout(() => el.classList.add('visible'), 80 + i * 130);
+  });
+
+  // All other elements — animate on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+  document.querySelectorAll('.reveal:not(.hero .reveal)').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
