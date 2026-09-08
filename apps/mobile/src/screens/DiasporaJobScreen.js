@@ -157,6 +157,7 @@ const DiasporaJobScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (route.params?.showBankDetailsModal) {
       setBankDetailsModalVisible(true);
+      navigation.setParams({ showBankDetailsModal: undefined });
     }
   }, [route.params?.showBankDetailsModal]);
 

@@ -9,6 +9,7 @@ import {
   CheckCircle2, Shield, AlertTriangle, Lock, User, Calendar, ClipboardList,
 } from 'lucide-react-native';
 import { authFetch } from '../utils/api';
+import { Video, ResizeMode } from 'expo-av';
 import { COLORS, SPACING } from './diasporaTheme';
 
 // ── Live countdown ────────────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ export default function DiasporaDealTrackingScreen({ navigation, route }) {
   const [error, setError]     = useState(null);
   const [releasing, setReleasing] = useState(false);
   const [confirmMs, setConfirmMs] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const fetchDeal = useCallback(async () => {
     if (!dealId) return;
@@ -227,9 +229,15 @@ export default function DiasporaDealTrackingScreen({ navigation, route }) {
                     </View>
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {photos.map((uri, idx) => (
-                      <Image key={idx} source={{ uri }} style={styles.photo} resizeMode="cover" />
-                    ))}
+                    {photos.map((uri, idx) =>
+                      uri.includes('.mp4') || uri.includes('video')
+                        ? <Video key={idx} source={{ uri }} style={styles.photo} useNativeControls resizeMode={ResizeMode.COVER} />
+                        : (
+                          <TouchableOpacity key={idx} onPress={() => setPreviewImage(uri)} activeOpacity={0.85}>
+                            <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
+                          </TouchableOpacity>
+                        )
+                    )}
                   </ScrollView>
                 </View>
               )}
@@ -310,6 +318,20 @@ export default function DiasporaDealTrackingScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      <Modal transparent animationType="fade" visible={!!previewImage} onRequestClose={() => setPreviewImage(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 50, right: 24, zIndex: 1, padding: 8 }}
+            onPress={() => setPreviewImage(null)}
+          >
+            <Text style={{ color: '#fff', fontSize: 28 }}>×</Text>
+          </TouchableOpacity>
+          {previewImage && (
+            <Image source={{ uri: previewImage }} style={{ width: '90%', height: '70%' }} resizeMode="contain" />
+          )}
         </View>
       </Modal>
     </SafeAreaView>
