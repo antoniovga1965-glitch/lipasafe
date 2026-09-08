@@ -784,7 +784,7 @@ const requestRefundBankDetails = async (req, res) => {
 
     await createAndSend({
       userId:         dispute.deal.funderId,
-      type:           'DIASPORA_BANK_DETAILS_REQUESTED',
+      type:           'DIASPORA_DEAL_EXPIRED',
       messageEn:      `LipaSafe needs your bank details to process your refund for deal ${dispute.deal.reference}.`,
       diasporaDealId: dispute.dealId,
       channel:        'push'
