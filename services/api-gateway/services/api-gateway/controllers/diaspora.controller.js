@@ -758,8 +758,6 @@ const requestRefundBankDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Dispute not found' })
     if (dispute.status !== 'OPEN')
       return res.status(400).json({ success: false, message: 'Dispute already resolved' })
-    if (dispute.bankDetailsRequested)
-      return res.status(400).json({ success: false, message: 'Bank details already requested' })
 
     await prisma.diasporaDispute.update({
       where: { id: dispute.id },

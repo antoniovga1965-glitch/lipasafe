@@ -313,12 +313,12 @@ export default function DisputesPage() {
                       <div className="space-y-2">
                         <Button variant="outline"
                           className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
-                          disabled={requestingBank === dispute.id || dispute.bankDetailsRequested}
+                          disabled={requestingBank === dispute.id}
                           onClick={() => handleRequestBankDetails(dispute)}>
                           {requestingBank === dispute.id
                             ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             : <Gavel className="h-4 w-4 mr-2" />}
-                          {dispute.bankDetailsRequested ? 'Awaiting Bank Details…' : 'Refund Funder — Request Bank Details'}
+                          {dispute.bankDetailsRequested ? 'Resend Bank Details Request' : 'Refund Funder — Request Bank Details'}
                         </Button>
                         {dispute.refundBankName && (
                           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">

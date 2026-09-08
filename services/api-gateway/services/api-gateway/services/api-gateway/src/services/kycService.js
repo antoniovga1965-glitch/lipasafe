@@ -90,7 +90,7 @@ const promoteTrusted = async (userId) => {
         trustedSeller:    true,
         trustedAt:        new Date(),
         transactionLimit: KYC_TIERS.trusted.transactionLimit,
-        category:         'Custom',
+        category:         'other',
       },
     })
 
