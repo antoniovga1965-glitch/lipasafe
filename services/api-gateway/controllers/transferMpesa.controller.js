@@ -108,7 +108,7 @@ const initiateSafeSend = async (req, res) => {
         await db.walletTransaction.create({
           data: {
             fromWalletId: senderWallet.id,
-            type:         'debit',
+            type:         'send',
             amount:       totalDeduct.toNumber(),
             reference:    txRef,
             note:         `SafeSend wallet debit to ${normalizedRecipient}`,
