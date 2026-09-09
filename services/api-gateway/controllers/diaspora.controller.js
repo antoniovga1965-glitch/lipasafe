@@ -747,6 +747,7 @@ const disputeMilestone = async (req, res) => {
 }
 
 
+
 // ─── REQUEST REFUND BANK DETAILS (Secretary → Funder) ─────────────────────
 const requestRefundBankDetails = async (req, res) => {
   try {
@@ -768,7 +769,7 @@ const requestRefundBankDetails = async (req, res) => {
     emitToUser(dispute.deal.funderId, 'refund_bank_details_requested', {
       disputeId: dispute.id,
       dealId:    dispute.dealId,
-      message:   'LipaSafe needs your bank details to process your refund'
+      message:   'LipaSafe needs your bank details to process your refund. Please email your details to support@lipasafe.co.ke'
     })
 
     await prisma.auditLog.create({
@@ -785,7 +786,7 @@ const requestRefundBankDetails = async (req, res) => {
     await createAndSend({
       userId:         dispute.deal.funderId,
       type:           'DIASPORA_DEAL_EXPIRED',
-      messageEn:      `LipaSafe needs your bank details to process your refund for deal ${dispute.deal.reference}.`,
+     messageEn: `LipaSafe needs your bank details to process your refund for deal ${dispute.deal.reference}. Please email your bank details to support@lipasafe.co.ke`,
       diasporaDealId: dispute.dealId,
       channel:        'push'
     }).catch(() => {})
