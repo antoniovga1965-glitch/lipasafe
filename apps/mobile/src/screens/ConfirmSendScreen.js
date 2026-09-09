@@ -32,6 +32,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
   const [checking, setChecking] = useState(true);
   const [sending, setSending] = useState(false);
   const [clientRef] = useState(() => genClientRef());
+  const sentRef = React.useRef(false);
 
   useEffect(() => {
     const checkRecipient = async () => {
@@ -49,6 +50,8 @@ export default function ConfirmSendScreen({ navigation, route }) {
   }, [phone]);
 
   const handleSend = async () => {
+    if (sentRef.current) return;
+    sentRef.current = true;
     setSending(true);
     try {
       if (isProtected) {
@@ -60,6 +63,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
             purpose,
             description: note,
             type: 'PROTECTED',
+            clientRef,
           }),
         });
         const data = await res.json();
@@ -100,6 +104,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
         }
       }
     } catch (e) {
+      sentRef.current = false;
       Alert.alert('Send failed', 'Please try again');
     } finally {
       setSending(false);
