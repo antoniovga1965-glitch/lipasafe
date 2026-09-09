@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, StatusBar, RefreshControl, Image,
+  StyleSheet, StatusBar, RefreshControl, Image, Animated,
 } from 'react-native';
 import {
   Send, Download, Shield, HelpCircle,
@@ -56,6 +56,26 @@ export default function HomeScreen({ navigation }) {
   const [user, setUser]                     = useState(null);
   const [transactions, setTransactions]     = useState([]);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  // Slide-in animation for wallet subtitle
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const runMarquee = () => {
+      slideAnim.setValue(320);
+      Animated.timing(slideAnim, {
+        toValue: -380,
+        duration: 11000,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) runMarquee();
+      });
+    };
+    runMarquee();
+    return () => slideAnim.stopAnimation();
+  }, []);
+
   const [refreshing, setRefreshing]         = useState(false);
   const [wallet, setWallet]                 = useState({ availableBalance: 0, escrowBalance: 0 });
 
@@ -138,8 +158,20 @@ export default function HomeScreen({ navigation }) {
           <View style={s.cardRow}>
             {/* Left */}
             <View style={s.cardCol}>
-              <Text style={s.cardLbl}>Available balance</Text>
-              <Text style={s.cardSub}>SafeSend & instant send only</Text>
+              <Text style={s.cardLbl}>Available balance <Text style={{ fontSize: 11, fontWeight: '400', opacity: 0.75 }}>(optional)</Text></Text>
+              <View style={{ overflow: 'hidden', width: '100%' }}>
+                <Animated.Text
+                  numberOfLines={1}
+                  style={[s.cardSub, {
+                    transform: [{ translateX: slideAnim }],
+                    fontWeight: '600',
+                    fontSize: 11,
+                    width: 360,
+                  }]}
+                >
+                  SafeSend & instant send only — M-Pesa used for everything else
+                </Animated.Text>
+              </View>
               <Text style={s.cardAmt}>
                 {balanceVisible ? fmt(wallet.availableBalance) : 'KES ••••'}
               </Text>

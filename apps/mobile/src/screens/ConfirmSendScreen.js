@@ -63,7 +63,13 @@ export default function ConfirmSendScreen({ navigation, route }) {
           }),
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.transferId && !data.checkoutRequestId) {
+          // Wallet path — transfer already complete, skip PaymentProcessing
+          navigation.replace('PaymentSuccess', {
+            tx: { id: data.transferId, amount, isSafeSend: true },
+          });
+        } else if (data.success && data.checkoutRequestId) {
+          // STK path — needs polling
           navigation.navigate('PaymentProcessing', {
             checkoutId: data.checkoutRequestId,
             context: 'protectedTransfer',

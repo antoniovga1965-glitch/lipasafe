@@ -52,6 +52,15 @@ export default function PaymentProcessingScreen({ navigation, route }) {
 
   // ── SafeSend / Protected Transfer poll ─────────────────────────────────
   const pollProtectedTransfer = (checkoutId, transferId) => {
+    // Wallet path — transfer already done, no STK poll needed
+    if (transferId && !checkoutId) {
+      setStatusText('SafeSend held securely!');
+      navigation.replace('PaymentSuccess', {
+        tx: { id: transferId, amount, isSafeSend: true },
+      });
+      return;
+    }
+
     let attempts = 0;
     const maxAttempts = 30;
 

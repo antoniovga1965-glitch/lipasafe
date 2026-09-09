@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { colors } from '../theme/colors';
 import { useLang } from '../context/LanguageContext';
 import LipaHeader from '../components/LipaHeader';
@@ -17,6 +17,7 @@ export default function RegisterScreen({ navigation }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const sendOTP = async () => {
     if (!name || phone.length < 9 || !email) return;
@@ -68,7 +69,30 @@ export default function RegisterScreen({ navigation }) {
             <LipaInput label={t.name} value={name} onChangeText={setName} placeholder={t.enterName} />
             <LipaInput label={t.phone} value={phone} onChangeText={setPhone} placeholder="07XX XXX XXX" keyboardType="phone-pad" />
             <LipaInput label="Email" value={email} onChangeText={setEmail} placeholder="you@gmail.com" keyboardType="email-address" />
-            <LipaButton title={t.continue} onPress={sendOTP} disabled={!name || phone.length < 9 || !email} loading={loading} />
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 10 }}
+              onPress={() => setAgreedToTerms(!agreedToTerms)}
+              activeOpacity={0.8}
+            >
+              <View style={{
+                width: 22, height: 22, borderRadius: 4,
+                borderWidth: 2, borderColor: agreedToTerms ? '#10B981' : '#ccc',
+                backgroundColor: agreedToTerms ? '#10B981' : '#fff',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                {agreedToTerms && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>✓</Text>}
+              </View>
+              <Text style={{ fontSize: 13, color: '#444', flex: 1 }}>
+                I agree to LipaSafe's{' '}
+                <Text
+                  style={{ color: '#10B981', fontWeight: '700', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://lipasafe.co.ke/terms')}
+                >
+                  Terms & Conditions
+                </Text>
+              </Text>
+            </TouchableOpacity>
+            <LipaButton title={t.continue} onPress={sendOTP} disabled={!name || phone.length < 9 || !email || !agreedToTerms} loading={loading} />
             <LipaButton title={t.haveAccount} onPress={() => navigation.navigate('Login')} secondary />
           </>
         ) : (
