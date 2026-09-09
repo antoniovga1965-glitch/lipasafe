@@ -69,9 +69,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
         const data = await res.json();
         if (data.success && data.transferId && !data.checkoutRequestId) {
           // Wallet path — transfer already complete, skip PaymentProcessing
-          navigation.replace('PaymentSuccess', {
-            tx: { id: data.transferId, amount, isSafeSend: true },
-          });
+          navigation.reset({ index: 0, routes: [{ name: 'HomeTab' }, { name: 'PaymentSuccess', params: { tx: { id: data.transferId, amount, isSafeSend: true } } }] });
         } else if (data.success && data.checkoutRequestId) {
           // STK path — needs polling
           navigation.navigate('PaymentProcessing', {
@@ -105,7 +103,7 @@ export default function ConfirmSendScreen({ navigation, route }) {
       }
     } catch (e) {
       sentRef.current = false;
-      Alert.alert('Send failed', 'Please try again');
+      Alert.alert('Send failed - Error', e?.message || String(e));
     } finally {
       setSending(false);
     }
