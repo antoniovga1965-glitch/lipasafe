@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "test": "jest --runInBand --forceExit --detectOpenHandles",
     "dev": "fuser -k 4000/tcp 2>/dev/null; sleep 1; nodemon src/server.js",
     "start": "prisma generate && node src/server.js"
