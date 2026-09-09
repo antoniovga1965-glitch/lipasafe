@@ -10,6 +10,7 @@ const Decimal           = require('decimal.js')
 const { calcFeesInstantSend } = require('../src/utils/feeCalculator')
 const { z }             = require('zod')
 const crypto            = require('crypto')
+const platformWallet    = require('../src/utils/platformWallet')
 const smsQueue          = require('../src/queues/smsQueue')
 
 const transferQueue  = new Queue('protectedTransfer', { connection: redis })
@@ -72,6 +73,114 @@ const initiateSafeSend = async (req, res) => {
 
     const { platformFee, b2cCharge, totalDeduct } = calcFeesInstantSend(amount)
     const totalSTK = totalDeduct.toNumber()
+
+    // ── Wallet-first path ────────────────────────────────────────────────
+    const senderWallet = await prisma.wallet.findUnique({
+      where:  { userId: senderId },
+      select: { id: true, availableBalance: true }
+    })
+
+    if (senderWallet && new Decimal(senderWallet.availableBalance).gte(totalDeduct)) {
+      const claimCode = generateClaimCode()
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      const txRef     = `safesend-wallet-${senderId}-${Date.now()}`
+
+      const recipient = await prisma.user.findUnique({
+        where:  { phone: normalizedRecipient },
+        select: { id: true }
+      })
+
+      const transfer = await prisma.$transaction(async (db) => {
+        // Debit sender wallet atomically — guard against race with updateMany
+        const updated = await db.wallet.updateMany({
+          where: {
+            userId:           senderId,
+            availableBalance: { gte: totalDeduct.toNumber() }
+          },
+          data: {
+            availableBalance: { decrement: totalDeduct.toNumber() },
+            totalOut:         { increment: totalDeduct.toNumber() },
+            lastUpdated:      new Date()
+          }
+        })
+        if (updated.count === 0) throw new Error('INSUFFICIENT_BALANCE')
+
+        await db.walletTransaction.create({
+          data: {
+            fromWalletId: senderWallet.id,
+            type:         'debit',
+            amount:       totalDeduct.toNumber(),
+            reference:    txRef,
+            note:         `SafeSend wallet debit to ${normalizedRecipient}`,
+            status:       'completed'
+          }
+        })
+
+        await platformWallet.credit(db, platformFee.toNumber(), `${txRef}-fee`, 'SafeSend platform fee (wallet)')
+
+        return db.protectedTransfer.create({
+          data: {
+            senderId,
+            recipientPhone: normalizedRecipient,
+            recipientId:    recipient?.id ?? null,
+            amount:         new Decimal(amount),
+            platformFee,
+            b2cCharge,
+            purpose,
+            description:    description ?? '',
+            state:          'PENDING',
+            mpesaRef:       null,
+            stkCheckoutId:  txRef,
+            claimCode,
+            expiresAt
+          }
+        })
+      })
+
+      await redis.del(`transfer:stk:dedup:${senderId}`)
+
+      try {
+        await transferQueue.add(
+          'expire-transfer',
+          { transferId: transfer.id },
+          { jobId: `expire-${transfer.id}`, delay: 7 * 24 * 60 * 60 * 1000 }
+        )
+      } catch (qErr) {
+        logger.error('transferQueue.add failed (wallet path)', { transferId: transfer.id, err: qErr.message })
+      }
+
+      if (recipient) {
+        createAndSend({
+          userId:     recipient.id,
+          type:       'transfer_received',
+          messageEn:  `Incoming KES ${amount} from ${sender.fullName}`,
+          messageSw:  null,
+          transferId: transfer.id,
+          channel:    'push'
+        }).catch(e => logger.warn('Recipient push notify failed (wallet path)', { err: e.message }))
+      } else {
+        const smsBody = `${sender.fullName} sent you KES ${amount} via LipaSafe for "${description ?? ''}". Download LipaSafe and use code ${claimCode} to claim. Expires in 7 days.`
+        smsQueue.add('safesend_notify_unregistered', { to: normalizedRecipient, message: smsBody })
+          .catch(e => logger.warn('SafeSend SMS failed (wallet path)', { err: e.message }))
+      }
+
+      createAndSend({
+        userId:     senderId,
+        type:       'transfer_sent',
+        messageEn:  `Your KES ${amount} SafeSend to ${normalizedRecipient} is held safely. They have 7 days to accept.`,
+        messageSw:  null,
+        transferId: transfer.id,
+        channel:    'push'
+      }).catch(e => logger.warn('Sender confirm notify failed (wallet path)', { err: e.message }))
+
+      logger.info('SafeSend completed via wallet', { transferId: transfer.id, senderId, amount })
+      return res.json({
+        success:    true,
+        message:    'SafeSend initiated from wallet balance.',
+        transferId: transfer.id
+      })
+    }
+    // ── End wallet-first path — fall through to STK ──────────────────────
 
     let stkRes
     try {
