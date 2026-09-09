@@ -1,0 +1,6 @@
+[build]
+builder = "railpack"
+buildCommand = "npm install && npx prisma generate"
+
+[start]
+cmd = "npx prisma migrate deploy && node src/server.js"
