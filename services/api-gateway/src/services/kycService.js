@@ -30,7 +30,7 @@ const checkTrustedEligibility = async (userId) => {
   const checks = {
     verified:         user.kycStatus === 'verified',
     completedTrades:  user.totalCompleted >= 10,
-    goodRating:       rating >= 4.0,
+    goodRating:       rating >= 5.0,
     accountAge:       ageInDays >= 30,
     lowDisputes:      user.totalDisputed <= 5,
   }
@@ -65,7 +65,7 @@ const promoteTrusted = async (userId) => {
     const checks = {
       verified:        user.kycStatus === 'verified',
       completedTrades: user.totalCompleted >= 10,
-      goodRating:      rating >= 4.0,
+      goodRating:      rating >= 5.0,
       accountAge:      ageInDays >= 30,
       lowDisputes:     user.totalDisputed <= 1,
     }
