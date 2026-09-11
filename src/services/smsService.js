@@ -23,7 +23,7 @@ const sendViaPhone = async (to, message) => {
   const res = await fetch(process.env.PHONE_GATEWAY_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${credentials}` },
-    body:    JSON.stringify({ textMessage: { text: message }, phoneNumbers: [`+${to}`] }),
+    body:    JSON.stringify({ message: message, phoneNumbers: [`+${to}`] }),
   })
   if (!res.ok) throw new Error(`Phone gateway error: ${res.status}`)
   logger.info('Phone gateway SMS sent', { to })
