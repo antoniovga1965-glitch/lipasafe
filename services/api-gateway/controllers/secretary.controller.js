@@ -28,7 +28,7 @@ exports.getSettings = async (req, res) => {
       getSetting('eur_rate', '140.00'),
       getSetting('aed_rate', '35.00'),
       getSetting('inr_rate', '1.55'),
-      getSetting('platform_cut', '2.5'),
+      getSetting('platform_cut', '4'),
       getSetting('notif_low_float', 'true'),
       getSetting('notif_new_confirmation', 'true'),
       getSetting('notif_dispute_raised', 'true'),
@@ -323,7 +323,7 @@ exports.getConfig = async (req, res) => {
       getSetting('eur_rate', '140.00'),
       getSetting('aed_rate', '35.00'),
       getSetting('inr_rate', '1.55'),
-      getSetting('platform_cut', '2'),
+      getSetting('platform_cut', '4'),
     ]);
     res.json({
       success: true,

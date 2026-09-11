@@ -2,6 +2,22 @@
 const Decimal = require('decimal.js')
 
 const PLATFORM_RATE = new Decimal('0.02')
+const DIASPORA_RATE  = new Decimal('0.04')
+const DIASPORA_B2C_BANDS = [
+  { min: 1000,   max: 2500,   fee: 29  },
+  { min: 2501,   max: 3500,   fee: 52  },
+  { min: 3501,   max: 5000,   fee: 69  },
+  { min: 5001,   max: 7500,   fee: 87  },
+  { min: 7501,   max: 10000,  fee: 115 },
+  { min: 10001,  max: 15000,  fee: 167 },
+  { min: 15001,  max: 20000,  fee: 197 },
+  { min: 20001,  max: 35000,  fee: 278 },
+  { min: 35001,  max: 200000, fee: 309 },
+]
+function diasporaB2cCollect(amount) {
+  const band = DIASPORA_B2C_BANDS.find(b => amount >= b.min && amount <= b.max)
+  return band ? band.fee : 0
+}
 
 // Safaricom B2C payout charges (BusinessPayment tier, sandbox-equivalent)
 function b2cCost(amount) {
@@ -187,14 +203,15 @@ function calcFeesInstantSend(sendAmount) {
 }
 
 
-// DIASPORA — 2% flat, buyer pays fee on top, worker receives full milestone amount
+// DIASPORA — 4% flat, buyer pays fee on top, worker receives full milestone amount
 // Float pays: workerReceives + b2cCharge on release
 function calcFeesDiaspora(milestoneAmount) {
   const amount      = new Decimal(milestoneAmount)
-  const platformFee = amount.times(PLATFORM_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-  const b2c         = new Decimal(b2cCost(amount.toNumber()))
-  const buyerPays   = amount.plus(platformFee).toDecimalPlaces(0, Decimal.ROUND_CEIL)
-  return { platformFee, b2cCharge: b2c, workerReceives: amount, buyerPays }
+  const platformFee = amount.times(DIASPORA_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+  const b2cCharge   = new Decimal(b2cCost(amount.toNumber()))
+  const b2cCollect  = new Decimal(diasporaB2cCollect(amount.toNumber()))
+  const buyerPays   = amount.plus(platformFee).plus(b2cCollect).toDecimalPlaces(0, Decimal.ROUND_CEIL)
+  return { platformFee, b2cCharge, b2cCollect, workerReceives: amount, buyerPays }
 }
 
 module.exports = { calcFeesDiaspora, calcFeesInstantSend, calcFeesRequestMoney, calcFees, calcFeesBuyerSide, calcFeesSecondHand, calcFeesFundi, calcFeesDelivery, b2cCost, b2bCost, PLATFORM_RATE }

@@ -65,7 +65,7 @@ export default function DiasporaDealFormScreen({ navigation, route }) {
   const [deadline, setDeadline] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [photos, setPhotos] = useState([]);
-  const [config, setConfig] = useState({ rates: { USD: 129, GBP: 168, EUR: 140, AED: 35, INR: 1.55 }, platformCut: 2 });
+  const [config, setConfig] = useState({ rates: { USD: 129, GBP: 168, EUR: 140, AED: 35, INR: 1.55 }, platformCut: 4 });
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
 
   // Construction-only
