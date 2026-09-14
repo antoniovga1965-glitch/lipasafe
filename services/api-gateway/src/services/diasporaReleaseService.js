@@ -14,7 +14,7 @@ const { createAndSend }          = require('../services/notificationService')
  * and diasporaAutoReleaseWorker — auth/ownership checks stay in the caller,
  * this only handles the money-moving invariants.
  */
-const executeDiasporaRelease = async ({ dealId, milestoneId, releasedBy }) => {
+const executeDiasporaRelease = async ({ dealId, milestoneId, releasedBy, fromDispute = false }) => {
   const deal = await prisma.diasporaDeal.findUnique({
     where:   { id: dealId },
     include: { milestones: true }
@@ -26,7 +26,9 @@ const executeDiasporaRelease = async ({ dealId, milestoneId, releasedBy }) => {
 
   // PAYOUT_FAILED is retryable — the reservation was already reverted when
   // it entered that state, so it's safe to attempt release again from there.
-  if (milestone.status !== 'WORK_SUBMITTED' && milestone.status !== 'PAYOUT_FAILED')
+  const allowedStatuses = ['WORK_SUBMITTED', 'PAYOUT_FAILED']
+  if (fromDispute) allowedStatuses.push('DISPUTED')
+  if (!allowedStatuses.includes(milestone.status))
     return { success: false, code: 'WRONG_STATE', message: `Milestone is ${milestone.status}, expected WORK_SUBMITTED or PAYOUT_FAILED` }
 
   const { platformFee, b2cCharge, workerReceives } = calcFeesDiaspora(milestone.amount)
@@ -50,7 +52,7 @@ const executeDiasporaRelease = async ({ dealId, milestoneId, releasedBy }) => {
       // further down. Until then it sits in PAYOUT_PROCESSING so a failed
       // payout is visible instead of silently claiming success.
       const locked = await tx.diasporaMilestone.updateMany({
-        where: { id: milestoneId, status: { in: ['WORK_SUBMITTED', 'PAYOUT_FAILED'] } },
+        where: { id: milestoneId, status: { in: fromDispute ? ['WORK_SUBMITTED', 'PAYOUT_FAILED', 'DISPUTED'] : ['WORK_SUBMITTED', 'PAYOUT_FAILED'] } },
         data:  { status: 'PAYOUT_PROCESSING' }
       })
       if (locked.count === 0)

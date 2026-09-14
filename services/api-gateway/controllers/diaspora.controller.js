@@ -550,7 +550,8 @@ const resolveDispute = async (req, res) => {
       const releaseResult = await executeDiasporaRelease({
         dealId:      deal.id,
         milestoneId: milestone.id,
-        releasedBy:  req.user.id
+        releasedBy:  req.user.id,
+        fromDispute: true
       })
       if (!releaseResult.success)
         return res.status(400).json({ success: false, message: releaseResult.message })
