@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DiasporaDeal } from "@/types";
-import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronUp, ArrowRight, HardHat, Wrench, Package, FileEdit } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   AWAITING_PAYMENT: "bg-gray-100 text-gray-700 border-gray-200",
@@ -24,11 +24,11 @@ const milestoneStatusColors: Record<string, string> = {
   DISPUTED: "bg-red-100 text-red-700",
 };
 
-const typeEmojis: Record<string, string> = {
-  CONSTRUCTION: "🏗️",
-  FUNDI: "🔧",
-  GOODS: "📦",
-  CUSTOM: "📝",
+const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  CONSTRUCTION: HardHat,
+  FUNDI: Wrench,
+  GOODS: Package,
+  CUSTOM: FileEdit,
 };
 
 interface DealCardProps {
@@ -54,7 +54,7 @@ export default function DealCard({ deal }: DealCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             <div className="h-10 w-10 rounded-lg bg-gray-50 flex items-center justify-center text-xl shrink-0">
-              {typeEmojis[deal.dealType]}
+              {React.createElement(typeIcons[deal.dealType], { className: "h-5 w-5 text-gray-600" })}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

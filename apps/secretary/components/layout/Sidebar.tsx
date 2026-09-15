@@ -40,7 +40,6 @@ const navItems = [
   { name: "Overview", href: "/dashboard", icon: Home },
   { name: "Float Wallet", href: "/dashboard/float", icon: Wallet, badge: "balance" },
   { name: "Confirmations", href: "/dashboard/confirmations", icon: Inbox, badge: "pending" },
-  { name: "FX Conversion", href: "/dashboard/fx", icon: ArrowLeftRight },
   { name: "Disputes", href: "/dashboard/disputes", icon: ShieldAlert, badge: "disputes" },
   { name: "Active Deals", href: "/dashboard/deals", icon: Briefcase },
   { name: "Logs", href: "/dashboard/logs", icon: ScrollText },

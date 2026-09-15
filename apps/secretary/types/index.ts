@@ -138,3 +138,10 @@ export interface ActivityLogsPagination {
   total: number;
   pages: number;
 }
+
+export interface DealsPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}

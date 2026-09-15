@@ -29,8 +29,8 @@ export async function postAddFloat(amount: number, phone: string, note: string) 
   })
 }
 
-export async function fetchPendingDeals() {
-  return apiFetch('/diaspora/admin/pending')
+export async function fetchPendingDeals(page: number = 1, limit: number = 20) {
+  return apiFetch(`/diaspora/admin/pending?page=${page}&limit=${limit}`)
 }
 
 export function logout() {

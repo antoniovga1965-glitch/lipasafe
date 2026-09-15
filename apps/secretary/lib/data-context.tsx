@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { DiasporaDeal, DisputeCase, FloatTransaction, AuditLog, DiasporaActivityLog, ActivityLogsPagination } from "@/types";
+import { DiasporaDeal, DisputeCase, FloatTransaction, AuditLog, DiasporaActivityLog, ActivityLogsPagination, DealsPagination } from "@/types";
 import { fetchPendingDeals, fetchDisputesAPI, fetchFloat, fetchActivityLogs, fetchAllDeals } from "@/lib/api";
 import { io, Socket } from "socket.io-client";
 
@@ -11,6 +11,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 interface DataContextType {
   deals: DiasporaDeal[];
   dealsLoading: boolean;
+  dealsPagination: DealsPagination;
+  loadMoreDeals: () => void;
   disputes: DisputeCase[];
   floatBalance: number;
   floatTransactions: FloatTransaction[];
@@ -34,6 +36,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [deals, setDeals] = useState<DiasporaDeal[]>([]);
   const [dealsLoading, setDealsLoading] = useState(true);
+  const [dealsPagination, setDealsPagination] = useState<DealsPagination>({ page: 0, limit: 20, total: 0, pages: 0 });
   const [disputes, setDisputes] = useState<DisputeCase[]>([]);
   const [floatBalance, setFloatBalanceState] = useState<number>(0);
   const [floatTransactions, setFloatTransactions] = useState<FloatTransaction[]>([]);
@@ -45,16 +48,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [allDealsLoading, setAllDealsLoading] = useState(true);
   const socketRef = useRef<Socket | null>(null);
 
-  const loadDeals = useCallback(async () => {
+  const loadDeals = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
-      const res = await fetchPendingDeals();
-      if (res.success) setDeals(res.deals);
+      if (!append) setDealsLoading(true);
+      const res = await fetchPendingDeals(page, 20);
+      if (res.success) {
+        setDeals((prev) => (append ? [...prev, ...res.deals] : res.deals));
+        setDealsPagination(res.pagination);
+      }
     } catch (err) {
       console.error("deals error:", err);
     } finally {
       setDealsLoading(false);
     }
   }, []);
+
+  const loadMoreDeals = useCallback(() => {
+    if (dealsPagination.page < dealsPagination.pages && !dealsLoading) {
+      loadDeals(dealsPagination.page + 1, true);
+    }
+  }, [dealsPagination, dealsLoading, loadDeals]);
 
   const loadDisputes = useCallback(async () => {
     try {
@@ -182,7 +195,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      deals, dealsLoading, disputes, floatBalance,
+      deals, dealsLoading, dealsPagination, loadMoreDeals, disputes, floatBalance,
       floatTransactions, logs,
       updateDeal, updateDispute, addFloatTransaction,
       addLog, setFloatBalance, refetchDeals: loadDeals,

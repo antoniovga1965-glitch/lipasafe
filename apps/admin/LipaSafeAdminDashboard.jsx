@@ -4,119 +4,7 @@ const formatKES = (amount) => `KES ${amount.toLocaleString('en-KE')}`;
 const formatPhone = (phone) => (phone || '—').replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
 const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-// ─── REALISTIC KENYAN DATA ───────────────────────────────────────────────────
-const KENYAN_NAMES = [
-  'James Mwangi', 'Grace Wanjiku', 'Peter Ochieng', 'Amina Hassan',
-  'David Kimani', 'Faith Njeri', 'Brian Otieno', 'Lucy Akinyi',
-  'John Kamau', 'Mary Wambui', 'Kevin Mutua', 'Sarah Achieng',
-  'Daniel Njoroge', 'Joyce Muthoni', 'Eric Omondi', 'Cynthia Wangari',
-  'Samuel Kipchoge', 'Diana Chebet', 'Allan Wekesa', 'Ruth Mwikali',
-  'Victor Onyango', 'Esther Wairimu', 'Paul Mbugua', 'Nancy Jepchirchir',
-  'George Muriuki', 'Lilian Moraa', 'Tony Kariuki', 'Beatrice Nyambura',
-  'Francis Mwenda', 'Catherine Muthoni'
-];
-
 const SERVICE_TYPES = ['Bundles', 'Second Hand', 'Fundi', 'Delivery', 'House', 'Custom'];
-const DISPUTE_REASONS = [
-  'Item not as described', 'Service incomplete', 'Late delivery', 
-  'Damaged goods', 'Payment dispute', 'Quality issues', 'Fraud suspicion',
-  'Wrong item delivered', 'Contract breach', 'Unauthorized transaction'
-];
-
-const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-// Generate users
-const USERS = Array.from({ length: 45 }, (_, i) => ({
-  id: `USR-${1000 + i}`,
-  name: KENYAN_NAMES[i % KENYAN_NAMES.length],
-  phone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  kycTier: ['Unverified', 'Basic', 'Verified', 'Premium'][Math.floor(Math.random() * 4)],
-  walletBalance: Math.floor(Math.random() * 50000) + 500,
-  status: Math.random() > 0.15 ? 'Active' : 'Suspended',
-  joined: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-  email: `${KENYAN_NAMES[i % KENYAN_NAMES.length].toLowerCase().replace(' ', '.')}@gmail.com`,
-  location: ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Thika'][Math.floor(Math.random() * 6)],
-  transactions: Math.floor(Math.random() * 50) + 1,
-}));
-
-// Generate escrows
-const ESCROWS = Array.from({ length: 60 }, (_, i) => ({
-  id: generateId('ESC'),
-  serviceType: SERVICE_TYPES[Math.floor(Math.random() * SERVICE_TYPES.length)],
-  buyer: KENYAN_NAMES[Math.floor(Math.random() * KENYAN_NAMES.length)],
-  buyerPhone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  seller: KENYAN_NAMES[Math.floor(Math.random() * KENYAN_NAMES.length)],
-  sellerPhone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  amount: Math.floor(Math.random() * 45000) + 1000,
-  status: ['Pending', 'Active', 'Completed', 'Disputed', 'Refunded', 'Released'][Math.floor(Math.random() * 6)],
-  createdAt: new Date(2025, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1).toISOString(),
-  description: [
-    'iPhone 14 Pro Max 256GB', 'Plumbing repair - Westlands', 'Safaricom 10GB bundle',
-    'House deposit - Kilimani', 'Furniture delivery - Ngong Rd', 'Custom web design project',
-    'Samsung Galaxy S23', 'Electrical wiring - Kileleshwa', 'Airtel 5GB monthly',
-    '2-bedroom apartment deposit', 'Motorcycle delivery - CBD', 'Logo design + branding'
-  ][Math.floor(Math.random() * 12)],
-}));
-
-// Generate disputes
-const DISPUTES = Array.from({ length: 25 }, (_, i) => ({
-  id: generateId('DSP'),
-  escrowId: ESCROWS[i % ESCROWS.length].id,
-  serviceType: SERVICE_TYPES[Math.floor(Math.random() * SERVICE_TYPES.length)],
-  buyer: KENYAN_NAMES[Math.floor(Math.random() * KENYAN_NAMES.length)],
-  buyerPhone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  seller: KENYAN_NAMES[Math.floor(Math.random() * KENYAN_NAMES.length)],
-  sellerPhone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  amount: Math.floor(Math.random() * 30000) + 2000,
-  reason: DISPUTE_REASONS[Math.floor(Math.random() * DISPUTE_REASONS.length)],
-  status: ['Open', 'Escalated', 'Resolved'][Math.floor(Math.random() * 3)],
-  createdAt: new Date(2025, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1).toISOString(),
-  llmConfidence: Math.floor(Math.random() * 40) + 55,
-  buyerClaim: 'The item delivered was significantly different from what was advertised. The seller promised an original iPhone but delivered a refurbished unit with a cracked screen.',
-  sellerCounter: 'The buyer is being unreasonable. The listing clearly stated "refurbished with minor cosmetic damage." Photos were provided. Buyer accepted the terms before payment.',
-  buyerPhotos: 3,
-  sellerPhotos: 2,
-  resolution: i < 8 ? ['Refunded Buyer', 'Released to Seller', 'Partial Refund'][Math.floor(Math.random() * 3)] : null,
-  resolutionNote: i < 8 ? 'After reviewing all evidence, the decision was made based on platform policy section 4.2.' : '',
-}));
-
-// Generate M-Pesa logs
-const MPESA_LOGS = Array.from({ length: 50 }, (_, i) => ({
-  id: generateId('MP'),
-  type: Math.random() > 0.5 ? 'STK Push' : 'B2C Payout',
-  phone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  amount: Math.floor(Math.random() * 20000) + 500,
-  status: Math.random() > 0.15 ? 'Success' : 'Failed',
-  reference: `LIP${Math.floor(Math.random() * 999999)}`,
-  merchantRequestId: `MR-${Math.random().toString(36).substr(2, 10).toUpperCase()}`,
-  checkoutRequestId: `ws_CO_${Math.random().toString(36).substr(2, 15).toUpperCase()}`,
-  timestamp: new Date(2025, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
-  errorMessage: Math.random() > 0.85 ? 'STK push timeout - user did not enter PIN' : null,
-}));
-
-// Generate KYC queue
-const KYC_QUEUE = Array.from({ length: 12 }, (_, i) => ({
-  id: `KYC-${2000 + i}`,
-  name: KENYAN_NAMES[i % KENYAN_NAMES.length],
-  phone: `07${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
-  idNumber: `${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 8999999 + 1000000)}`,
-  submittedAt: new Date(2025, 5, Math.floor(Math.random() * 14) + 1).toISOString(),
-  idPhoto: `https://picsum.photos/seed/${i + 100}/400/250`,
-  selfiePhoto: `https://picsum.photos/seed/${i + 200}/400/400`,
-  status: 'Pending',
-}));
-
-// Generate audit logs
-const AUDIT_LOGS = Array.from({ length: 80 }, (_, i) => ({
-  id: generateId('AUD'),
-  actor: ['Admin James', 'Supervisor Grace', 'Support Peter', 'Manager Amina', 'Admin David'][Math.floor(Math.random() * 5)],
-  action: ['Approved KYC', 'Resolved Dispute', 'Suspended User', 'Released Escrow', 'Refunded Buyer', 'Force Released', 'Updated Settings', 'Verified Payment', 'Rejected KYC', 'Reactivated User'][Math.floor(Math.random() * 10)],
-  target: [KENYAN_NAMES[Math.floor(Math.random() * KENYAN_NAMES.length)], `ESC-${Math.floor(Math.random() * 999999)}`, `USR-${1000 + Math.floor(Math.random() * 45)}`, `KYC-${2000 + Math.floor(Math.random() * 12)}`][Math.floor(Math.random() * 4)],
-  timestamp: new Date(2025, 5, Math.floor(Math.random() * 14) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
-  ip: `197.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-  details: 'Action performed via admin dashboard with full authorization.',
-}));
-
 // ─── SHARED COMPONENTS ─────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status, size = 'md' }) => {
@@ -216,7 +104,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 };
 
 const StatCard = ({ title, value, change, changeType, icon: Icon, color }) => (
-  <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+  <div className="bg-white rounded-xl border border-gray-300 p-5 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-start justify-between">
       <div>
         <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
@@ -226,9 +114,6 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, color }) => (
           <span>{change}</span>
           <span className="text-gray-400 font-normal">vs last month</span>
         </div>
-      </div>
-      <div className={`p-3 rounded-xl ${color}`}>
-        <Icon size={20} className="text-white" />
       </div>
     </div>
   </div>
@@ -371,6 +256,7 @@ const UserManagement = ({ token }) => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b border-gray-200">
                 <tr>
+                  <th className="px-4 py-3 text-left">#</th>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Phone</th>
                   <th className="px-4 py-3 text-left">Status</th>
@@ -382,8 +268,9 @@ const UserManagement = ({ token }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.map(u => (
+                {users.map((u, i) => (
                   <tr key={u.id} className="hover:bg-[#f0faf8] transition-colors">
+                    <td className="px-4 py-3 text-gray-500">{(page - 1) * 20 + i + 1}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{u.fullName || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{u.phone}</td>
                     <td className="px-4 py-3">
@@ -1804,10 +1691,10 @@ const Sidebar = ({ activeScreen, setActiveScreen, isOpen, setIsOpen, setToken, s
         <div className="px-6 py-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#35a089] flex items-center justify-center shadow-lg shadow-[#35a089]/20">
-              <ShieldCheck size={22} className="text-white" />
+              <span className="text-white font-black text-sm tracking-tight">LS</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">LipaSafe</h1>
+              <h1 className="text-lg font-bold text-white tracking-tight">LIPA SALAMA</h1>
               <p className="text-xs text-gray-500">Admin Dashboard</p>
             </div>
           </div>
@@ -1920,7 +1807,7 @@ const App = () => {
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[#35a089] flex items-center justify-center text-white font-bold text-lg">L</div>
-          <div><h1 className="text-lg font-bold text-gray-900">LipaSafe Admin</h1><p className="text-xs text-gray-500">Sign in to continue</p></div>
+          <div><h1 className="text-lg font-bold text-gray-900">LIPA SALAMA Admin</h1><p className="text-xs text-gray-500">Sign in to continue</p></div>
         </div>
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>

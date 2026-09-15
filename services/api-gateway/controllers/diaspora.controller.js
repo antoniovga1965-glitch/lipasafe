@@ -390,15 +390,24 @@ const getDeal = async (req, res) => {
 // ── 8. Admin — get all pending deals ──────────────────────────────────────
 const adminGetPendingDeals = async (req, res) => {
   try {
-    const deals = await prisma.diasporaDeal.findMany({
-      where: { status: { in: ["PENDING_CONFIRMATION", "HELD", "ACTIVE"] } },
-      include: {
-        milestones: true,
-        deposit: true,
-        funder: { select: { fullName: true, phone: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const page  = Math.max(parseInt(req.query.page, 10)  || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const where = { status: { in: ["PENDING_CONFIRMATION", "HELD", "ACTIVE"] } };
+
+    const [deals, total] = await Promise.all([
+      prisma.diasporaDeal.findMany({
+        where,
+        include: {
+          milestones: true,
+          deposit: true,
+          funder: { select: { fullName: true, phone: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.diasporaDeal.count({ where }),
+    ]);
 
     const shaped = deals.map((d) => ({
       ...d,
@@ -407,7 +416,11 @@ const adminGetPendingDeals = async (req, res) => {
       counterpartyPhone: d.recipientPhone,
     }));
 
-    return res.status(200).json({ success: true, deals: shaped });
+    return res.status(200).json({
+      success: true,
+      deals: shaped,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     logger.error(err, "adminGetPendingDeals error");
     return res.status(500).json({ success: false, message: "Internal server error" });
