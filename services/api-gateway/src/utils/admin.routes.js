@@ -35,6 +35,12 @@ router.get('/kyc/rejected',                    auth, adminAuth, ctrl.listRejecte
 router.get('/audit-log',                       auth, adminAuth, ctrl.getAuditLog)
 router.patch('/kyc/:id/resolve',               auth, adminAuth, ctrl.resolveKyc)
 
+router.get('/settings',                        auth, adminAuth, ctrl.getAdminSettings)
+router.patch('/settings/bank',                 auth, adminAuth, ctrl.updateAdminBank)
+router.patch('/settings/rates',                auth, adminAuth, ctrl.updateAdminRates)
+router.patch('/settings/cut',                  auth, adminAuth, ctrl.updateAdminCut)
+router.patch('/settings/notifications',        auth, adminAuth, ctrl.updateAdminNotifications)
+
 // ── User search ──
 router.get('/users/search',                    auth, adminAuth, ctrl.searchUser)
 

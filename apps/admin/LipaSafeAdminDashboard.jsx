@@ -1047,7 +1047,7 @@ const KYCVerification = ({ token }) => {
         <div className="flex items-center justify-center h-48 text-gray-400">Loading KYC {activeTab}…</div>
       ) : queue.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2">
-          <span className="text-4xl">{activeTab === 'verified' ? '✓' : activeTab === 'rejected' ? '✕' : '⏳'}</span>
+          <span className="text-4xl">{activeTab === 'verified' ? '✓' : activeTab === 'rejected' ? '✕' : ''}</span>
           <p className="text-sm">No {activeTab} KYC records</p>
         </div>
       ) : (
@@ -1705,6 +1705,151 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }) => (
   </button>
 );
 
+
+// ─── SCREEN 8: PLATFORM SETTINGS ─────────────────────────────────────────────
+
+const PlatformSettings = ({ token }) => {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState({});
+
+  const isSaving = (k) => saving[k] === true;
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    const data = await apiFetch('/admin/settings', token);
+    if (data?.success) setSettings(data.data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchSettings(); }, []);
+
+  function update(section, patch) {
+    setSettings(prev => prev ? { ...prev, [section]: { ...prev[section], ...patch } } : prev);
+  }
+
+  async function save(key, path, body, msg) {
+    setSaving(p => ({ ...p, [key]: true }));
+    const res = await apiFetch(path, token, { method: 'PATCH', body: JSON.stringify(body) });
+    setSaving(p => ({ ...p, [key]: false }));
+    if (res?.success) alert(msg);
+    else alert('Failed to save');
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading settings…</div>;
+  if (!settings) return <div className="text-red-500 p-6">Failed to load settings.</div>;
+
+  const { rates, cut, notifications, bank } = settings;
+
+  const inputCls = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#35a089]/30";
+  const btnCls   = "px-4 py-2 bg-[#35a089] text-white rounded-lg text-sm font-medium hover:bg-[#2a7d6b] disabled:opacity-50 transition-colors";
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+
+      {/* Bank Details */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">🏦 Bank Account Details</h3>
+          <p className="text-xs text-gray-400 mt-0.5">These details are shown to diaspora users for wire transfers</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'name',          label: 'Bank Name' },
+              { key: 'accountName',   label: 'Account Name' },
+              { key: 'accountNumber', label: 'Account Number' },
+              { key: 'swift',         label: 'SWIFT Code' },
+              { key: 'branch',        label: 'Branch' },
+              { key: 'currency',      label: 'Currency' },
+            ].map(({ key, label }) => (
+              <div key={key} className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</label>
+                <input value={bank[key] || ''} onChange={e => update('bank', { [key]: e.target.value })} className={inputCls} />
+              </div>
+            ))}
+          </div>
+          <button onClick={() => save('bank', '/admin/settings/bank', bank, 'Bank details updated ✓')} disabled={isSaving('bank')} className={btnCls}>
+            {isSaving('bank') ? 'Saving…' : 'Update Bank Details'}
+          </button>
+        </div>
+      </div>
+
+      {/* Currency Rates */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">💱 Currency Rates (→ KES)</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Reference rates used when calculating diaspora deal amounts</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            {['gbp','usd','eur','aed','inr'].map(cur => (
+              <div key={cur} className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{cur} → KES</label>
+                <input type="number" value={rates[cur] || ''} onChange={e => update('rates', { [cur]: e.target.value })} className={inputCls} />
+              </div>
+            ))}
+          </div>
+          <button onClick={() => save('rates', '/admin/settings/rates', rates, 'Currency rates updated ✓')} disabled={isSaving('rates')} className={btnCls}>
+            {isSaving('rates') ? 'Saving…' : 'Update Rates'}
+          </button>
+        </div>
+      </div>
+
+      {/* Platform Cut */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">% LipaSafe Default Cut</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Platform fee percentage applied to all diaspora deals</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <input type="number" step="0.1" min="0" max="100" value={cut || ''} onChange={e => setSettings(p => p ? { ...p, cut: e.target.value } : p)} className={inputCls + ' w-32'} />
+            <span className="text-gray-500 text-sm font-medium">%</span>
+          </div>
+          <button onClick={() => save('cut', '/admin/settings/cut', { cut }, 'Platform cut updated ✓')} disabled={isSaving('cut')} className={btnCls}>
+            {isSaving('cut') ? 'Saving…' : 'Update Cut'}
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">🔔 Notification Preferences</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Controls which events trigger secretary notifications</p>
+        </div>
+        <div className="p-6 space-y-4">
+          {[
+            { key: 'lowFloat',        label: 'Low Float Alert',   desc: 'Notify when float drops below KES 50,000' },
+            { key: 'newConfirmation', label: 'New Confirmation',  desc: 'Notify when a new payment proof is submitted' },
+            { key: 'disputeRaised',  label: 'Dispute Raised',    desc: 'Notify when a dispute is filed' },
+            { key: 'b2cSuccess',     label: 'B2C Success',       desc: 'Notify when B2C payout completes' },
+          ].map(item => (
+            <div key={item.key} className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                <p className="text-xs text-gray-500">{item.desc}</p>
+              </div>
+              <button
+                onClick={() => {
+                  const v = !notifications[item.key];
+                  update('notifications', { [item.key]: v });
+                  save('notifications', '/admin/settings/notifications', { ...notifications, [item.key]: v }, `${item.label} ${v ? 'enabled' : 'disabled'} ✓`);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifications[item.key] ? 'bg-[#35a089]' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifications[item.key] ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
 const Sidebar = ({ activeScreen, setActiveScreen, isOpen, setIsOpen, setToken, setAdminName }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -1874,6 +2019,7 @@ const App = () => {
     escrows: <EscrowManagement token={token} />,
     mpesa: <MPesaLogs token={token} />,
     audit: <AuditLog token={token} />,
+    settings: <PlatformSettings token={token} />,
   };
 
   const screenTitles = {
@@ -1884,6 +2030,7 @@ const App = () => {
     escrows: 'Escrow Management',
     mpesa: 'M-Pesa Logs',
     audit: 'Audit Log',
+    settings: 'Platform Settings',
   };
 
   return (

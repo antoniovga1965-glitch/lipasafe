@@ -162,14 +162,12 @@ export default function SettingsPage() {
                 <Input
                   type="number"
                   value={rates[c]}
-                  onChange={(e) => update("rates", { [c]: e.target.value })}
+                  readOnly
                 />
               </div>
             ))}
           </div>
-          <Button className="bg-[#16a34a] hover:bg-[#15803d]" onClick={handleSaveRates} disabled={isSaving("rates")}>
-            {isSaving("rates") ? "Saving…" : "Update Rates"}
-          </Button>
+<p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2 inline-block">⚠ Managed by admin — contact admin to update rates</p>
         </CardContent>
       </Card>
 
@@ -189,14 +187,12 @@ export default function SettingsPage() {
               min="0"
               max="100"
               value={cut}
-              onChange={(e) => setSettings((p) => p ? { ...p, cut: e.target.value } : p)}
-              className="w-32"
+              readOnly
+              className="w-32 bg-gray-50 text-gray-500 cursor-not-allowed"
             />
             <span className="text-gray-500">%</span>
           </div>
-          <Button className="bg-[#16a34a] hover:bg-[#15803d]" onClick={handleSaveCut} disabled={isSaving("cut")}>
-            {isSaving("cut") ? "Saving…" : "Update Cut"}
-          </Button>
+<p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2 inline-block">⚠ Managed by admin — contact admin to update</p>
         </CardContent>
       </Card>
 
@@ -222,13 +218,7 @@ export default function SettingsPage() {
               </div>
               <Switch
                 checked={notifications[item.key]}
-                onCheckedChange={(checked) => {
-                  update("notifications", { [item.key]: checked });
-                  // auto-save on toggle
-                  save("notifications", "/api/secretary/notifications",
-                    { ...notifications, [item.key]: checked },
-                    `${item.label} ${checked ? "enabled" : "disabled"}`);
-                }}
+                disabled
               />
             </div>
           ))}
@@ -257,14 +247,13 @@ export default function SettingsPage() {
                 <Label>{label}</Label>
                 <Input
                   value={bank[key]}
-                  onChange={(e) => update("bank", { [key]: e.target.value })}
+                  readOnly
+                  className="bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
               </div>
             ))}
           </div>
-          <Button className="bg-[#16a34a] hover:bg-[#15803d]" onClick={handleSaveBank} disabled={isSaving("bank")}>
-            {isSaving("bank") ? "Saving…" : "Update Bank Details"}
-          </Button>
+<p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2 inline-block">⚠ Managed by admin — contact admin to update bank details</p>
         </CardContent>
       </Card>
 

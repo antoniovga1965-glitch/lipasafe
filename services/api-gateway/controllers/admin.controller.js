@@ -1110,11 +1110,130 @@ const getMpesaLogs = async (req, res) => {
   }
 }
 
+// ── Platform Settings (admin-only) ──────────────────────────────────────────
+async function getSetting(key, fallback = '') {
+  const row = await prisma.platformSetting.findUnique({ where: { key } })
+  return row ? row.value : fallback
+}
+async function setSetting(key, value, updatedBy) {
+  await prisma.platformSetting.upsert({
+    where:  { key },
+    update: { value: String(value), updatedBy },
+    create: { key, value: String(value), updatedBy },
+  })
+}
+
+const getAdminSettings = async (req, res) => {
+  try {
+    const [gbp, usd, eur, aed, inr, cut,
+           lowFloat, newConfirmation, disputeRaised, b2cSuccess,
+           bankName, bankAccountName, bankAccountNumber, bankSwift, bankBranch, bankCurrency] = await Promise.all([
+      getSetting('gbp_rate', '168.00'),
+      getSetting('usd_rate', '129.00'),
+      getSetting('eur_rate', '140.00'),
+      getSetting('aed_rate', '35.00'),
+      getSetting('inr_rate', '1.55'),
+      getSetting('platform_cut', '4'),
+      getSetting('notif_low_float', 'true'),
+      getSetting('notif_new_confirmation', 'true'),
+      getSetting('notif_dispute_raised', 'true'),
+      getSetting('notif_b2c_success', 'false'),
+      getSetting('bank_name', 'Equity Bank Kenya'),
+      getSetting('bank_account_name', 'LipaSafe Limited'),
+      getSetting('bank_account_number', '0123456789012'),
+      getSetting('bank_swift', 'EQBLKENA'),
+      getSetting('bank_branch', 'Upper Hill, Nairobi'),
+      getSetting('bank_currency', 'KES / USD / GBP'),
+    ])
+    return res.json({
+      success: true,
+      data: {
+        rates: { gbp, usd, eur, aed, inr },
+        cut,
+        notifications: {
+          lowFloat:        lowFloat        === 'true',
+          newConfirmation: newConfirmation === 'true',
+          disputeRaised:   disputeRaised   === 'true',
+          b2cSuccess:      b2cSuccess      === 'true',
+        },
+        bank: { name: bankName, accountName: bankAccountName, accountNumber: bankAccountNumber, swift: bankSwift, branch: bankBranch, currency: bankCurrency },
+      },
+    })
+  } catch (err) {
+    console.error('getAdminSettings error', err)
+    return res.status(500).json({ success: false, message: 'Failed to load settings' })
+  }
+}
+
+const updateAdminBank = async (req, res) => {
+  try {
+    const { name, accountName, accountNumber, swift, branch, currency } = req.body
+    await Promise.all([
+      name          != null && setSetting('bank_name',           name,          req.user.id),
+      accountName   != null && setSetting('bank_account_name',   accountName,   req.user.id),
+      accountNumber != null && setSetting('bank_account_number', accountNumber, req.user.id),
+      swift         != null && setSetting('bank_swift',          swift,         req.user.id),
+      branch        != null && setSetting('bank_branch',         branch,        req.user.id),
+      currency      != null && setSetting('bank_currency',       currency,      req.user.id),
+    ])
+    return res.json({ success: true, message: 'Bank details updated' })
+  } catch (err) {
+    console.error('updateAdminBank error', err)
+    return res.status(500).json({ success: false, message: 'Failed to update bank details' })
+  }
+}
+
+const updateAdminRates = async (req, res) => {
+  try {
+    const { gbp, usd, eur, aed, inr } = req.body
+    await Promise.all([
+      gbp != null && setSetting('gbp_rate', gbp, req.user.id),
+      usd != null && setSetting('usd_rate', usd, req.user.id),
+      eur != null && setSetting('eur_rate', eur, req.user.id),
+      aed != null && setSetting('aed_rate', aed, req.user.id),
+      inr != null && setSetting('inr_rate', inr, req.user.id),
+    ])
+    return res.json({ success: true, message: 'Currency rates updated' })
+  } catch (err) {
+    console.error('updateAdminRates error', err)
+    return res.status(500).json({ success: false, message: 'Failed to update rates' })
+  }
+}
+
+const updateAdminCut = async (req, res) => {
+  try {
+    const { cut } = req.body
+    if (cut == null || isNaN(Number(cut))) return res.status(400).json({ success: false, message: 'Invalid cut value' })
+    await setSetting('platform_cut', cut, req.user.id)
+    return res.json({ success: true, message: 'Platform cut updated' })
+  } catch (err) {
+    console.error('updateAdminCut error', err)
+    return res.status(500).json({ success: false, message: 'Failed to update cut' })
+  }
+}
+
+const updateAdminNotifications = async (req, res) => {
+  try {
+    const { lowFloat, newConfirmation, disputeRaised, b2cSuccess } = req.body
+    await Promise.all([
+      lowFloat        != null && setSetting('notif_low_float',       lowFloat,        req.user.id),
+      newConfirmation != null && setSetting('notif_new_confirmation', newConfirmation, req.user.id),
+      disputeRaised   != null && setSetting('notif_dispute_raised',   disputeRaised,   req.user.id),
+      b2cSuccess      != null && setSetting('notif_b2c_success',      b2cSuccess,      req.user.id),
+    ])
+    return res.json({ success: true, message: 'Notification preferences updated' })
+  } catch (err) {
+    console.error('updateAdminNotifications error', err)
+    return res.status(500).json({ success: false, message: 'Failed to update notifications' })
+  }
+}
+
+
 module.exports = {
   getDashboardStats, getDisputes, resolveDispute, resolveCustomDispute,
   getTransactions, getUsers, updateUserStatus,
   getDeliveryDisputes, resolveDeliveryDispute,
   listFundiDisputes, resolveFundiDispute,
   listHouseDisputes, resolveHouseDispute,
-  listPendingKyc, listVerifiedKyc, listRejectedKyc, resolveKyc, getAuditLog, searchUser, getMpesaHealth, getMpesaLogs,
+  listPendingKyc, listVerifiedKyc, listRejectedKyc, resolveKyc, getAdminSettings, updateAdminBank, updateAdminRates, updateAdminCut, updateAdminNotifications, getAuditLog, searchUser, getMpesaHealth, getMpesaLogs,
 };
