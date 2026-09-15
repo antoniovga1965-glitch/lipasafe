@@ -1750,7 +1750,7 @@ const PlatformSettings = ({ token }) => {
       {/* Bank Details */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">🏦 Bank Account Details</h3>
+          <h3 className="font-semibold text-gray-900">Bank Account Details</h3>
           <p className="text-xs text-gray-400 mt-0.5">These details are shown to diaspora users for wire transfers</p>
         </div>
         <div className="p-6 space-y-4">
@@ -1778,14 +1778,14 @@ const PlatformSettings = ({ token }) => {
       {/* Currency Rates */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">💱 Currency Rates (→ KES)</h3>
+          <h3 className="font-semibold text-gray-900"> Currency Rates (→ KES)</h3>
           <p className="text-xs text-gray-400 mt-0.5">Reference rates used when calculating diaspora deal amounts</p>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-3 gap-4">
             {['gbp','usd','eur','aed','inr'].map(cur => (
               <div key={cur} className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{cur} → KES</label>
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{cur} KES</label>
                 <input type="number" value={rates[cur] || ''} onChange={e => update('rates', { [cur]: e.target.value })} className={inputCls} />
               </div>
             ))}
@@ -1816,7 +1816,7 @@ const PlatformSettings = ({ token }) => {
       {/* Notifications */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">🔔 Notification Preferences</h3>
+          <h3 className="font-semibold text-gray-900"> Notification Preferences</h3>
           <p className="text-xs text-gray-400 mt-0.5">Controls which events trigger secretary notifications</p>
         </div>
         <div className="p-6 space-y-4">

@@ -27,7 +27,7 @@ function mapDispute(raw: any): DisputeCase {
   return {
     id:            raw.id,
     dealId:        raw.dealId        ?? raw.deal?.id        ?? '',
-    dealRef:       raw.dealRef       ?? raw.deal?.ref       ?? raw.id.slice(0, 8).toUpperCase(),
+    dealReference: raw.dealRef       ?? raw.deal?.ref       ?? raw.id.slice(0, 8).toUpperCase(),
     milestoneId:   raw.milestoneId   ?? raw.milestone?.id   ?? '',
     milestoneName: raw.milestoneName ?? raw.milestone?.title ?? 'Milestone',
     status:        (raw.status?.toUpperCase() ?? 'OPEN') as DisputeCase['status'],
@@ -36,19 +36,21 @@ function mapDispute(raw: any): DisputeCase {
     raisedBy:      raw.raisedBy      ?? 'funder',
     raisedByName:  raw.raisedByName  ?? raw.funder?.name    ?? 'Unknown',
     reason:        raw.reason        ?? raw.description      ?? '',
-    amountAtStake: raw.amountAtStake ?? raw.milestone?.amount ?? raw.amount ?? 0,
-    evidenceUrls:  raw.evidenceUrls  ?? raw.evidence?.map((e: any) => e.url)           ?? [],
-    evidenceTypes: raw.evidenceTypes ?? raw.evidence?.map((e: any) => e.type ?? 'image') ?? (raw.evidenceUrls ?? []).map((u: string) => inferEvidenceType(u)),
+    amount: raw.amountAtStake ?? raw.milestone?.amount ?? raw.amount ?? 0,
+    evidence: (raw.evidence ?? (raw.evidenceUrls ?? []).map((u: string, i: number) => ({
+      type: (raw.evidenceTypes?.[i] ?? inferEvidenceType(u)) as "image"|"video"|"audio",
+      url: u,
+    }))),
     messages: (raw.messages ?? []).map((m: any) => ({
-      id:        m.id,
-      sender:    m.sender    ?? m.senderType ?? 'funder',
-      text:      m.text      ?? m.content    ?? '',
-      timestamp: m.timestamp ?? m.createdAt  ?? new Date().toISOString(),
+      from: (m.sender ?? m.senderType ?? m.from ?? "funder") as "funder"|"contractor",
+      text: m.text ?? m.content ?? "",
+      timestamp: new Date(m.timestamp ?? m.createdAt ?? Date.now()),
     })),
     secretaryNotes:        raw.secretaryNotes        ?? '',
     bankDetailsRequested:  raw.bankDetailsRequested  ?? false,
     refundBankName:        raw.refundBankName         ?? '',
-    refundAccountNo:       raw.refundAccountNo        ?? '',
+    refundAccountNo: raw.refundAccountNo ?? '',
+    createdAt: raw.createdAt ? new Date(raw.createdAt) : new Date(),
   }
 }
 
@@ -123,29 +125,29 @@ export default function DisputesPage() {
 
       setDisputes(prev => prev.map(d =>
         d.id === dispute.id
-          ? { ...d, status: 'RESOLVED', resolution, resolvedAt: new Date().toISOString() }
+          ? { ...d, status: 'RESOLVED', resolution, resolvedAt: new Date() }
           : d
       ));
 
-      if (resolution === 'FAVOR_CONTRACTOR' && floatBalance >= dispute.amountAtStake) {
-        setFloatBalance(floatBalance - dispute.amountAtStake);
+      if (resolution === 'FAVOR_CONTRACTOR' && floatBalance >= dispute.amount) {
+        setFloatBalance(floatBalance - dispute.amount);
         addFloatTransaction({
           id: `ftx-${Date.now()}`, type: 'B2C_PAYOUT',
-          amount: dispute.amountAtStake,
+          amount: dispute.amount,
           reference: `B2C-DISP-${dispute.id}`,
-          dealRef: dispute.dealRef,
+          dealId: dispute.dealId,
           description: `Dispute payout → ${dispute.raisedByName}`,
           addedBy: 'Wanjiku M',
-          timestamp: new Date().toISOString(),
+          createdAt: new Date(),
         });
       }
 
       addLog({
         id: `log-${Date.now()}`, action: 'Dispute Resolved',
-        performedBy: 'Wanjiku M', dealRef: dispute.dealRef,
-        amount: dispute.amountAtStake,
+        performedBy: 'Wanjiku M', dealReference: dispute.dealReference,
+        amount: dispute.amount,
         details: `Ruled: ${resolution === 'FAVOR_FUNDER' ? 'funder (refund)' : 'contractor (release)'}`,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       });
 
       toast.success(`Resolved in favor of ${resolution === 'FAVOR_FUNDER' ? 'funder' : 'contractor'}`);
@@ -164,9 +166,9 @@ export default function DisputesPage() {
       setDisputes(prev => prev.filter(d => d.id !== dispute.id));
       addLog({
         id: `log-${Date.now()}`, action: 'Dispute Dismissed',
-        performedBy: 'Wanjiku M', dealRef: dispute.dealRef,
+        performedBy: 'Wanjiku M', dealReference: dispute.dealReference,
         details: 'Secretary dismissed the dispute',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       });
       toast.success('Dispute dismissed');
     } catch (err: any) {
@@ -184,8 +186,8 @@ export default function DisputesPage() {
     updateNotes(dispute, dispute.secretaryNotes + '\n[Evidence requested ' + new Date().toLocaleDateString() + ']');
     addLog({
       id: `log-${Date.now()}`, action: 'Evidence Requested',
-      performedBy: 'Wanjiku M', dealRef: dispute.dealRef,
-      details: 'Secretary requested more evidence', timestamp: new Date().toISOString(),
+      performedBy: 'Wanjiku M', dealReference: dispute.dealReference,
+      details: 'Secretary requested more evidence', timestamp: new Date(),
     });
     toast.info('Evidence request noted');
     setNotesModalOpen(false);
@@ -222,7 +224,7 @@ export default function DisputesPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm text-gray-500">{dispute.dealRef}</span>
+                      <span className="font-mono text-sm text-gray-500">{dispute.dealReference}</span>
                       <Badge className={
                         dispute.status === 'OPEN'
                           ? 'bg-red-100 text-red-700 border-red-200'
@@ -238,30 +240,29 @@ export default function DisputesPage() {
                       <p className="text-sm text-gray-700 mt-1">{dispute.reason}</p>
                     </div>
 
-                    {(dispute.evidenceUrls ?? []).length > 0 && (
+                    {(dispute.evidence ?? []).length > 0 && (
                       <div>
                         <p className="text-sm font-semibold text-gray-900 mb-2">Evidence</p>
                         <div className="flex flex-wrap gap-2">
-                          {dispute.evidenceUrls!.map((url, i) => {
-                            const type = dispute.evidenceTypes?.[i];
-                            if (type === 'image') return (
-                              <button key={i} onClick={() => setLightboxImage(url)}
+                          {dispute.evidence!.map((ev, i) => {
+                            if (ev.type === "image") return (
+                              <button key={i} onClick={() => setLightboxImage(ev.url)}
                                 className="h-20 w-20 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity">
-                                <img src={url} alt={`Evidence ${i + 1}`} className="h-full w-full object-cover" />
+                                <img src={ev.url} alt={`Evidence ${i + 1}`} className="h-full w-full object-cover" />
                               </button>
                             );
-                            if (type === 'video') return (
+                            if (ev.type === "video") return (
                               <div key={i} className="w-full max-w-md">
-                                <video src={url} controls className="w-full rounded-lg border" />
+                                <video src={ev.url} controls className="w-full rounded-lg border" />
                               </div>
                             );
-                            if (type === 'audio') return (
+                            if (ev.type === "audio") return (
                               <div key={i} className="w-full max-w-md bg-gray-50 rounded-lg p-3 border">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Music className="h-4 w-4 text-gray-500" />
                                   <span className="text-xs text-gray-500">Audio Evidence</span>
                                 </div>
-                                <audio src={url} controls className="w-full" />
+                                <audio src={ev.url} controls className="w-full" />
                               </div>
                             );
                             return null;
@@ -275,9 +276,9 @@ export default function DisputesPage() {
                         <MessageSquare className="h-4 w-4" /> Messages
                       </p>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {dispute.messages.map((msg) => (
-                          <div key={msg.id} className={`p-3 rounded-lg max-w-[80%] ${
-                            msg.sender === 'funder'
+                        {dispute.messages.map((msg, i) => (
+                          <div key={i} className={`p-3 rounded-lg max-w-[80%] ${
+                            msg.from === 'funder'
                               ? 'bg-blue-50 text-blue-900 ml-0 mr-auto'
                               : 'bg-green-50 text-green-900 ml-auto mr-0'
                           }`}>
@@ -295,7 +296,7 @@ export default function DisputesPage() {
                     <div>
                       <p className="text-sm text-gray-500">Amount at Stake</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        KES {dispute.amountAtStake?.toLocaleString() ?? '—'}
+                        KES {dispute.amount?.toLocaleString() ?? '—'}
                       </p>
                     </div>
 

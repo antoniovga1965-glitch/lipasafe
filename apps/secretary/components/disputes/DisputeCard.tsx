@@ -32,7 +32,7 @@ export default function DisputesPage() {
       ...dispute,
       status: "RESOLVED",
       resolution,
-      resolvedAt: new Date().toISOString(),
+      resolvedAt: new Date(),
     };
     updateDispute(updated);
 
@@ -47,20 +47,19 @@ export default function DisputesPage() {
           ...deal,
           milestones: updatedMilestones,
           status: allReleased ? "COMPLETED" : deal.status,
-          updatedAt: new Date().toISOString(),
         });
 
-        if (floatBalance >= dispute.amountAtStake) {
-          setFloatBalance(floatBalance - dispute.amountAtStake);
+        if (floatBalance >= dispute.amount) {
+          setFloatBalance(floatBalance - dispute.amount);
           addFloatTransaction({
             id: `ftx-${Date.now()}`,
             type: "B2C_PAYOUT",
-            amount: dispute.amountAtStake,
+            amount: dispute.amount,
             reference: `B2C-DISP-${dispute.id}`,
-            dealRef: dispute.dealRef,
+            dealId: dispute.dealId,
             description: `Dispute resolution payout → ${dispute.raisedByName}`,
             addedBy: "Wanjiku M",
-            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
           });
         }
       }
@@ -70,10 +69,10 @@ export default function DisputesPage() {
       id: `log-${Date.now()}`,
       action: "Dispute Resolved",
       performedBy: "Wanjiku M",
-      dealRef: dispute.dealRef,
-      amount: dispute.amountAtStake,
+      dealReference: dispute.dealReference,
+      amount: dispute.amount,
       details: `Ruled in favor of ${resolution === "FAVOR_FUNDER" ? "funder (refund)" : "contractor (release)"}`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
 
     toast.success(`Dispute resolved in favor of ${resolution === "FAVOR_FUNDER" ? "funder" : "contractor"}`);
@@ -90,9 +89,9 @@ export default function DisputesPage() {
       id: `log-${Date.now()}`,
       action: "Evidence Requested",
       performedBy: "Wanjiku M",
-      dealRef: dispute.dealRef,
+      dealReference: dispute.dealReference,
       details: "Secretary requested more evidence from parties",
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
     toast.info("Evidence request noted");
     setNotesModalOpen(false);
@@ -127,7 +126,7 @@ export default function DisputesPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm text-gray-500">{dispute.dealRef}</span>
+                      <span className="font-mono text-sm text-gray-500">{dispute.dealReference}</span>
                       <Badge
                         className={
                           dispute.status === "OPEN"
@@ -150,37 +149,27 @@ export default function DisputesPage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-900 mb-2">Evidence</p>
                       <div className="flex flex-wrap gap-2">
-                        {dispute.evidenceUrls.map((url, i) => {
-                          const type = dispute.evidenceTypes[i];
-                          if (type === "image") {
-                            return (
-                              <button
-                                key={i}
-                                onClick={() => setLightboxImage(url)}
-                                className="h-20 w-20 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity"
-                              >
-                                <img src={url} alt={`Evidence ${i + 1}`} className="h-full w-full object-cover" />
-                              </button>
-                            );
-                          }
-                          if (type === "video") {
-                            return (
-                              <div key={i} className="w-full max-w-md">
-                                <video src={url} controls className="w-full rounded-lg border" />
+                        {(dispute.evidence ?? []).map((ev, i) => {
+                          if (ev.type === "image") return (
+                            <button key={i} onClick={() => setLightboxImage(ev.url)}
+                              className="h-20 w-20 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity">
+                              <img src={ev.url} alt={`Evidence ${i + 1}`} className="h-full w-full object-cover" />
+                            </button>
+                          );
+                          if (ev.type === "video") return (
+                            <div key={i} className="w-full max-w-md">
+                              <video src={ev.url} controls className="w-full rounded-lg border" />
+                            </div>
+                          );
+                          if (ev.type === "audio") return (
+                            <div key={i} className="w-full max-w-md bg-gray-50 rounded-lg p-3 border">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Music className="h-4 w-4 text-gray-500" />
+                                <span className="text-xs text-gray-500">Audio Evidence</span>
                               </div>
-                            );
-                          }
-                          if (type === "audio") {
-                            return (
-                              <div key={i} className="w-full max-w-md bg-gray-50 rounded-lg p-3 border">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Music className="h-4 w-4 text-gray-500" />
-                                  <span className="text-xs text-gray-500">Audio Evidence</span>
-                                </div>
-                                <audio src={url} controls className="w-full" />
-                              </div>
-                            );
-                          }
+                              <audio src={ev.url} controls className="w-full" />
+                            </div>
+                          );
                           return null;
                         })}
                       </div>
@@ -191,11 +180,11 @@ export default function DisputesPage() {
                         <MessageSquare className="h-4 w-4" /> Messages
                       </p>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {dispute.messages.map((msg) => (
+                        {dispute.messages.map((msg, i) => (
                           <div
-                            key={msg.id}
+                            key={i}
                             className={`p-3 rounded-lg max-w-[80%] ${
-                              msg.sender === "funder"
+                              msg.from === "funder"
                                 ? "bg-blue-50 text-blue-900 ml-0 mr-auto"
                                 : "bg-green-50 text-green-900 ml-auto mr-0"
                             }`}
@@ -213,7 +202,7 @@ export default function DisputesPage() {
                   <div className="lg:w-80 space-y-4">
                     <div>
                       <p className="text-sm text-gray-500">Amount at Stake</p>
-                      <p className="text-2xl font-bold text-gray-900">KES {dispute.amountAtStake.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-gray-900">KES {dispute.amount.toLocaleString()}</p>
                     </div>
 
                     <div>

@@ -23,7 +23,6 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Overview",
   "/dashboard/float": "Float Wallet",
   "/dashboard/confirmations": "Pending Confirmations",
-  "/dashboard/b2c": "B2C Fire Queue",
   "/dashboard/disputes": "Disputes",
   "/dashboard/deals": "Active Deals",
   "/dashboard/logs": "Audit Logs",

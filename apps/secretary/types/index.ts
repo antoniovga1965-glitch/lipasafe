@@ -105,6 +105,7 @@ export interface FloatTransaction {
   reference?: string;
   dealId?: string;
   milestoneId?: string;
+  description?: string;
   addedBy: string;
   createdAt: Date;
 }
@@ -113,8 +114,9 @@ export interface AuditLog {
   id: string;
   action: string;
   performedBy: string;
-  dealRef?: string;
+  dealReference?: string;
   amount?: number;
+  details?: string;
   timestamp: Date;
 }
 

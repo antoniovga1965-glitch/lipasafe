@@ -47,10 +47,10 @@ export default function ConfirmationsPage() {
       id: `log-${Date.now()}`,
       action: "Payment Confirmed",
       performedBy: "Wanjiku M",
-      dealRef: deal.reference,
+      dealReference: deal.reference,
       amount: deal.totalAmount,
       details: `Bank credit confirmed (ref: ${bankRef}), deal marked as HELD`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
     toast.success(`${deal.reference} confirmed and marked as HELD`);
   };
@@ -71,10 +71,10 @@ export default function ConfirmationsPage() {
       id: `log-${Date.now()}`,
       action: "Payment Rejected",
       performedBy: "Wanjiku M",
-      dealRef: deal.reference,
+      dealReference: deal.reference,
       amount: deal.totalAmount,
       details: `Rejected: ${rejectReason}`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
     toast.error(`${deal.reference} rejected: ${rejectReason}`);
     setRejectingDeal(null);

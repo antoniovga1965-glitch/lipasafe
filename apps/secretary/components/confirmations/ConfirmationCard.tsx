@@ -32,19 +32,19 @@ export default function ConfirmationsPage() {
   const [rejectingDeal, setRejectingDeal] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const pendingDeals = deals.filter((d) => d.status === "PAYMENT_PENDING_CONFIRMATION");
+  const pendingDeals = deals.filter((d) => d.status === "PENDING_CONFIRMATION");
 
   const handleConfirm = (deal: DiasporaDeal) => {
-    const updated: DiasporaDeal = { ...deal, status: "HELD", updatedAt: new Date().toISOString() };
+    const updated: DiasporaDeal = { ...deal, status: "HELD" };
     updateDeal(updated);
     addLog({
       id: `log-${Date.now()}`,
       action: "Payment Confirmed",
       performedBy: "Wanjiku M",
-      dealRef: deal.reference,
+      dealReference: deal.reference,
       amount: deal.totalAmount,
       details: "Bank credit confirmed, deal marked as HELD",
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
     toast.success(`${deal.reference} confirmed and marked as HELD`);
   };
@@ -54,16 +54,16 @@ export default function ConfirmationsPage() {
       toast.error("Please provide a rejection reason");
       return;
     }
-    const updated: DiasporaDeal = { ...deal, status: "CANCELLED", updatedAt: new Date().toISOString() };
+    const updated: DiasporaDeal = { ...deal, status: "AWAITING_PAYMENT" };
     updateDeal(updated);
     addLog({
       id: `log-${Date.now()}`,
       action: "Payment Rejected",
       performedBy: "Wanjiku M",
-      dealRef: deal.reference,
+      dealReference: deal.reference,
       amount: deal.totalAmount,
       details: `Rejected: ${rejectReason}`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
     toast.error(`${deal.reference} rejected: ${rejectReason}`);
     setRejectingDeal(null);
@@ -105,7 +105,7 @@ export default function ConfirmationsPage() {
                           </Badge>
                         </div>
                         <p className="font-semibold text-gray-900 mt-0.5">
-                          {deal.funderName} {countryFlags[deal.funderCountryCode] || "🌍"} → {deal.counterpartyName}
+                          {deal.funderName} {countryFlags[deal.funderCountry] || "🌍"} → {deal.counterpartyName}
                         </p>
                         <p className="text-sm text-gray-500">{deal.counterpartyPhone}</p>
                         <div className="flex items-center gap-4 mt-2 text-sm">
@@ -114,7 +114,7 @@ export default function ConfirmationsPage() {
                             ≈ {deal.funderCountry} {deal.totalAmount?.toLocaleString()}
                           </span>
                           <span className="text-gray-400">
-                            Submitted {deal.paymentSubmittedAt ? formatDistanceToNow(new Date(deal.paymentSubmittedAt), { addSuffix: true }) : "recently"}
+                            Submitted {deal.deposit?.submittedAt ? formatDistanceToNow(new Date(deal.deposit?.submittedAt), { addSuffix: true }) : "recently"}
                           </span>
                         </div>
                       </div>

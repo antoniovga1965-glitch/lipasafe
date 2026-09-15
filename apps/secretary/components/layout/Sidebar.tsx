@@ -52,7 +52,7 @@ export default function Sidebar() {
   const user = getUserFromToken();
 
   const pendingConfirmations = deals.filter(
-    (d) => d.status === "PAYMENT_PENDING_CONFIRMATION"
+    (d) => d.status === "PENDING_CONFIRMATION"
   ).length;
 
   const b2cReady = deals.filter((d) =>
