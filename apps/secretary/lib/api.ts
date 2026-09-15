@@ -18,8 +18,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   return res.json()
 }
 
-export async function fetchFloat() {
-  return apiFetch('/diaspora/admin/float')
+export async function fetchFloat(page = 1) {
+  return apiFetch(`/diaspora/admin/float?page=${page}`)
 }
 
 export async function postAddFloat(amount: number, phone: string, note: string) {

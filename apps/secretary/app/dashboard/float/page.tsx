@@ -44,12 +44,14 @@ export default function FloatPage() {
   const [amount, setAmount]         = useState("");
   const [phone, setPhone]           = useState("");
   const [note, setNote]             = useState("");
+  const [page, setPage]             = useState(1);
+  const [totalTxs, setTotalTxs]     = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const res = await fetchFloat();
-      if (res.success) setFloat(res.float);
+      const res = await fetchFloat(p);
+      if (res.success) { setFloat(res.float); setTotalTxs(res.pagination?.total ?? 0); }
       else toast.error(res.message || "Failed to load float");
     } catch {
       toast.error("Network error loading float");
@@ -58,7 +60,7 @@ export default function FloatPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(page); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for balance update after STK push
   const pollBalance = useCallback(async (before: number) => {
@@ -215,7 +217,7 @@ export default function FloatPage() {
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold">
-            Transaction History ({txs.length})
+            Transaction History ({totalTxs})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -227,7 +229,8 @@ export default function FloatPage() {
               </div>
             : txs.length === 0
               ? <p className="text-sm text-gray-400 text-center py-8">No transactions yet.</p>
-              : <div className="overflow-x-auto">
+                : <>
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-100 text-left text-gray-500">
@@ -276,6 +279,26 @@ export default function FloatPage() {
                     </tbody>
                   </table>
                 </div>
+                  {totalTxs > 20 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <span className="text-xs text-gray-400">
+                        Page {page} of {Math.ceil(totalTxs / 20)}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={page === 1}
+                          onClick={() => setPage(p => p - 1)}
+                          className="px-3 py-1 text-sm border rounded disabled:opacity-40 hover:bg-gray-50"
+                        >← Prev</button>
+                        <button
+                          disabled={page >= Math.ceil(totalTxs / 20)}
+                          onClick={() => setPage(p => p + 1)}
+                          className="px-3 py-1 text-sm border rounded disabled:opacity-40 hover:bg-gray-50"
+                        >Next →</button>
+                      </div>
+                    </div>
+                  )}
+                </>
           }
         </CardContent>
       </Card>

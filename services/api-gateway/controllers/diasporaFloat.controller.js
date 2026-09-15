@@ -7,17 +7,22 @@ const { FLOAT_ID }  = require('../src/utils/diasporaConstants')
 // GET /diaspora/admin/float
 const getFloat = async (req, res) => {
   try {
-    const float = await prisma.diasporaFloat.findUnique({
-      where: { id: FLOAT_ID },
-      include: {
-        transactions: {
-          orderBy: { createdAt: 'desc' },
-          take: 50,
+    const page  = Math.max(1, parseInt(req.query.page)  || 1)
+    const limit = Math.min(50, parseInt(req.query.limit) || 20)
+    const skip  = (page - 1) * limit
+    const [float, total] = await Promise.all([
+      prisma.diasporaFloat.findUnique({
+        where: { id: FLOAT_ID },
+        include: {
+          transactions: {
+            orderBy: { createdAt: 'desc' }, skip, take: limit,
+          },
         },
-      },
-    })
+      }),
+      prisma.diasporaFloatTx.count({ where: { floatId: FLOAT_ID } }),
+    ])
     if (!float) return res.status(404).json({ success: false, message: 'Float not found' })
-    return res.json({ success: true, float })
+    return res.json({ success: true, float, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } })
   } catch (err) {
     console.error('getFloat error:', err)
     return res.status(500).json({ success: false, message: 'Failed to fetch float' })
