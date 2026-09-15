@@ -11,7 +11,7 @@ target/
 
 # Logs
 *.log
-logs/
+/logs
 
 # OS
 .DS_Store
@@ -29,8 +29,9 @@ node_modules/
 .expo/
 dist/
 build/
-logs/
+/logs
 *.apk
 
 # Local Netlify folder
 .netlify
+apps/mobile/logs/
