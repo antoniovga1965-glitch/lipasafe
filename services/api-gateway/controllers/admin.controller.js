@@ -894,6 +894,50 @@ const listPendingKyc = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Something went wrong' })
   }
 }
+const listVerifiedKyc = async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1)
+    const limit = Math.min(50, parseInt(req.query.limit) || 12)
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where:   { kycStatus: 'verified' },
+        skip:    (page - 1) * limit,
+        take:    limit,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, phone: true, fullName: true,
+          sellerProfile: { select: { idNumber: true, idDocUrl: true, idBackUrl: true, selfieUrl: true, businessName: true, kycSubmittedAt: true } } },
+      }),
+      prisma.user.count({ where: { kycStatus: 'verified' } }),
+    ])
+    return res.json({ success: true, data: users, total, page, pages: Math.ceil(total / limit) })
+  } catch (err) {
+    console.error('listVerifiedKyc error', { err: err.message })
+    return res.status(500).json({ success: false, message: 'Something went wrong' })
+  }
+}
+
+const listRejectedKyc = async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1)
+    const limit = Math.min(50, parseInt(req.query.limit) || 12)
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where:   { kycStatus: 'rejected' },
+        skip:    (page - 1) * limit,
+        take:    limit,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, phone: true, fullName: true,
+          sellerProfile: { select: { idNumber: true, idDocUrl: true, idBackUrl: true, selfieUrl: true, businessName: true, kycSubmittedAt: true, kycRejectionReason: true } } },
+      }),
+      prisma.user.count({ where: { kycStatus: 'rejected' } }),
+    ])
+    return res.json({ success: true, data: users, total, page, pages: Math.ceil(total / limit) })
+  } catch (err) {
+    console.error('listRejectedKyc error', { err: err.message })
+    return res.status(500).json({ success: false, message: 'Something went wrong' })
+  }
+}
+
 const getAuditLog = async (req, res) => {
   try {
     const page  = Math.max(1, parseInt(req.query.page)  || 1)
@@ -1072,5 +1116,5 @@ module.exports = {
   getDeliveryDisputes, resolveDeliveryDispute,
   listFundiDisputes, resolveFundiDispute,
   listHouseDisputes, resolveHouseDispute,
-  listPendingKyc, resolveKyc, getAuditLog, searchUser, getMpesaHealth, getMpesaLogs,
+  listPendingKyc, listVerifiedKyc, listRejectedKyc, resolveKyc, getAuditLog, searchUser, getMpesaHealth, getMpesaLogs,
 };

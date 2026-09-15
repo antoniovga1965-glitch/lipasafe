@@ -30,6 +30,8 @@ router.patch('/house-disputes/:id/resolve',    auth, adminAuth, ctrl.resolveHous
 
 // ── KYC ──
 router.get('/kyc/pending',                     auth, adminAuth, ctrl.listPendingKyc)
+router.get('/kyc/verified',                    auth, adminAuth, ctrl.listVerifiedKyc)
+router.get('/kyc/rejected',                    auth, adminAuth, ctrl.listRejectedKyc)
 router.get('/audit-log',                       auth, adminAuth, ctrl.getAuditLog)
 router.patch('/kyc/:id/resolve',               auth, adminAuth, ctrl.resolveKyc)
 

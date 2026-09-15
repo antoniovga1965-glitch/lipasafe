@@ -51,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const loadDeals = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
       if (!append) setDealsLoading(true);
-      const res = await fetchPendingDeals(page, 20);
+      const res = await fetchPendingDeals(page, 10);
       if (res.success) {
         setDeals((prev) => (append ? [...prev, ...res.deals] : res.deals));
         setDealsPagination(res.pagination);

@@ -928,6 +928,7 @@ const DisputeCenter = ({ token }) => {
 // ─── SCREEN 4: KYC VERIFICATION ──────────────────────────────────────────────
 
 const KYCVerification = ({ token }) => {
+  const [activeTab, setActiveTab]     = useState('pending');
   const [queue, setQueue]             = useState([]);
   const [loading, setLoading]         = useState(true);
   const [acting, setActing]           = useState(false);
@@ -939,34 +940,47 @@ const KYCVerification = ({ token }) => {
   const totalPages = Math.ceil(queue.length / itemsPerPage);
   const paginated  = queue.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const fetchQueue = async () => {
+  const fetchQueue = async (tab) => {
     setLoading(true);
-    const data = await apiFetch('/admin/kyc/pending', token);
+    setQueue([]);
+    const ep = tab === 'pending' ? '/admin/kyc/pending'
+             : tab === 'verified' ? '/admin/kyc/verified'
+             : '/admin/kyc/rejected';
+    const data = await apiFetch(ep, token);
     if (data?.success) {
       setQueue((data.data || []).map(u => ({
-        id:          u.id,
-        name:        u.fullName || u.sellerProfile?.businessName || u.phone,
-        phone:       u.phone,
-        idNumber:    u.sellerProfile?.idNumber  || '—',
-        idPhoto:     u.sellerProfile?.idDocUrl  || '',
-        selfiePhoto: u.sellerProfile?.selfieUrl || '',
-        status:      'Pending',
+        id:              u.id,
+        name:            u.fullName || u.sellerProfile?.businessName || u.phone,
+        phone:           u.phone,
+        idNumber:        u.sellerProfile?.idNumber  || '—',
+        idPhoto:         u.sellerProfile?.idDocUrl  || '',
+        selfiePhoto:     u.sellerProfile?.selfieUrl || '',
+        rejectionReason: u.sellerProfile?.kycRejectionReason || null,
+        status:          tab === 'pending' ? 'Pending' : tab === 'verified' ? 'Verified' : 'Rejected',
       })));
     }
     setLoading(false);
   };
-  useEffect(() => {
-    fetchQueue();
+
+  const fetchStats = () => {
     apiFetch('/admin/dashboard', token)
       .then(d => {
         if (d?.stats) setKycStats({
-          pending:  d.stats.pendingKyc  || 0,
+          pending:  d.stats.pendingKyc    || 0,
           verified: d.stats.verifiedUsers || 0,
-          rejected: d.stats.rejectedKyc || 0,
+          rejected: d.stats.rejectedKyc  || 0,
         });
       })
       .catch(console.error);
-  }, []);
+  };
+
+  useEffect(() => { fetchQueue('pending'); fetchStats(); }, []);
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    fetchQueue(tab);
+  };
 
   const handleApprove = async (id) => {
     setActing(true);
@@ -974,6 +988,7 @@ const KYCVerification = ({ token }) => {
     setQueue(prev => prev.filter(k => k.id !== id));
     setSelectedKyc(null);
     setActing(false);
+    fetchStats();
   };
 
   const handleReject = async (id) => {
@@ -983,12 +998,14 @@ const KYCVerification = ({ token }) => {
     setQueue(prev => prev.filter(k => k.id !== id));
     setSelectedKyc(null);
     setActing(false);
+    fetchStats();
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading KYC queue…</div>;
+  const tabAccent = { pending: '#35a089', verified: '#10b981', rejected: '#ef4444' };
 
   return (
     <div className="space-y-6">
+      {/* Header + stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">KYC Verification</h2>
@@ -997,7 +1014,7 @@ const KYCVerification = ({ token }) => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
             <Clock size={16} className="text-amber-600" />
-            <span className="text-sm font-medium text-amber-700">{queue.length} pending</span>
+            <span className="text-sm font-medium text-amber-700">{kycStats.pending} pending</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
             <span className="text-sm font-medium text-green-700">✓ {kycStats.verified} verified</span>
@@ -1008,64 +1025,97 @@ const KYCVerification = ({ token }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(paginated || []).map((kyc) => (
-          <div key={kyc.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={{borderTop: "3px solid #35a089"}}>
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#35a089] to-[#2a7d6b] flex items-center justify-center text-white text-sm font-bold overflow-hidden ring-2 ring-[#35a089]/20">
-                  {kyc.selfiePhoto
-                    ? <img src={kyc.selfiePhoto} alt={kyc.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
-                    : null}
-                  <span style={{display: kyc.selfiePhoto ? 'none' : 'flex'}}>{kyc.name.split(' ').map(n => n[0]).join('')}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{kyc.name}</p>
-                  <p className="text-xs text-gray-500 font-mono">{kyc.id}</p>
-                </div>
-              </div>
-              <StatusBadge status="Pending" size="sm" />
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-lg p-2.5">
-                  <p className="text-xs text-gray-500 uppercase">Phone</p>
-                  <p className="text-sm font-medium text-gray-900 font-mono">{formatPhone(kyc.phone)}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-2.5">
-                  <p className="text-xs text-gray-500 uppercase">ID Number</p>
-                  <p className="text-sm font-medium text-gray-900 font-mono">{kyc.idNumber}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setSelectedKyc(kyc)}
-                  className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Eye size={14} />
-                  Preview
-                </button>
-                <button 
-                  onClick={() => handleApprove(kyc.id)}
-                  className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Check size={14} />
-                  Approve
-                </button>
-                <button 
-                  onClick={() => handleReject(kyc.id)}
-                  className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <X size={14} />
-                  Reject
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Tab switcher */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {['pending', 'verified', 'rejected'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => switchTab(tab)}
+            className={`px-5 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors capitalize ${
+              activeTab === tab
+                ? 'border-[#35a089] text-[#35a089] bg-[#35a089]/5'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab} ({kycStats[tab]})
+          </button>
         ))}
       </div>
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center h-48 text-gray-400">Loading KYC {activeTab}…</div>
+      ) : queue.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2">
+          <span className="text-4xl">{activeTab === 'verified' ? '✓' : activeTab === 'rejected' ? '✕' : '⏳'}</span>
+          <p className="text-sm">No {activeTab} KYC records</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginated.map((kyc) => (
+              <div key={kyc.id}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                style={{ borderTop: `3px solid ${tabAccent[activeTab]}` }}>
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#35a089] to-[#2a7d6b] flex items-center justify-center text-white text-sm font-bold overflow-hidden ring-2 ring-[#35a089]/20">
+                      {kyc.selfiePhoto
+                        ? <img src={kyc.selfiePhoto} alt={kyc.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+                        : null}
+                      <span style={{display: kyc.selfiePhoto ? 'none' : 'flex'}}>{kyc.name.split(' ').map(n => n[0]).join('')}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{kyc.name}</p>
+                      <p className="text-xs text-gray-500 font-mono">{kyc.id}</p>
+                    </div>
+                  </div>
+                  <StatusBadge status={kyc.status} size="sm" />
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-2.5">
+                      <p className="text-xs text-gray-500 uppercase">Phone</p>
+                      <p className="text-sm font-medium text-gray-900 font-mono">{formatPhone(kyc.phone)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2.5">
+                      <p className="text-xs text-gray-500 uppercase">ID Number</p>
+                      <p className="text-sm font-medium text-gray-900 font-mono">{kyc.idNumber}</p>
+                    </div>
+                  </div>
+                  {activeTab === 'rejected' && kyc.rejectionReason && (
+                    <div className="bg-red-50 rounded-lg p-2.5">
+                      <p className="text-xs text-red-500 uppercase mb-1">Reason</p>
+                      <p className="text-sm text-red-700">{kyc.rejectionReason}</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedKyc(kyc)}
+                      className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Eye size={14} /> Preview
+                    </button>
+                    {activeTab === 'pending' && (
+                      <>
+                        <button onClick={() => handleApprove(kyc.id)} disabled={acting}
+                          className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
+                          <Check size={14} /> Approve
+                        </button>
+                        <button onClick={() => handleReject(kyc.id)} disabled={acting}
+                          className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
+                          <X size={14} /> Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        </>
+      )}
 
       <Modal isOpen={!!selectedKyc} onClose={() => setSelectedKyc(null)} title="KYC Document Review" size="lg">
         {selectedKyc && (
@@ -1079,45 +1129,29 @@ const KYCVerification = ({ token }) => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">{selectedKyc.name}</h3>
-                <p className="text-sm text-gray-500">{formatPhone(selectedKyc.phone)} - ID: <span className="font-mono font-semibold text-gray-700">{selectedKyc.idNumber}</span></p>
+                <p className="text-sm text-gray-500">{formatPhone(selectedKyc.phone)} — ID: <span className="font-mono font-semibold text-gray-700">{selectedKyc.idNumber}</span></p>
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">ID Document</p>
                 <div className="aspect-[4/3] bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={selectedKyc.idPhoto} 
-                    alt="ID Document" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="flex flex-col items-center gap-2 text-gray-400"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span class="text-sm">ID Photo Preview</span></div>'; }}
-                  />
+                  <img src={selectedKyc.idPhoto} alt="ID Document" className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="flex flex-col items-center gap-2 text-gray-400"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span class="text-sm">ID Photo Preview</span></div>'; }} />
                 </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Selfie Verification</p>
                 <div className="aspect-[4/3] bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={selectedKyc.selfiePhoto} 
-                    alt="Selfie" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="flex flex-col items-center gap-2 text-gray-400"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span class="text-sm">Selfie Preview</span></div>'; }}
-                  />
+                  <img src={selectedKyc.selfiePhoto} alt="Selfie" className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="flex flex-col items-center gap-2 text-gray-400"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span class="text-sm">Selfie Preview</span></div>'; }} />
                 </div>
               </div>
             </div>
-
             <div className="bg-gray-50 rounded-xl p-4">
               <p className="text-sm font-medium text-gray-700 mb-2">Verification Checklist</p>
               <div className="space-y-2">
-                {[
-                  'ID document is clear and readable',
-                  'ID number matches application',
-                  'Selfie matches ID photo',
-                  'No signs of document tampering',
-                  'User is over 18 years old'
-                ].map((item, i) => (
+                {['ID document is clear and readable','ID number matches application','Selfie matches ID photo','No signs of document tampering','User is over 18 years old'].map((item, i) => (
                   <label key={i} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#35a089] focus:ring-[#35a089]" defaultChecked={i < 3} />
                     <span className="text-sm text-gray-700">{item}</span>
@@ -1125,23 +1159,29 @@ const KYCVerification = ({ token }) => {
                 ))}
               </div>
             </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={() => handleApprove(selectedKyc.id)}
-                className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
-              >
-                <Check size={18} />
-                Approve Verification
-              </button>
-              <button 
-                onClick={() => handleReject(selectedKyc.id)}
-                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-              >
-                <X size={18} />
-                Reject Verification
-              </button>
-            </div>
+            {activeTab === 'pending' && (
+              <div className="flex gap-3">
+                <button onClick={() => handleApprove(selectedKyc.id)} disabled={acting}
+                  className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                  <Check size={18} /> Approve Verification
+                </button>
+                <button onClick={() => handleReject(selectedKyc.id)} disabled={acting}
+                  className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                  <X size={18} /> Reject Verification
+                </button>
+              </div>
+            )}
+            {activeTab === 'verified' && (
+              <div className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-lg text-green-700 font-medium">
+                <Check size={18} /> This user is KYC verified
+              </div>
+            )}
+            {activeTab === 'rejected' && (
+              <div className="bg-red-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-red-700">Rejection Reason</p>
+                <p className="text-sm text-red-600 mt-1">{selectedKyc.rejectionReason || 'No reason provided'}</p>
+              </div>
+            )}
           </div>
         )}
       </Modal>
